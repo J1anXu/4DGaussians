@@ -3,7 +3,7 @@
 # GRAPHDECO research group, https://team.inria.fr/graphdeco
 # All rights reserved.
 #
-# This software is free for non-commercial, research and evaluation use 
+# This software is free for non-commercial, research and evaluation use
 # under the terms of the LICENSE.md file.
 #
 # For inquiries contact  george.drettakis@inria.fr
@@ -105,7 +105,7 @@ class ModelHiddenParams(ParamGroup):
 
         
         super().__init__(parser, "ModelHiddenParams")
-        
+
 class OptimizationParams(ParamGroup):
     def __init__(self, parser):
         self.dataloader=False
@@ -136,7 +136,7 @@ class OptimizationParams(ParamGroup):
         self.opacity_reset_interval = 3000
         self.densification_interval = 100
         self.densify_from_iter = 500
-        self.densify_until_iter = 15_000
+        self.densify_until_iter = 10_000
         self.densify_grad_threshold_coarse = 0.0002
         self.densify_grad_threshold_fine_init = 0.0002
         self.densify_grad_threshold_after = 0.0002
@@ -145,8 +145,19 @@ class OptimizationParams(ParamGroup):
         self.opacity_threshold_coarse = 0.005
         self.opacity_threshold_fine_init = 0.005
         self.opacity_threshold_fine_after = 0.005
-        self.batch_size=1
-        self.add_point=False
+        self.batch_size = 1
+        self.add_point = False
+        self.admm = True
+        self.admm_start_iter1 = -1
+        self.admm_stop_iter1 = -1
+        self.densify_from_iter = -1
+        self.densify_until_iter = -1
+        self.simp_iteration2 = -1
+        self.iterations = -1
+        self.admm_interval = -1
+        self.rho_lr = -1
+        self.opacity_admm_threshold1 = -1
+        self.opacity_admm_threshold2 = -1
         super().__init__(parser, "Optimization Parameters")
 
 def get_combined_args(parser : ArgumentParser):
