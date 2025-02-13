@@ -90,6 +90,9 @@ def render_sets(dataset : ModelParams, hyperparam, iteration : int, pipeline : P
             render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, background,cam_type)
         if not skip_video:
             render_set(dataset.model_path,"video",scene.loaded_iter,scene.getVideoCameras(),gaussians,pipeline,background,cam_type)
+        
+        print(f"current model point size : {gaussians.get_xyz.shape[0]}")
+
 if __name__ == "__main__":
     # Set up command line argument parser
     parser = ArgumentParser(description="Testing script parameters")

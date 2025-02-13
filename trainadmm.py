@@ -218,10 +218,11 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
 
 
         if opt.admm == True and iteration > opt.admm_start_iter1 and iteration % opt.admm_interval == 0 and iteration <= opt.admm_stop_iter1:
-            admm_loss = admm.get_admm_loss(loss)
+            admm_loss = 0.1 * admm.get_admm_loss(loss)
             loss += admm_loss
             logging.info(f"Loss = {loss}, Ll1 = {Ll1}, admm_loss = {admm_loss}")
-
+        else:
+            logging.info(f"Loss = {loss}, Ll1 = {Ll1}")
         
         if stage == "fine" and hyper.time_smoothness_weight != 0:
             # tv_loss = 0
@@ -308,7 +309,7 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                 admm = ADMM(gaussians, opt. rho_lr, device = "cuda")
                 admm.update(opt, update_u = False)
             elif iteration % opt.admm_interval == 0 and opt.admm == True and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1):
-                    admm.update(opt)
+                admm.update(opt)
             
             if iteration == args.simp_iteration2:
                 opacity = gaussians._opacity[:,0]
@@ -320,8 +321,10 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                 opacity_threshold = opacity_sort[threshold-1]
                 mask = (opacity <= opacity_threshold).squeeze()
                 print(len(mask), mask.sum())    
+                logging.info(f"\n before admm pruning: {len(gaussians.get_opacity)}")
                 print("\nbefore admm pruning:",len(gaussians.get_opacity))
                 gaussians.prune_points(mask)
+                logging.info(f"\n after admm pruning: {len(gaussians.get_opacity)}")
                 print("\nafter admm pruning",len(gaussians.get_opacity))
 
 
@@ -418,12 +421,11 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
                     tb_writer.add_scalar(stage+"/"+config['name'] + '/loss_viewpoint - psnr', psnr_test, iteration)
 
         if tb_writer:
-            tb_writer.add_histogram(f"{stage}/scene/opacity_histogram", scene.gaussians.get_opacity, iteration)
-            
             tb_writer.add_scalar(f'{stage}/total_points', scene.gaussians.get_xyz.shape[0], iteration)
             tb_writer.add_scalar(f'{stage}/deformation_rate', scene.gaussians._deformation_table.sum()/scene.gaussians.get_xyz.shape[0], iteration)
             tb_writer.add_histogram(f"{stage}/scene/motion_histogram", scene.gaussians._deformation_accum.mean(dim=-1)/100, iteration,max_bins=500)
-        
+            tb_writer.add_histogram(f"{stage}/scene/opacity_histogram", scene.gaussians.get_opacity, iteration)
+
         torch.cuda.empty_cache()
 def setup_seed(seed):
      torch.manual_seed(seed)
@@ -447,7 +449,7 @@ if __name__ == "__main__":
     parser.add_argument('--debug_from', type=int, default=-1)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[3000,7000,14000])
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[100,200,600, 14000, 20000, 30_000, 45000, 60000])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[14000, 20000, 30_000, 45000, 60000])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default = None)
@@ -455,7 +457,6 @@ if __name__ == "__main__":
     parser.add_argument("--configs", type=str, default = "")
     
     args = parser.parse_args(sys.argv[1:])
-    args.save_iterations.append(args.iterations)
     if args.configs:
         import mmcv
         from utils.params_utils import merge_hparams
@@ -469,6 +470,14 @@ if __name__ == "__main__":
     # Start GUI server, configure and run training
     network_gui.init(args.ip, args.port)
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
+
+    args.save_iterations.append(args.iterations)
+    
+    # 记录参数到日志
+    logging.info("Training started with the following arguments:")
+    for arg, value in vars(args).items():
+        logging.info(f"{arg}: {value}")
+
     training(lp.extract(args), hp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from, args.expname)
 
     # All done
