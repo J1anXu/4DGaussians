@@ -8,9 +8,12 @@
 #
 # For inquiries contact  george.drettakis@inria.fr
 #
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "7"  
+
 
 from pathlib import Path
-import os
+
 from PIL import Image
 import torch
 import torchvision.transforms.functional as tf

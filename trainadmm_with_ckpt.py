@@ -9,7 +9,8 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os, sys
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"  
+os.environ["CUDA_VISIBLE_DEVICES"] = "7"  
+
 import numpy as np
 import random
 import torch
@@ -31,8 +32,14 @@ import lpips
 from utils.scene_utils import render_training_image
 from time import time
 import copy
+from admm import ADMM
 
 to8b = lambda x : (255*np.clip(x.cpu().numpy(),0,1)).astype(np.uint8)
+# 引入日志系统模块
+from logger import initialize_logger
+# 初始化日志系统（可以指定日志存储目录和时区）
+initialize_logger(log_dir='./log', timezone_str="Etc/GMT-4")
+import logging
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -52,6 +59,7 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
             # process is in the coarse stage, but start from fine stage
             return
         if stage in checkpoint: 
+            print("checkpoint load!")
             (model_params, first_iter) = torch.load(checkpoint)
             gaussians.restore(model_params, opt)
 
@@ -65,7 +73,7 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
     viewpoint_stack = None
     ema_loss_for_log = 0.0
     ema_psnr_for_log = 0.0
-
+    ema_admm_loss_for_log = 0.0
     final_iter = train_iter
     
     progress_bar = tqdm(range(first_iter, final_iter), desc="Training progress")
@@ -104,6 +112,8 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
         viewpoint_stack = temp_list.copy()
     else:
         load_in_memory = False 
+    
+    admm_loss = torch.tensor(0)
                             # 
     count = 0
     for iteration in range(first_iter, final_iter+1):        
@@ -204,8 +214,13 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
         psnr_ = psnr(image_tensor, gt_image_tensor).mean().double()
         # norm
         
-
         loss = Ll1
+
+        if opt.admm == True and iteration > opt.admm_start_iter1 and iteration % opt.admm_interval == 0 and iteration <= opt.admm_stop_iter1:
+            admm_loss = 0.1 * admm.get_admm_loss(loss)
+            loss += admm_loss
+        
+        
         if stage == "fine" and hyper.time_smoothness_weight != 0:
             # tv_loss = 0
             tv_loss = gaussians.compute_regulation(hyper.time_smoothness_weight, hyper.l1_time_planes, hyper.plane_tv_weight)
@@ -218,24 +233,36 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
         #     loss += opt.lambda_lpips * lpipsloss
         
         loss.backward()
+        
         if torch.isnan(loss).any():
             print("loss is nan,end training, reexecv program now.")
             os.execv(sys.executable, [sys.executable] + sys.argv)
+        
         viewspace_point_tensor_grad = torch.zeros_like(viewspace_point_tensor)
         for idx in range(0, len(viewspace_point_tensor_list)):
             viewspace_point_tensor_grad = viewspace_point_tensor_grad + viewspace_point_tensor_list[idx].grad
         iter_end.record()
 
         with torch.no_grad():
+
             # Progress bar
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
             ema_psnr_for_log = 0.4 * psnr_ + 0.6 * ema_psnr_for_log
+            ema_admm_loss_for_log = 0.4 * admm_loss.item() + 0.6 * ema_admm_loss_for_log
+
             total_point = gaussians._xyz.shape[0]
             if iteration % 10 == 0:
                 progress_bar.set_postfix({"Loss": f"{ema_loss_for_log:.{7}f}",
+                                          "admm_loss": f"{ema_admm_loss_for_log:.{7}f}",
                                           "psnr": f"{psnr_:.{2}f}",
                                           "point":f"{total_point}"})
                 progress_bar.update(10)
+                logging.info({
+                    "Loss": f"{ema_loss_for_log:.5f}",
+                    "admm_loss": f"{ema_admm_loss_for_log:.5f}",
+                    "psnr": f"{psnr_:.2f}",
+                    "point": total_point  # 直接使用数值，无需字符串格式化
+                })
             if iteration == opt.iterations:
                 progress_bar.close()
 
@@ -256,6 +283,7 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
 
                     # total_images.append(to8b(temp_image).transpose(1,2,0))
             timer.start()
+
             # Densification
             if iteration < opt.densify_until_iter :
                 # Keep track of max radii in image-space for pruning
@@ -268,24 +296,40 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                 else:    
                     opacity_threshold = opt.opacity_threshold_fine_init - iteration*(opt.opacity_threshold_fine_init - opt.opacity_threshold_fine_after)/(opt.densify_until_iter)  
                     densify_threshold = opt.densify_grad_threshold_fine_init - iteration*(opt.densify_grad_threshold_fine_init - opt.densify_grad_threshold_after)/(opt.densify_until_iter )  
+
                 if  iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0 and gaussians.get_xyz.shape[0]<360000:
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    
                     gaussians.densify(densify_threshold, opacity_threshold, scene.cameras_extent, size_threshold, 5, 5, scene.model_path, iteration, stage)
+
                 if  iteration > opt.pruning_from_iter and iteration % opt.pruning_interval == 0 and gaussians.get_xyz.shape[0]>200000:
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-
                     gaussians.prune(densify_threshold, opacity_threshold, scene.cameras_extent, size_threshold)
-                    
-                # if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0 :
-                if iteration % opt.densification_interval == 0 and gaussians.get_xyz.shape[0]<360000 and opt.add_point:
-                    gaussians.grow(5,5,scene.model_path,iteration,stage)
-                    # torch.cuda.empty_cache()
+
                 if iteration % opt.opacity_reset_interval == 0:
                     print("reset opacity")
                     gaussians.reset_opacity()
-                    
+            elif iteration == opt.admm_start_iter1 and opt.admm == True:        
+                admm = ADMM(gaussians, opt. rho_lr, device = "cuda")
+                admm.update(opt, update_u = False)
+            elif iteration % opt.admm_interval == 0 and opt.admm == True and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1):
+                admm.update(opt)
             
+            if iteration == args.simp_iteration2:
+                opacity = gaussians._opacity[:,0]
+                print('opacity',opacity)
+                threshold = int(opt.opacity_admm_threshold2 * len(opacity))
+                opacity_sort = torch.zeros(opacity.shape)
+                opacity_sort, _ = torch.sort(opacity,0)
+                print("opacity_sort",opacity_sort)
+                opacity_threshold = opacity_sort[threshold-1]
+                mask = (opacity <= opacity_threshold).squeeze()
+                print(len(mask), mask.sum())    
+                logging.info(f"\n before admm pruning: {len(gaussians.get_opacity)}")
+                print("\nbefore admm pruning:",len(gaussians.get_opacity))
+                gaussians.prune_points(mask)
+                logging.info(f"\n after admm pruning: {len(gaussians.get_opacity)}")
+                print("\nafter admm pruning",len(gaussians.get_opacity))
+
 
             # Optimizer step
             if iteration < opt.iterations:
@@ -295,6 +339,9 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" +f"_{stage}_" + str(iteration) + ".pth")
+
+
+                
 def training(dataset, hyper, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, expname):
     # first_iter = 0
     tb_writer = prepare_output_and_logger(expname)
@@ -377,12 +424,11 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
                     tb_writer.add_scalar(stage+"/"+config['name'] + '/loss_viewpoint - psnr', psnr_test, iteration)
 
         if tb_writer:
-            tb_writer.add_histogram(f"{stage}/scene/opacity_histogram", scene.gaussians.get_opacity, iteration)
-            
             tb_writer.add_scalar(f'{stage}/total_points', scene.gaussians.get_xyz.shape[0], iteration)
             tb_writer.add_scalar(f'{stage}/deformation_rate', scene.gaussians._deformation_table.sum()/scene.gaussians.get_xyz.shape[0], iteration)
             tb_writer.add_histogram(f"{stage}/scene/motion_histogram", scene.gaussians._deformation_accum.mean(dim=-1)/100, iteration,max_bins=500)
-        
+            tb_writer.add_histogram(f"{stage}/scene/opacity_histogram", scene.gaussians.get_opacity, iteration)
+
         torch.cuda.empty_cache()
 def setup_seed(seed):
      torch.manual_seed(seed)
@@ -400,20 +446,20 @@ if __name__ == "__main__":
     op = OptimizationParams(parser)
     pp = PipelineParams(parser)
     hp = ModelHiddenParams(parser)
+    #
     parser.add_argument('--ip', type=str, default="127.0.0.1")
     parser.add_argument('--port', type=int, default=6009)
     parser.add_argument('--debug_from', type=int, default=-1)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
-    parser.add_argument("--test_iterations", nargs="+", type=int, default=[3000,7000,14000])
+    parser.add_argument("--test_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--save_iterations", nargs="+", type=int, default=[14000, 20000, 30_000, 45000, 60000])
     parser.add_argument("--quiet", action="store_true")
-    parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[6000,8000,10000,12000,14000])
-    parser.add_argument("--start_checkpoint", type=str, default = None)
+    parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
+    parser.add_argument("--start_checkpoint", type=str, default = "None")
     parser.add_argument("--expname", type=str, default = "")
     parser.add_argument("--configs", type=str, default = "")
     
     args = parser.parse_args(sys.argv[1:])
-    args.save_iterations.append(args.iterations)
     if args.configs:
         import mmcv
         from utils.params_utils import merge_hparams
@@ -427,6 +473,14 @@ if __name__ == "__main__":
     # Start GUI server, configure and run training
     network_gui.init(args.ip, args.port)
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
+
+    args.save_iterations.append(args.iterations)
+    
+    # 记录参数到日志
+    logging.info("Training started with the following arguments:")
+    for arg, value in vars(args).items():
+        logging.info(f"{arg}: {value}")
+
     training(lp.extract(args), hp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from, args.expname)
 
     # All done
