@@ -24,6 +24,13 @@ from tqdm import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser
 from pytorch_msssim import ms_ssim
+
+# 引入日志系统模块
+from logger import initialize_logger
+# 初始化日志系统（可以指定日志存储目录和时区）
+initialize_logger(log_dir='./log', timezone_str="Etc/GMT-4")
+import logging
+
 def readImages(renders_dir, gt_dir):
     renders = []
     gts = []
@@ -37,7 +44,6 @@ def readImages(renders_dir, gt_dir):
     return renders, gts, image_names
 
 def evaluate(model_paths):
-
     full_dict = {}
     per_view_dict = {}
     full_dict_polytopeonly = {}
@@ -87,6 +93,13 @@ def evaluate(model_paths):
                 print("Scene: ", scene_dir,  "LPIPS-alex: {:>12.7f}".format(torch.tensor(lpipsa).mean(), ".5"))
                 print("Scene: ", scene_dir,  "MS-SSIM: {:>12.7f}".format(torch.tensor(ms_ssims).mean(), ".5"))
                 print("Scene: ", scene_dir,  "D-SSIM: {:>12.7f}".format(torch.tensor(Dssims).mean(), ".5"))
+                logging.info("Scene: %s", scene_dir)
+                logging.info("  SSIM: %.5f", torch.tensor(ssims).mean().item())
+                logging.info("  PSNR: %.5f", torch.tensor(psnrs).mean().item())
+                logging.info("  LPIPS-vgg: %.5f", torch.tensor(lpipss).mean().item())
+                logging.info("  LPIPS-alex: %.5f", torch.tensor(lpipsa).mean().item())
+                logging.info("  MS-SSIM: %.5f", torch.tensor(ms_ssims).mean().item())
+                logging.info("  D-SSIM: %.5f", torch.tensor(Dssims).mean().item())
 
                 full_dict[scene_dir][method].update({"SSIM": torch.tensor(ssims).mean().item(),
                                                         "PSNR": torch.tensor(psnrs).mean().item(),
