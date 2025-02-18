@@ -56,10 +56,58 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     gt_list = []
     render_list = []
     print("point nums:",gaussians._xyz.shape[0])
+    def ndc2Pix(v, S):
+        return ((v + 1.0) * S - 1.0) * 0.5
+    C0 = 0.28209479177387814
+    def RGB2SH(rgb):
+        return (rgb - 0.5) / C0
+    def SH2RGB(sh):
+        return sh * C0 + 0.5
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
         if idx == 0:time1 = time()
         
-        rendering = render(view, gaussians, pipeline, background,cam_type=cam_type)["render"]
+        rendering = render(view, gaussians, pipeline, background, cam_type=cam_type)["render"]
+
+        # perspective projection (modified from cuda code)
+        xyz = gaussians._xyz+0
+        device = xyz.device  # 获取 xyz 的设备
+
+        # 将 full_proj_transform 移动到与 xyz 相同的设备
+        full_proj_transform = view.full_proj_transform.to(device)
+        world_view_transform = view.world_view_transform.to(device)
+        rgb = SH2RGB(gaussians._features_dc+0)[:,0]
+        p_hom = torch.matmul(xyz, full_proj_transform[:3])+full_proj_transform[3:4]
+        p_w = 1.0 / (p_hom[:,3] + 0.0000001)
+        p_proj = p_hom[:,:3]*p_w[:,None]
+        
+
+        p_view = torch.matmul(xyz, world_view_transform[:3,:3])+world_view_transform[3:4, :3]
+        mask = p_view[:,2].cpu().numpy()>0.2
+
+        point_image = ndc2Pix(p_proj[:,0], rendering.shape[2]), ndc2Pix(p_proj[:,1], rendering.shape[1])
+        point_image = torch.cat((point_image[0][:,None], point_image[1][:,None]), -1)
+
+        points = point_image.detach().cpu().numpy()[mask]
+        colors = rgb.detach().cpu().numpy()[mask]
+        from PIL import Image, ImageDraw
+        def draw_points_on_image(points, colors, image, size=1):
+
+            image[image>1]=1
+            image[image<0]=0
+            image = Image.fromarray((image*255).astype(np.uint8))
+            draw = ImageDraw.Draw(image)
+            for point, color in zip(points, colors):
+                x = point[0]
+                y = point[1]
+                
+                r, g, b = color
+                draw.ellipse((x-size,y-size,x+size,y+size), fill=(int(r), int(g), int(b)))
+            return image
+
+        # tune point size for better visualization 0.3, 0.3, 1.2
+        image_proj = draw_points_on_image(points, np.zeros(colors.shape)+[0,0,255], rendering.permute(1,2,0).detach().cpu().numpy(), size=0.3)
+        image_proj.save(r'./output.jpg')
+
         render_images.append(to8b(rendering).transpose(1,2,0))
         render_list.append(rendering)
         if name in ["train", "test"]:
