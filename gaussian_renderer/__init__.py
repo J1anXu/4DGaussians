@@ -131,10 +131,13 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     # breakpoint()
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
+    p_diff = means3D_final - pc.get_xyz
+    p_diff = torch.norm(p_diff)  # 计算 L2 范数
     return {"render": rendered_image,
             "viewspace_points": screenspace_points,
             "visibility_filter" : radii > 0,
             "radii": radii,
             "depth":depth,
-            "means3D_final":means3D_final}
+            "means3D_final":means3D_final,
+            "p_diff": p_diff}
 

@@ -31,7 +31,7 @@ import concurrent.futures
 from PIL import Image, ImageDraw
 from torchvision import transforms
 import torchvision.utils as vutils
-DRAW = False # 是否画出高斯中心
+DRAW = True # 是否画出高斯中心
 
 def multithread_write(image_list, path):
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=None)
@@ -88,7 +88,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     render_list = []
     draw_list = []
     print("point nums:",gaussians._xyz.shape[0])
-
+    count = 0
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
         if idx == 0:time1 = time()
 
@@ -135,6 +135,11 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
             else:
                 gt  = view['image'].cuda()
             gt_list.append(gt)
+        count+=1
+        # 防止渲染train的时候显存溢出
+        if count>350:
+            break
+
 
     time2=time()
     print("FPS:",(len(views)-1)/(time2-time1))
