@@ -10,7 +10,7 @@ OptimizationParams = dict(
     admm_interval= 25,  # 50
     admm= True,
     rho_lr= 0.0005,
-    opacity_admm_threshold1= 0.50,
-    opacity_admm_threshold2= 0.50,
+    opacity_admm_threshold1= 0.5,
+    opacity_admm_threshold2= 0.5,
     coarse_iterations= 0,
 )
