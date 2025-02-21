@@ -3,13 +3,13 @@
 # GRAPHDECO research group, https://team.inria.fr/graphdeco
 # All rights reserved.
 #
-# This software is free for non-commercial, research and evaluation use 
+# This software is free for non-commercial, research and evaluation use
 # under the terms of the LICENSE.md file.
 #
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os, sys
-os.environ["CUDA_VISIBLE_DEVICES"] = "7"  
+os.environ["CUDA_VISIBLE_DEVICES"] = "5"  
 
 import numpy as np
 import random
@@ -33,6 +33,8 @@ from utils.scene_utils import render_training_image
 from time import time
 import copy
 from admm import ADMM
+import wandb
+wandb.login()
 
 to8b = lambda x : (255*np.clip(x.cpu().numpy(),0,1)).astype(np.uint8)
 # 引入日志系统模块
@@ -63,8 +65,8 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
             (model_params, first_iter) = torch.load(checkpoint)
             gaussians.restore(model_params, opt)
 
-
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
+
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 
     iter_start = torch.cuda.Event(enable_timing = True)
@@ -75,7 +77,7 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
     ema_psnr_for_log = 0.0
     ema_admm_loss_for_log = 0.0
     final_iter = train_iter
-    
+
     progress_bar = tqdm(range(first_iter, final_iter), desc="Training progress")
     first_iter += 1
     # lpips_model = lpips.LPIPS(net="alex").cuda()
@@ -83,12 +85,11 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
     test_cams = scene.getTestCameras()
     train_cams = scene.getTrainCameras()
 
-
     if not viewpoint_stack and not opt.dataloader:
         # dnerf's branch
         viewpoint_stack = [i for i in train_cams]
         temp_list = copy.deepcopy(viewpoint_stack)
-    # 
+    #
     batch_size = opt.batch_size
     print("data loading done")
     if opt.dataloader:
@@ -101,8 +102,7 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
             viewpoint_stack_loader = DataLoader(viewpoint_stack, batch_size=batch_size,shuffle=True,num_workers=16,collate_fn=list)
             random_loader = True
         loader = iter(viewpoint_stack_loader)
-    
-    
+
     # dynerf, zerostamp_init
     # breakpoint()
     if stage == "coarse" and opt.zerostamp_init:
@@ -112,11 +112,38 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
         viewpoint_stack = temp_list.copy()
     else:
         load_in_memory = False 
-    
+
     admm_loss = torch.tensor(0)
-                            # 
+    #
     count = 0
-    for iteration in range(first_iter, final_iter+1):        
+
+    wandb.init(
+        # Set the project where this run will be logged
+        project="trainadmm_with_ckpt",
+        # We pass a run name (otherwise it’ll be randomly assigned, like sunshine-lollypop-10)
+        name=f"stage_{stage}",
+        # Track hyperparameters and run metadata
+        config={
+            "opt": vars(opt),
+            "dataset": vars(dataset),
+            "hyper": vars(hyper),
+            "pipe": vars(pipe),
+            "testing_iterations": testing_iterations,
+            "saving_iterations": saving_iterations,
+            "checkpoint": checkpoint,
+            "stage": stage,
+            "train_iter": train_iter,
+        },
+    )
+
+    times = scene.train_camera.dataset.image_times[0 : scene.train_camera.dataset.time_number]  
+
+    for iteration in range(first_iter, final_iter+1):    
+        # 记录 opacity 分布直方图
+        wandb.log({"opacity_distribution": wandb.Histogram(gaussians.get_opacity.tolist())})
+        # 记录 pathLen 分布直方图
+        wandb.log({"pathLen_distribution": wandb.Histogram(gaussians.get_pathLen(times).tolist())})
+
         if network_gui.conn == None:
             network_gui.try_connect()
         while network_gui.conn != None:
@@ -170,7 +197,7 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
             viewpoint_cams = []
 
             while idx < batch_size :    
-                    
+
                 viewpoint_cam = viewpoint_stack.pop(randint(0,len(viewpoint_stack)-1))
                 if not viewpoint_stack :
                     viewpoint_stack =  temp_list.copy()
@@ -178,8 +205,8 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                 idx +=1
             if len(viewpoint_cams) == 0:
                 continue
-        # print(len(viewpoint_cams))     
-        # breakpoint()   
+        # print(len(viewpoint_cams))
+        # breakpoint()
         # Render
         if (iteration - 1) == debug_from:
             pipe.debug = True
@@ -196,12 +223,11 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                 gt_image = viewpoint_cam.original_image.cuda()
             else:
                 gt_image  = viewpoint_cam['image'].cuda()
-            
+
             gt_images.append(gt_image.unsqueeze(0))
             radii_list.append(radii.unsqueeze(0))
             visibility_filter_list.append(visibility_filter.unsqueeze(0))
             viewspace_point_tensor_list.append(viewspace_point_tensor)
-        
 
         radii = torch.cat(radii_list,0).max(dim=0).values
         visibility_filter = torch.cat(visibility_filter_list).any(dim=0)
@@ -213,14 +239,13 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
 
         psnr_ = psnr(image_tensor, gt_image_tensor).mean().double()
         # norm
-        
+
         loss = Ll1
 
         if opt.admm == True and iteration > opt.admm_start_iter1 and iteration % opt.admm_interval == 0 and iteration <= opt.admm_stop_iter1:
             admm_loss = 0.1 * admm.get_admm_loss(loss)
             loss += admm_loss
-        
-        
+
         if stage == "fine" and hyper.time_smoothness_weight != 0:
             # tv_loss = 0
             tv_loss = gaussians.compute_regulation(hyper.time_smoothness_weight, hyper.l1_time_planes, hyper.plane_tv_weight)
@@ -231,13 +256,13 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
         # if opt.lambda_lpips !=0:
         #     lpipsloss = lpips_loss(image_tensor,gt_image_tensor,lpips_model)
         #     loss += opt.lambda_lpips * lpipsloss
-        
+
         loss.backward()
-        
+
         if torch.isnan(loss).any():
             print("loss is nan,end training, reexecv program now.")
             os.execv(sys.executable, [sys.executable] + sys.argv)
-        
+
         viewspace_point_tensor_grad = torch.zeros_like(viewspace_point_tensor)
         for idx in range(0, len(viewspace_point_tensor_list)):
             viewspace_point_tensor_grad = viewspace_point_tensor_grad + viewspace_point_tensor_list[idx].grad
@@ -263,6 +288,13 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                     "psnr": f"{psnr_:.2f}",
                     "point": total_point  # 直接使用数值，无需字符串格式化
                 })
+                wandb.log({
+                    "loss": round(ema_loss_for_log, 7),
+                    "admm_loss": round(ema_admm_loss_for_log, 7),
+                    "psnr": round(psnr_.item(), 7),
+                    "point": total_point  # 直接使用数值，无需字符串格式化
+                })
+
             if iteration == opt.iterations:
                 progress_bar.close()
 
@@ -277,11 +309,11 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                     or (iteration < 3000 and iteration % 50 == 49) \
                         or (iteration < 60000 and iteration %  100 == 99) :
                     # breakpoint()
-                        render_training_image(scene, gaussians, [test_cams[iteration%len(test_cams)]], render, pipe, background, stage+"test", iteration,timer.get_elapsed_time(),scene.dataset_type)
-                        render_training_image(scene, gaussians, [train_cams[iteration%len(train_cams)]], render, pipe, background, stage+"train", iteration,timer.get_elapsed_time(),scene.dataset_type)
-                        # render_training_image(scene, gaussians, train_cams, render, pipe, background, stage+"train", iteration,timer.get_elapsed_time(),scene.dataset_type)
+                    render_training_image(scene, gaussians, [test_cams[iteration%len(test_cams)]], render, pipe, background, stage+"test", iteration,timer.get_elapsed_time(),scene.dataset_type)
+                    render_training_image(scene, gaussians, [train_cams[iteration%len(train_cams)]], render, pipe, background, stage+"train", iteration,timer.get_elapsed_time(),scene.dataset_type)
+                    # render_training_image(scene, gaussians, train_cams, render, pipe, background, stage+"train", iteration,timer.get_elapsed_time(),scene.dataset_type)
 
-                    # total_images.append(to8b(temp_image).transpose(1,2,0))
+                # total_images.append(to8b(temp_image).transpose(1,2,0))
             timer.start()
 
             # Densification
@@ -313,7 +345,7 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                 admm.update(opt, update_u = False)
             elif iteration % opt.admm_interval == 0 and opt.admm == True and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1):
                 admm.update(opt)
-            
+
             if iteration == args.simp_iteration2:
                 opacity = gaussians._opacity[:,0]
                 print('opacity',opacity)
@@ -326,7 +358,9 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                 print(len(mask), mask.sum())    
                 logging.info(f"\n before admm pruning: {len(gaussians.get_opacity)}")
                 print("\nbefore admm pruning:",len(gaussians.get_opacity))
+                
                 gaussians.prune_points(mask)
+
                 logging.info(f"\n after admm pruning: {len(gaussians.get_opacity)}")
                 print("\nafter admm pruning",len(gaussians.get_opacity))
 
@@ -340,8 +374,9 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" +f"_{stage}_" + str(iteration) + ".pth")
 
+    wandb.finish()
 
-                
+
 def training(dataset, hyper, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, expname):
     # first_iter = 0
     tb_writer = prepare_output_and_logger(expname)
@@ -458,7 +493,7 @@ if __name__ == "__main__":
     parser.add_argument("--start_checkpoint", type=str, default = "None")
     parser.add_argument("--expname", type=str, default = "")
     parser.add_argument("--configs", type=str, default = "")
-    
+
     args = parser.parse_args(sys.argv[1:])
     if args.configs:
         import mmcv
@@ -475,13 +510,24 @@ if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
 
     args.save_iterations.append(args.iterations)
-    
+
     # 记录参数到日志
     logging.info("Training started with the following arguments:")
     for arg, value in vars(args).items():
         logging.info(f"{arg}: {value}")
 
-    training(lp.extract(args), hp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from, args.expname)
+    training(
+        lp.extract(args),
+        hp.extract(args),
+        op.extract(args),
+        pp.extract(args),
+        args.test_iterations,
+        args.save_iterations,
+        args.checkpoint_iterations,
+        args.start_checkpoint,
+        args.debug_from,
+        args.expname,
+    )
 
     # All done
     print("\nTraining complete.")
