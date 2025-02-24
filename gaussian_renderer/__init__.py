@@ -3,7 +3,7 @@
 # GRAPHDECO research group, https://team.inria.fr/graphdeco
 # All rights reserved.
 #
-# This software is free for non-commercial, research and evaluation use 
+# This software is free for non-commercial, research and evaluation use
 # under the terms of the LICENSE.md file.
 #
 # For inquiries contact  george.drettakis@inria.fr
@@ -21,7 +21,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     
     Background tensor (bg_color) must be on GPU!
     """
- 
+
     # Create zero tensor. We will use it to make pytorch return gradients of the 2D (screen-space) means
     screenspace_points = torch.zeros_like(pc.get_xyz, dtype=pc.get_xyz.dtype, requires_grad=True, device="cuda") + 0
     try:
@@ -30,7 +30,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         pass
 
     # Set up rasterization configuration
-    
+
     means3D = pc.get_xyz
     if cam_type != "PanopticSports":
         tanfovx = math.tan(viewpoint_camera.FoVx * 0.5)
@@ -53,7 +53,6 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     else:
         raster_settings = viewpoint_camera['camera']
         time=torch.tensor(viewpoint_camera['time']).to(means3D.device).repeat(means3D.shape[0],1)
-        
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
 
@@ -61,7 +60,6 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     # add deformation to each points
     # deformation = pc.get_deformation
 
-    
     means2D = screenspace_points
     opacity = pc._opacity
     shs = pc.get_features
@@ -81,7 +79,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         means3D_final, scales_final, rotations_final, opacity_final, shs_final = means3D, scales, rotations, opacity, shs
     elif "fine" in stage:
         # time0 = get_time()
-        # means3D_deform, scales_deform, rotations_deform, opacity_deform = pc._deformation(means3D[deformation_point], scales[deformation_point], 
+        # means3D_deform, scales_deform, rotations_deform, opacity_deform = pc._deformation(means3D[deformation_point], scales[deformation_point],
         #                                                                  rotations[deformation_point], opacity[deformation_point],
         #                                                                  time[deformation_point])
         means3D_final, scales_final, rotations_final, opacity_final, shs_final = pc._deformation(means3D, scales, 
@@ -89,8 +87,6 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
                                                                  time)
     else:
         raise NotImplementedError
-
-
 
     # time2 = get_time()
     # print("asset value:",time2-time1)
@@ -111,11 +107,11 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             colors_precomp = torch.clamp_min(sh2rgb + 0.5, 0.0)
         else:
             pass
-            # shs = 
+            # shs =
     else:
         colors_precomp = override_color
 
-    # Rasterize visible Gaussians to image, obtain their radii (on screen). 
+    # Rasterize visible Gaussians to image, obtain their radii (on screen).
     # time3 = get_time()
     rendered_image, radii, depth = rasterizer(
         means3D = means3D_final,
@@ -132,12 +128,14 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
     p_diff = means3D_final - pc.get_xyz
-    p_diff = torch.norm(p_diff)  # 计算 L2 范数
-    return {"render": rendered_image,
-            "viewspace_points": screenspace_points,
-            "visibility_filter" : radii > 0,
-            "radii": radii,
-            "depth":depth,
-            "means3D_final":means3D_final,
-            "p_diff": p_diff}
-
+    p_diff = torch.norm(p_diff, dim = 1)  # 计算 L2 范数
+    return {
+        "render": rendered_image,
+        "viewspace_points": screenspace_points,
+        "visibility_filter": radii > 0,
+        "radii": radii,
+        "depth": depth,
+        "means3D_final": means3D_final,
+        "p_diff": p_diff,
+        "time": time,
+    }
