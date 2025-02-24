@@ -34,14 +34,16 @@ from time import time
 import copy
 from admm import ADMM
 import wandb
-wandb.login()
 
-to8b = lambda x : (255*np.clip(x.cpu().numpy(),0,1)).astype(np.uint8)
-# 引入日志系统模块
 from logger import initialize_logger
-# 初始化日志系统（可以指定日志存储目录和时区）
-initialize_logger(log_dir='./log', timezone_str="Etc/GMT-4")
 import logging
+
+initialize_logger(log_dir='./log', timezone_str="Etc/GMT-4")
+
+WANDB = False
+
+if WANDB:
+    wandb.login()
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -116,31 +118,32 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
     admm_loss = torch.tensor(0)
     #
     count = 0
-
-    wandb.init(
-        # Set the project where this run will be logged
-        project="trainadmm_with_ckpt",
-        # We pass a run name (otherwise it’ll be randomly assigned, like sunshine-lollypop-10)
-        name=f"stage_{stage}",
-        # Track hyperparameters and run metadata
-        config={
-            "opt": vars(opt),
-            "dataset": vars(dataset),
-            "hyper": vars(hyper),
-            "pipe": vars(pipe),
-            "testing_iterations": testing_iterations,
-            "saving_iterations": saving_iterations,
-            "checkpoint": checkpoint,
-            "stage": stage,
-            "train_iter": train_iter,
-        },
-    )
+    if WANDB:
+        wandb.init(
+            # Set the project where this run will be logged
+            project="trainadmm_with_ckpt",
+            # We pass a run name (otherwise it’ll be randomly assigned, like sunshine-lollypop-10)
+            name=f"stage_{stage}",
+            # Track hyperparameters and run metadata
+            config={
+                "opt": vars(opt),
+                "dataset": vars(dataset),
+                "hyper": vars(hyper),
+                "pipe": vars(pipe),
+                "testing_iterations": testing_iterations,
+                "saving_iterations": saving_iterations,
+                "checkpoint": checkpoint,
+                "stage": stage,
+                "train_iter": train_iter,
+            },
+        )
 
     times = scene.train_camera.dataset.image_times[0 : scene.train_camera.dataset.time_number]  
 
     for iteration in range(first_iter, final_iter+1):    
         # 记录 opacity 分布直方图
-        wandb.log({"opacity_distribution": wandb.Histogram(gaussians.get_opacity.tolist())})
+        if WANDB:
+            wandb.log({"opacity_distribution": wandb.Histogram(gaussians.get_opacity.tolist())})
 
         if network_gui.conn == None:
             network_gui.try_connect()
@@ -293,12 +296,13 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                     "psnr": f"{psnr_:.2f}",
                     "point": total_point  # 直接使用数值，无需字符串格式化
                 })
-                wandb.log({
-                    "loss": round(ema_loss_for_log, 7),
-                    "admm_loss": round(ema_admm_loss_for_log, 7),
-                    "psnr": round(psnr_.item(), 7),
-                    "point": total_point  # 直接使用数值，无需字符串格式化
-                })
+                if WANDB:
+                    wandb.log({
+                        "loss": round(ema_loss_for_log, 7),
+                        "admm_loss": round(ema_admm_loss_for_log, 7),
+                        "psnr": round(psnr_.item(), 7),
+                        "point": total_point  # 直接使用数值，无需字符串格式化
+                    })
 
             if iteration == opt.iterations:
                 progress_bar.close()
@@ -377,8 +381,8 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" +f"_{stage}_" + str(iteration) + ".pth")
-
-    wandb.finish()
+    if WANDB:
+        wandb.finish()
 
 
 def training(dataset, hyper, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, expname):
