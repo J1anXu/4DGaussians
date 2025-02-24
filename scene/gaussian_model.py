@@ -127,6 +127,18 @@ class GaussianModel:
     def get_opacity(self):
         return self.opacity_activation(self._opacity)
     
+
+    def get_opacity_by_time(self, time):
+        means3D = self.get_xyz
+        scales = self._scaling
+        rotations = self._rotation
+        opacity = self._opacity
+        shs = self.get_features
+        time = torch.tensor(time).to(means3D.device).repeat(means3D.shape[0],1)
+        means3D_final, scales_final, rotations_final, opacity_final, shs_final = self._deformation(means3D, scales, 
+                                                            rotations, opacity, shs, time)
+        return self.opacity_activation(opacity_final)                                                    
+
     def get_covariance(self, scaling_modifier = 1):
         return self.covariance_activation(self.get_scaling, scaling_modifier, self._rotation)
 
