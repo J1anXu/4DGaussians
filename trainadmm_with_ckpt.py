@@ -141,8 +141,6 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
     for iteration in range(first_iter, final_iter+1):    
         # 记录 opacity 分布直方图
         wandb.log({"opacity_distribution": wandb.Histogram(gaussians.get_opacity.tolist())})
-        # 记录 pathLen 分布直方图
-        # wandb.log({"pathLen_distribution": wandb.Histogram(gaussians.get_pathLen(times).tolist())})
 
         if network_gui.conn == None:
             network_gui.try_connect()
