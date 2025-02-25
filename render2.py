@@ -24,7 +24,7 @@ from utils.general_utils import safe_state
 from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args, ModelHiddenParams
 from gaussian_renderer import GaussianModel
-from time import time
+import time
 from PIL import Image, ImageDraw
 from torchvision import transforms
 from torch.utils.data import Subset
@@ -83,9 +83,6 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     count = 0
 
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
-        if idx == 0:
-            time1 = time()
-
         rendering_res = render(view, gaussians, pipeline, background, cam_type=cam_type)
         rendering = rendering_res["render"]
 
@@ -112,28 +109,16 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
             draw_list.append(draw_image)
 
         render_images.append(to8b(rendering).transpose(1, 2, 0))
-        render_list.append(rendering)
+        render_list.append(rendering.cpu())
 
         if name in ["train", "test"]:
             gt = view.original_image[0:3, :, :]
             gt_list.append(gt)
 
-        count += 1
-        if count > 350:
-            break
-
-    time2 = time()
-    print("FPS:", (len(views) - 1) / (time2 - time1))
-    multithread_write(gt_list, gts_path)
-
-    multithread_write(render_list, render_path)
-
-    if DRAW:
-        multithread_write(draw_list, draw_path)
-
+    return render_list, gt_list, draw_list
     # return render_images
 
-def render_worker(gpu_id, dataset, hyperparam, iteration, pipeline, views, mode):
+def render_worker(gpu_id, dataset, hyperparam, iteration, pipeline, views, mode, result_dict):
     """ 多进程渲染 Worker 进程 """
     torch.cuda.set_device(gpu_id)  
     device = torch.device(f"cuda:{gpu_id}")
@@ -145,9 +130,24 @@ def render_worker(gpu_id, dataset, hyperparam, iteration, pipeline, views, mode)
         bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
         background = torch.tensor(bg_color, dtype=torch.float32, device=device)
 
-        render_set(dataset.model_path, mode, scene.loaded_iter, views, gaussians, pipeline, background, cam_type)
+        render_list, gt_list, draw_list = render_set(
+            dataset.model_path, mode, scene.loaded_iter, views, gaussians, pipeline, background, cam_type
+        )
+
+    result_dict[gpu_id] = {
+        "renders": render_list,
+        "gts": gt_list,
+        "draws": draw_list,
+    }
+
         
         
+import torch.multiprocessing as mp
+
+def ensure_directories_exist(*paths):
+    for path in paths:
+        os.makedirs(path, exist_ok=True)
+
 def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, skip_test, skip_video):
     num_gpus = torch.cuda.device_count()
     print(f"Detected {num_gpus} GPUs.")
@@ -156,6 +156,8 @@ def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, s
         gaussians = GaussianModel(dataset.sh_degree, hyperparam)
         scene = Scene(dataset, gaussians, load_iteration=iteration, shuffle=False)
 
+    manager = mp.Manager()
+    result_dict = manager.dict()  # 共享字典存储 GPU 结果
     processes = []
 
     def split_and_render(mode, views):
@@ -163,21 +165,46 @@ def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, s
         if len(views) == 0:
             return
         
-        num_gpus = torch.cuda.device_count()
         num_views = len(views)
-        
         indices = torch.linspace(0, num_views, num_gpus + 1, dtype=torch.int).tolist()
         split_views = [Subset(views, range(indices[i], indices[i+1])) for i in range(num_gpus)]
 
         for gpu_id in range(num_gpus):
-            p = mp.Process(target=render_worker, args=(gpu_id, dataset, hyperparam, iteration, pipeline, split_views[gpu_id], mode))
+            p = mp.Process(
+                target=render_worker,
+                args=(gpu_id, dataset, hyperparam, scene.loaded_iter, pipeline, split_views[gpu_id], mode, result_dict)
+            )
             p.start()
             processes.append(p)
 
-        # Join processes
         for p in processes:
             p.join()
-        
+
+        # **汇总所有 GPU 结果并按顺序写入**
+        sorted_gpu_ids = sorted(result_dict.keys())  # 确保按 GPU ID 顺序
+        final_renders, final_gts, final_draws = [], [], []
+
+        for gpu_id in sorted_gpu_ids:
+            final_renders.extend(result_dict[gpu_id]["renders"])
+            final_gts.extend(result_dict[gpu_id]["gts"])
+            final_draws.extend(result_dict[gpu_id]["draws"])
+
+        render_path = os.path.join(dataset.model_path, mode, f"ours_{scene.loaded_iter}", "renders")
+        gts_path = os.path.join(dataset.model_path, mode, f"ours_{scene.loaded_iter}", "gt")
+        draw_path = os.path.join(dataset.model_path, mode, f"ours_{scene.loaded_iter}", "draw")
+        ensure_directories_exist(render_path, gts_path, draw_path)
+
+        print(f"Writing images to {gts_path}... size = {len(final_gts)}")
+        multithread_write(final_gts, gts_path)
+        time.sleep(5)
+
+        print(f"Writing images to {render_path}... size = {len(final_renders)}")
+        multithread_write(final_renders, render_path)
+        time.sleep(5)
+
+        if DRAW:
+            print(f"Writing images to {draw_path}... size = {len(final_draws)}")
+            multithread_write(final_draws, draw_path)
 
     if not skip_train:
         print("Starting train set rendering...")
@@ -191,10 +218,8 @@ def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, s
         print("Starting video rendering...")
         split_and_render("video", scene.getVideoCameras())
 
-    for p in processes:
-        p.join()
-
     print("All rendering processes finished.")
+
 
 if __name__ == "__main__":
     mp.set_start_method("spawn", force=True)  
