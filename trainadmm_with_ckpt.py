@@ -354,20 +354,14 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                 admm.update(opt)
 
             if iteration == args.simp_iteration2:
-                opacity = gaussians._opacity[:,0]
-                print('opacity',opacity)
-                threshold = int(opt.opacity_admm_threshold2 * len(opacity))
-                opacity_sort = torch.zeros(opacity.shape)
-                opacity_sort, _ = torch.sort(opacity,0)
-                print("opacity_sort",opacity_sort)
-                opacity_threshold = opacity_sort[threshold-1]
-                mask = (opacity <= opacity_threshold).squeeze()
-                print(len(mask), mask.sum())    
+
+                mask = getMask(gaussians, opt)
+
                 logging.info(f"\n before admm pruning: {len(gaussians.get_opacity)}")
                 print("\nbefore admm pruning:",len(gaussians.get_opacity))
 
                 gaussians.prune_points(mask)
-
+                
                 logging.info(f"\n after admm pruning: {len(gaussians.get_opacity)}")
                 print("\nafter admm pruning",len(gaussians.get_opacity))
 
@@ -381,6 +375,14 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" +f"_{stage}_" + str(iteration) + ".pth")
 
     wandb.finish()
+
+def getMask(gaussians, opt):
+    opacity = gaussians._opacity[:,0]
+    threshold = int(opt.opacity_admm_threshold2 * len(opacity))
+    opacity_sort = torch.zeros(opacity.shape)
+    opacity_sort, _ = torch.sort(opacity,0)
+    opacity_threshold = opacity_sort[threshold-1]
+    mask = (opacity <= opacity_threshold).squeeze()
 
 
 def training(dataset, hyper, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, expname):
