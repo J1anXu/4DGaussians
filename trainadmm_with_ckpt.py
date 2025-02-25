@@ -9,7 +9,7 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os, sys
-os.environ["CUDA_VISIBLE_DEVICES"] = "5"  
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"  
 
 import numpy as np
 import random
@@ -20,7 +20,6 @@ from gaussian_renderer import render, network_gui
 import sys
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
-import uuid
 from tqdm import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser, Namespace
@@ -28,26 +27,32 @@ from arguments import ModelParams, PipelineParams, OptimizationParams, ModelHidd
 from torch.utils.data import DataLoader
 from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
-import lpips
+
 from utils.scene_utils import render_training_image
-from time import time
+
 import copy
 from admm import ADMM
 import wandb
-wandb.login()
-
-to8b = lambda x : (255*np.clip(x.cpu().numpy(),0,1)).astype(np.uint8)
-# 引入日志系统模块
 from logger import initialize_logger
-# 初始化日志系统（可以指定日志存储目录和时区）
-initialize_logger(log_dir='./log', timezone_str="Etc/GMT-4")
 import logging
+
+
+WANDB = False
+
+
+
+initialize_logger(log_dir='./log', timezone_str="Etc/GMT-4")
+to8b = lambda x : (255*np.clip(x.cpu().numpy(),0,1)).astype(np.uint8)
 
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
 except ImportError:
     TENSORBOARD_FOUND = False
+
+if WANDB:
+    wandb.login()
+
 def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_iterations, 
                          checkpoint_iterations, checkpoint, debug_from,
                          gaussians, scene, stage, tb_writer, train_iter,timer):
@@ -55,10 +60,8 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
 
     gaussians.training_setup(opt)
     if checkpoint:
-        # breakpoint()
         if stage == "coarse" and stage not in checkpoint:
             print("start from fine stage, skip coarse stage.")
-            # process is in the coarse stage, but start from fine stage
             return
         if stage in checkpoint: 
             print("checkpoint load!")
@@ -80,16 +83,14 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
 
     progress_bar = tqdm(range(first_iter, final_iter), desc="Training progress")
     first_iter += 1
-    # lpips_model = lpips.LPIPS(net="alex").cuda()
     video_cams = scene.getVideoCameras()
     test_cams = scene.getTestCameras()
     train_cams = scene.getTrainCameras()
 
     if not viewpoint_stack and not opt.dataloader:
-        # dnerf's branch
         viewpoint_stack = [i for i in train_cams]
         temp_list = copy.deepcopy(viewpoint_stack)
-    #
+
     batch_size = opt.batch_size
     print("data loading done")
     if opt.dataloader:
@@ -103,8 +104,6 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
             random_loader = True
         loader = iter(viewpoint_stack_loader)
 
-    # dynerf, zerostamp_init
-    # breakpoint()
     if stage == "coarse" and opt.zerostamp_init:
         load_in_memory = True
         # batch_size = 4
@@ -114,38 +113,34 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
         load_in_memory = False 
 
     admm_loss = torch.tensor(0)
-    #
-    count = 0
 
-    wandb.init(
-        # Set the project where this run will be logged
-        project="trainadmm_with_ckpt",
-        # We pass a run name (otherwise it’ll be randomly assigned, like sunshine-lollypop-10)
-        name=f"stage_{stage}",
-        # Track hyperparameters and run metadata
-        config={
-            "opt": vars(opt),
-            "dataset": vars(dataset),
-            "hyper": vars(hyper),
-            "pipe": vars(pipe),
-            "testing_iterations": testing_iterations,
-            "saving_iterations": saving_iterations,
-            "checkpoint": checkpoint,
-            "stage": stage,
-            "train_iter": train_iter,
-        },
-    )
+    count = 0
+    if WANDB:
+        wandb.init(
+            project="trainadmm_with_ckpt",
+            name=f"stage_{stage}",
+            config={
+                "opt": vars(opt),
+                "dataset": vars(dataset),
+                "hyper": vars(hyper),
+                "pipe": vars(pipe),
+                "testing_iterations": testing_iterations,
+                "saving_iterations": saving_iterations,
+                "checkpoint": checkpoint,
+                "stage": stage,
+                "train_iter": train_iter,
+            },
+        )
 
     times = scene.train_camera.dataset.image_times[0 : scene.train_camera.dataset.time_number]  
 
     for iteration in range(first_iter, final_iter+1):    
-        # 记录 opacity 分布直方图
-        wandb.log({"opacity_distribution": wandb.Histogram(gaussians.get_opacity.tolist())})
-        # 记录 pathLen 分布直方图
-        # wandb.log({"pathLen_distribution": wandb.Histogram(gaussians.get_pathLen(times).tolist())})
+        if WANDB:
+            wandb.log({"opacity_distribution": wandb.Histogram(gaussians.get_opacity.tolist())})
 
         if network_gui.conn == None:
             network_gui.try_connect()
+
         while network_gui.conn != None:
             try:
                 net_image_bytes = None
@@ -157,10 +152,9 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                         viewpoint_index = viewpoint_index
                     else:
                         viewpoint_index = len(video_cams) - viewpoint_index - 1
-                    # print(viewpoint_index)
                     viewpoint = video_cams[viewpoint_index]
                     custom_cam.time = viewpoint.time
-                    # print(custom_cam.time, viewpoint_index, count)
+
                     net_image = render(custom_cam, gaussians, pipe, background, scaling_modifer, stage=stage, cam_type=scene.dataset_type)["render"]
 
                     net_image_bytes = memoryview((torch.clamp(net_image, min=0, max=1.0) * 255).byte().permute(1, 2, 0).contiguous().cpu().numpy())
@@ -175,13 +169,9 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
 
         gaussians.update_learning_rate(iteration)
 
-        # Every 1000 its we increase the levels of SH up to a maximum degree
         if iteration % 1000 == 0:
             gaussians.oneupSHdegree()
 
-        # Pick a random Camera
-
-        # dynerf's branch
         if opt.dataloader and not load_in_memory:
             try:
                 viewpoint_cams = next(loader)
@@ -205,9 +195,7 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                 idx +=1
             if len(viewpoint_cams) == 0:
                 continue
-        # print(len(viewpoint_cams))
-        # breakpoint()
-        # Render
+
         if (iteration - 1) == debug_from:
             pipe.debug = True
         images = []
@@ -240,13 +228,9 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
         visibility_filter = torch.cat(visibility_filter_list).any(dim=0)
         image_tensor = torch.cat(images,0)
         gt_image_tensor = torch.cat(gt_images,0)
-        # Loss
-        # breakpoint()
+
         Ll1 = l1_loss(image_tensor, gt_image_tensor[:,:3,:,:])
-
         psnr_ = psnr(image_tensor, gt_image_tensor).mean().double()
-        # norm
-
         loss = Ll1
 
         if opt.admm == True and iteration > opt.admm_start_iter1 and iteration % opt.admm_interval == 0 and iteration <= opt.admm_stop_iter1:
@@ -254,15 +238,12 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
             loss += admm_loss
 
         if stage == "fine" and hyper.time_smoothness_weight != 0:
-            # tv_loss = 0
             tv_loss = gaussians.compute_regulation(hyper.time_smoothness_weight, hyper.l1_time_planes, hyper.plane_tv_weight)
             loss += tv_loss
+
         if opt.lambda_dssim != 0:
             ssim_loss = ssim(image_tensor,gt_image_tensor)
             loss += opt.lambda_dssim * (1.0-ssim_loss)
-        # if opt.lambda_lpips !=0:
-        #     lpipsloss = lpips_loss(image_tensor,gt_image_tensor,lpips_model)
-        #     loss += opt.lambda_lpips * lpipsloss
 
         loss.backward()
 
@@ -276,8 +257,6 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
         iter_end.record()
 
         with torch.no_grad():
-
-            # Progress bar
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
             ema_psnr_for_log = 0.4 * psnr_ + 0.6 * ema_psnr_for_log
             ema_admm_loss_for_log = 0.4 * admm_loss.item() + 0.6 * ema_admm_loss_for_log
@@ -295,12 +274,13 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                     "psnr": f"{psnr_:.2f}",
                     "point": total_point  # 直接使用数值，无需字符串格式化
                 })
-                wandb.log({
-                    "loss": round(ema_loss_for_log, 7),
-                    "admm_loss": round(ema_admm_loss_for_log, 7),
-                    "psnr": round(psnr_.item(), 7),
-                    "point": total_point  # 直接使用数值，无需字符串格式化
-                })
+                if WANDB:
+                    wandb.log({
+                        "loss": round(ema_loss_for_log, 7),
+                        "admm_loss": round(ema_admm_loss_for_log, 7),
+                        "psnr": round(psnr_.item(), 7),
+                        "point": total_point  # 直接使用数值，无需字符串格式化
+                    })
 
             if iteration == opt.iterations:
                 progress_bar.close()
@@ -373,8 +353,8 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" +f"_{stage}_" + str(iteration) + ".pth")
-
-    wandb.finish()
+    if WANDB:
+        wandb.finish()
 
 def getMask(gaussians, opt):
     opacity = gaussians._opacity[:,0]
@@ -383,7 +363,7 @@ def getMask(gaussians, opt):
     opacity_sort, _ = torch.sort(opacity,0)
     opacity_threshold = opacity_sort[threshold-1]
     mask = (opacity <= opacity_threshold).squeeze()
-
+    return mask
 
 def training(dataset, hyper, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, expname):
     # first_iter = 0
@@ -402,10 +382,7 @@ def training(dataset, hyper, opt, pipe, testing_iterations, saving_iterations, c
 
 def prepare_output_and_logger(expname):    
     if not args.model_path:
-        # if os.getenv('OAR_JOB_ID'):
-        #     unique_str=os.getenv('OAR_JOB_ID')
-        # else:
-        #     unique_str = str(uuid.uuid4())
+
         unique_str = expname
 
         args.model_path = os.path.join("./output/", unique_str)
@@ -480,8 +457,6 @@ def setup_seed(seed):
      random.seed(seed)
      torch.backends.cudnn.deterministic = True
 if __name__ == "__main__":
-    # Set up command line argument parser
-    # torch.set_default_tensor_type('torch.FloatTensor')
     torch.cuda.empty_cache()
     parser = ArgumentParser(description="Training script parameters")
     setup_seed(6666)

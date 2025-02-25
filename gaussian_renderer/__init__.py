@@ -122,11 +122,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         scales = scales_final,
         rotations = rotations_final,
         cov3D_precomp = cov3D_precomp)
-    # time4 = get_time()
-    # print("rasterization:",time4-time3)
-    # breakpoint()
-    # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
-    # They will be excluded from value updates used in the splitting criteria.
+
     p_diff = means3D_final - pc.get_xyz
     p_diff = torch.norm(p_diff, dim = 1)  # 计算 L2 范数
     return {
