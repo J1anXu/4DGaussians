@@ -31,6 +31,7 @@ import concurrent.futures
 from PIL import Image, ImageDraw
 from torchvision import transforms
 import torchvision.utils as vutils
+from PIL import Image, ImageDraw
 DRAW = True # 是否画出高斯中心
 
 def multithread_write(image_list, path):
@@ -54,12 +55,15 @@ to8b = lambda x : (255*np.clip(x.cpu().numpy(),0,1)).astype(np.uint8)
 
 def ndc2Pix(v, S):
     return ((v + 1.0) * S - 1.0) * 0.5
+
 C0 = 0.28209479177387814
+
 def RGB2SH(rgb):
     return (rgb - 0.5) / C0
+
 def SH2RGB(sh):
     return sh * C0 + 0.5
-from PIL import Image, ImageDraw
+
 def draw_points_on_image(points, colors, image, size=1):
 
     image[image>1]=1
@@ -153,6 +157,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
 
 
     imageio.mimwrite(os.path.join(model_path, name, "ours_{}".format(iteration), 'video_rgb.mp4'), render_images, fps=30)
+    
 def render_sets(dataset : ModelParams, hyperparam, iteration : int, pipeline : PipelineParams, skip_train : bool, skip_test : bool, skip_video: bool):
     with torch.no_grad():
         gaussians = GaussianModel(dataset.sh_degree, hyperparam)
