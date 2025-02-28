@@ -16,7 +16,7 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, network_gui
+from gaussian_renderer import render, network_gui, render_point_time
 import sys
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
@@ -40,7 +40,6 @@ import logging
 WANDB = False
 
 
-
 initialize_logger(log_dir='./log', timezone_str="Etc/GMT-4")
 to8b = lambda x : (255*np.clip(x.cpu().numpy(),0,1)).astype(np.uint8)
 
@@ -53,7 +52,7 @@ except ImportError:
 if WANDB:
     wandb.login()
 
-def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_iterations, 
+def scene_reconstruction(dataset, opt: OptimizationParams, hyper, pipe, testing_iterations, saving_iterations, 
                          checkpoint_iterations, checkpoint, debug_from,
                          gaussians, scene, stage, tb_writer, train_iter,timer):
     first_iter = 0
@@ -310,19 +309,19 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                 gaussians.add_densification_stats(viewspace_point_tensor_grad, visibility_filter)
 
                 if stage == "coarse":
-                    opacity_threshold = opt.opacity_threshold_coarse
+                    abs_threshold = opt.opacity_threshold_coarse
                     densify_threshold = opt.densify_grad_threshold_coarse
                 else:    
-                    opacity_threshold = opt.opacity_threshold_fine_init - iteration*(opt.opacity_threshold_fine_init - opt.opacity_threshold_fine_after)/(opt.densify_until_iter)  
+                    abs_threshold = opt.opacity_threshold_fine_init - iteration*(opt.opacity_threshold_fine_init - opt.opacity_threshold_fine_after)/(opt.densify_until_iter)  
                     densify_threshold = opt.densify_grad_threshold_fine_init - iteration*(opt.densify_grad_threshold_fine_init - opt.densify_grad_threshold_after)/(opt.densify_until_iter )  
 
                 if  iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0 and gaussians.get_xyz.shape[0]<360000:
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.densify(densify_threshold, opacity_threshold, scene.cameras_extent, size_threshold, 5, 5, scene.model_path, iteration, stage)
+                    gaussians.densify(densify_threshold, abs_threshold, scene.cameras_extent, size_threshold, 5, 5, scene.model_path, iteration, stage)
 
                 if  iteration > opt.pruning_from_iter and iteration % opt.pruning_interval == 0 and gaussians.get_xyz.shape[0]>200000:
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.prune(densify_threshold, opacity_threshold, scene.cameras_extent, size_threshold)
+                    gaussians.prune(densify_threshold, abs_threshold, scene.cameras_extent, size_threshold)
 
                 if iteration % opt.opacity_reset_interval == 0:
                     print("reset opacity")
@@ -334,16 +333,26 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                 admm.update(opt)
 
             if iteration == args.simp_iteration2:
+                if opt.important_score_type == 1:
+                    scores = getImportantScore1(gaussians)
+                elif opt.important_score_type == 2:
+                    scores = getImportantScore2(gaussians, times, opt)  
+                elif opt.important_score_type == 3:
+                    scores = getImportantScore3(gaussians, scene, pipe, background)
+                else:
+                    raise TypeError("important_score_type not supported")
+                
+                scores_sorted, _ = torch.sort(scores, 0)
+                threshold_idx = int(opt.opacity_admm_threshold2 * len(scores_sorted))
+                abs_threshold = scores_sorted[threshold_idx - 1]
 
-                mask = getMask(gaussians, opt)
+                mask = (scores <= abs_threshold).squeeze()
 
-                logging.info(f"\n before admm pruning: {len(gaussians.get_opacity)}")
-                print("\nbefore admm pruning:",len(gaussians.get_opacity))
+                print("\nbefore admm pruning:", len(gaussians.get_opacity))
 
                 gaussians.prune_points(mask)
-                
-                logging.info(f"\n after admm pruning: {len(gaussians.get_opacity)}")
-                print("\nafter admm pruning",len(gaussians.get_opacity))
+
+                print("\nafter admm pruning", len(gaussians.get_opacity))
 
             # Optimizer step
             if iteration < opt.iterations:
@@ -356,16 +365,90 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
     if WANDB:
         wandb.finish()
 
-def getMask(gaussians, opt):
+def getImportantScore1(gaussians, times, opt):
     opacity = gaussians._opacity[:,0]
-    threshold = int(opt.opacity_admm_threshold2 * len(opacity))
-    opacity_sort = torch.zeros(opacity.shape)
-    opacity_sort, _ = torch.sort(opacity,0)
-    opacity_threshold = opacity_sort[threshold-1]
-    mask = (opacity <= opacity_threshold).squeeze()
-    return mask
+    scores = opacity
+    return scores
 
-def training(dataset, hyper, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, expname):
+def getImportantScore2(gaussians, times, opt: OptimizationParams):
+    opacity = gaussians.get_opacity[:, 0]
+
+    moving_length = calculate_moving_length(gaussians, times)
+    normalized_moving_length = norm_tensor_01(moving_length)
+
+    # 删除后N%
+    threshold = torch.quantile(normalized_moving_length, 0.5)
+
+    # 置零后85%较小的值
+    normalized_moving_length = torch.where(normalized_moving_length > threshold, normalized_moving_length, torch.zeros_like(normalized_moving_length))
+
+    scores =  opacity - opt.important_score_moveingLenCoff * normalized_moving_length
+    
+    return scores
+
+def getImportantScore3(gaussians, scene, pipe, background):
+    # render 输入数据的所有时间和相机视角,累计高斯点的权重
+    # 根据重要性评分（Importance Score）对 3D Gaussians 进行稀疏化（Pruning），以减少不重要的点，提高渲染效率
+    imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda()#存储每个高斯点的重要性评分，初始为 0
+    accum_area_max = torch.zeros(gaussians._xyz.shape[0]).cuda()#累积每个点在不同视角下的最大投影面积
+    views=scene.getTrainCameras()#获取所有训练视角（相机位置）
+    for view in views:#遍历所有视角，计算重要性评分
+        # print(idx)
+        render_pkg = render_imp(view, gaussians, pipe, background)
+        accum_weights = render_pkg["accum_weights"]# 该高斯点在该视角下的权重（光线累积贡献）
+        area_proj = render_pkg["area_proj"]# 该高斯点在该视角下的投影面积
+        area_max = render_pkg["area_max"]# 该高斯点在所有视角中的最大投影面积
+
+        accum_area_max = accum_area_max+area_max# 累积所有视角的最大投影面积
+        #计算最终的 Importance Score
+        if args.imp_metric=='outdoor': #如果 imp_metric == 'outdoor'（例如户外场景），则：
+            mask_t=area_max!=0 #只有 area_max != 0 的点才更新 imp_score
+            temp=imp_score+accum_weights/area_proj#计算公式
+            imp_score[mask_t] = temp[mask_t] 
+        else:#否则（默认情况）
+            imp_score=imp_score+accum_weights #直接把 accum_weights 累加到 imp_score
+    #归一化 Importance Score 并计算采样概率
+    imp_score[accum_area_max==0]=0# 对于从未在任何视角中被看到的点，重要性设为 0 ，确保不可见点的 imp_score = 0
+    scores = imp_score/imp_score.sum()# 归一化 imp_score 作为采样概率 prob   
+    return scores
+
+def calculate_moving_length(gaussians, times):
+
+    # 获取高斯点数量和时间步数量
+    num_gaussians = gaussians.get_xyz.shape[0]
+
+    # 初始化累计移动距离张量 (num_gaussians,)
+    moving_length_table = torch.zeros(num_gaussians, device="cuda" if gaussians.get_xyz.is_cuda else "cpu")
+
+    # 记录上一时间步的坐标
+    prev_means3D = None
+
+    for time in times:
+        # 获取当前时间步的高斯点位置
+        render_point_time_res = render_point_time(time, gaussians, cam_type=None)
+        means3D_at_time_tensor = render_point_time_res["means3D_final"]  # 形状 (num_gaussians, 3)
+
+        if prev_means3D is not None:
+            # 计算欧几里得距离 ||x_t - x_{t-1}||
+            distance = torch.norm(means3D_at_time_tensor - prev_means3D, dim=1)  # 形状 (num_gaussians,)
+
+            # 累加到移动长度表
+            moving_length_table += distance
+
+        # 更新上一时刻的位置
+        prev_means3D = means3D_at_time_tensor.clone()
+    
+    return moving_length_table
+
+def norm_tensor_01(tensor):
+    # [0,1]
+    min_val = tensor.min()
+    max_val = tensor.max()           
+    eps = 1e-8  # 避免除以零
+    normalized_tensor = (tensor - min_val) / (max_val - min_val + eps)
+    return normalized_tensor
+
+def training(dataset, hyper, opt: OptimizationParams, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, expname):
     # first_iter = 0
     tb_writer = prepare_output_and_logger(expname)
     gaussians = GaussianModel(dataset.sh_degree, hyper)
@@ -373,12 +456,18 @@ def training(dataset, hyper, opt, pipe, testing_iterations, saving_iterations, c
     timer = Timer()
     scene = Scene(dataset, gaussians, load_coarse=None)
     timer.start()
+    # 确保目录存在
+    hp_path = os.path.join(args.model_path, "opt_params.pth")
+    os.makedirs(os.path.dirname(args.model_path), exist_ok=True)
+    torch.save(opt, hp_path)
     scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_iterations,
                              checkpoint_iterations, checkpoint, debug_from,
                              gaussians, scene, "coarse", tb_writer, opt.coarse_iterations,timer)
     scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_iterations,
                          checkpoint_iterations, checkpoint, debug_from,
                          gaussians, scene, "fine", tb_writer, opt.iterations,timer)
+    
+    print(f"\n\n\n Point count: ${gaussians._xyz.shape[0]} \n\n\n")
 
 def prepare_output_and_logger(expname):    
     if not args.model_path:
@@ -448,14 +537,15 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
             tb_writer.add_scalar(f'{stage}/deformation_rate', scene.gaussians._deformation_table.sum()/scene.gaussians.get_xyz.shape[0], iteration)
             tb_writer.add_histogram(f"{stage}/scene/motion_histogram", scene.gaussians._deformation_accum.mean(dim=-1)/100, iteration,max_bins=500)
             tb_writer.add_histogram(f"{stage}/scene/opacity_histogram", scene.gaussians.get_opacity, iteration)
-
         torch.cuda.empty_cache()
+
 def setup_seed(seed):
      torch.manual_seed(seed)
      torch.cuda.manual_seed_all(seed)
      np.random.seed(seed)
      random.seed(seed)
      torch.backends.cudnn.deterministic = True
+
 if __name__ == "__main__":
     torch.cuda.empty_cache()
     parser = ArgumentParser(description="Training script parameters")

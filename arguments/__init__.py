@@ -158,6 +158,8 @@ class OptimizationParams(ParamGroup):
         self.rho_lr = -1
         self.opacity_admm_threshold1 = -1
         self.opacity_admm_threshold2 = -1
+        self.important_score_moveingLenCoff = -1000000000
+        self.important_score_type = -1000000000
         super().__init__(parser, "Optimization Parameters")
 
 def get_combined_args(parser : ArgumentParser):

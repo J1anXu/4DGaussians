@@ -11,7 +11,7 @@
 import os
 #os.environ["CUDA_VISIBLE_DEVICES"] = "7"  
 GPU_NUMS = 8
-
+import pprint
 from pathlib import Path
 import torch.multiprocessing as mp
 from PIL import Image
@@ -28,7 +28,6 @@ from pytorch_msssim import ms_ssim
 # 引入日志系统模块
 from logger import initialize_logger
 # 初始化日志系统（可以指定日志存储目录和时区）
-initialize_logger(log_dir='./log', timezone_str="Etc/GMT-4")
 import logging
 
 def readImages(renders_dir, gt_dir):
@@ -188,6 +187,7 @@ def worker(device, renders, gts, start_idx, end_idx, results):
 
 
 if __name__ == "__main__":
+    initialize_logger(log_dir='./log', timezone_str="Etc/GMT-4")
     device = torch.device("cuda:0")
     torch.cuda.set_device(device)
     mp.set_start_method('spawn', force=True)
@@ -195,4 +195,20 @@ if __name__ == "__main__":
     parser = ArgumentParser(description="Training script parameters")
     parser.add_argument('--model_paths', '-m', required=True, nargs="+", type=str, default=[])
     args = parser.parse_args()
+
+    args_path = Path(args.model_paths[0]) / "opt_params.pth"
+
+    # 检查文件是否存在
+    if args_path.exists():
+        # 如果文件存在，加载数据
+        hp_data = torch.load(args_path)
+        print("Hyperparameters loaded successfully.")
+        # 格式化输出
+        pretty_data = pprint.pformat(vars(hp_data), indent=2)
+        logging.info(f"Loaded data:\n{pretty_data}\n")   
+    else:
+        # 如果文件不存在，打印错误并放弃
+        print(f"Error: The file {args_path} does not exist. Skipping...")
+
+ 
     evaluate(args.model_paths)

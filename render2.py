@@ -18,7 +18,7 @@ from scene import Scene
 import cv2
 from tqdm import tqdm
 from os import makedirs
-from gaussian_renderer import render
+from gaussian_renderer import render, render_imp
 import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser
@@ -29,7 +29,10 @@ from PIL import Image, ImageDraw
 from torchvision import transforms
 from torch.utils.data import Subset
 import concurrent.futures
+import warnings
 
+# 关闭特定的 UserWarning
+warnings.filterwarnings("ignore", category=UserWarning, module="torchvision")
 DRAW = True  # 是否画出高斯中心
 
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
@@ -79,7 +82,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     render_list = []
     draw_list = []
 
-    print("Point count:", gaussians._xyz.shape[0])
+    print(f"\n\n\n Point count: ${gaussians._xyz.shape[0]} \n\n\n")
     count = 0
 
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):

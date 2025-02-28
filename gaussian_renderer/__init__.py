@@ -12,9 +12,11 @@
 import torch
 import math
 from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
+
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
 from time import time as get_time
+
 def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None, stage="fine", cam_type=None):
     """
     Render the scene. 
@@ -113,7 +115,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen).
     # time3 = get_time()
-    rendered_image, radii, depth = rasterizer(
+    rendered_image, radii, depth, accum_weights_ptr, accum_weights_count, accum_max_count = rasterizer(
         means3D = means3D_final,
         means2D = means2D,
         shs = shs_final,
@@ -134,4 +136,31 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         "means3D_final": means3D_final,
         "p_diff": p_diff,
         "time": time,
+        "accum_weights": accum_weights_ptr,
+        "area_proj": accum_weights_count,
+        "area_max": accum_max_count,
+    }
+
+
+def render_point_time(time, pc: GaussianModel, cam_type=None):
+    means3D = pc.get_xyz
+    scales = pc._scaling
+    rotations = pc._rotation
+    opacity = pc._opacity
+    shs = pc.get_features
+
+    if cam_type != "PanopticSports":
+        time = torch.tensor(time).to(means3D.device).repeat(means3D.shape[0], 1)
+    else:
+        time = torch.tensor(time).to(means3D.device).repeat(means3D.shape[0], 1)
+
+    means3D_final, scales_final, rotations_final, opacity_final, shs_final = (
+        pc._deformation(means3D, scales, rotations, opacity, shs, time)
+    )
+    return {
+        "means3D_final": means3D_final,
+        "scales_final": scales_final,
+        "rotations_final": rotations_final,
+        "opacity_final": opacity_final,
+        "shs_final": shs_final,
     }

@@ -11,6 +11,10 @@ def initialize_logger(log_dir='./log', timezone_str="Etc/GMT+4"):
     log_dir (str): Directory to store log files. Default is './log'.
     timezone_str (str): Timezone for the timestamp. Default is "Etc/GMT+4" (UTC-4).
     """
+    # 如果日志系统已经初始化，则不重复初始化
+    if logging.getLogger().hasHandlers():
+        return
+    
     # 设置时区
     timezone = pytz.timezone(timezone_str)
     current_time = datetime.now(timezone).strftime('%Y-%m-%d_%H-%M-%S')
