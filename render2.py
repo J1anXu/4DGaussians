@@ -18,7 +18,7 @@ from scene import Scene
 import cv2
 from tqdm import tqdm
 from os import makedirs
-from gaussian_renderer import render, render_imp
+from gaussian_renderer import render
 import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser

@@ -365,7 +365,7 @@ def scene_reconstruction(dataset, opt: OptimizationParams, hyper, pipe, testing_
     if WANDB:
         wandb.finish()
 
-def getImportantScore1(gaussians, times, opt):
+def getImportantScore1(gaussians):
     opacity = gaussians._opacity[:,0]
     scores = opacity
     return scores
@@ -394,7 +394,7 @@ def getImportantScore3(gaussians, scene, pipe, background):
     views=scene.getTrainCameras()#获取所有训练视角（相机位置）
     for view in views:#遍历所有视角，计算重要性评分
         # print(idx)
-        render_pkg = render_imp(view, gaussians, pipe, background)
+        render_pkg = render(view, gaussians, pipe, background)
         accum_weights = render_pkg["accum_weights"]# 该高斯点在该视角下的权重（光线累积贡献）
         area_proj = render_pkg["area_proj"]# 该高斯点在该视角下的投影面积
         area_max = render_pkg["area_max"]# 该高斯点在所有视角中的最大投影面积

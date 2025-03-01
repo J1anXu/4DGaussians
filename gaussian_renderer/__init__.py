@@ -11,7 +11,7 @@
 
 import torch
 import math
-from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
+from diff_gaussian_rasterization_ms import GaussianRasterizationSettings, GaussianRasterizer
 
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
@@ -115,7 +115,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen).
     # time3 = get_time()
-    rendered_image, radii, depth, accum_weights_ptr, accum_weights_count, accum_max_count = rasterizer(
+    rendered_image, radii, accum_weights_ptr, accum_weights_count, accum_max_count= rasterizer(
         means3D = means3D_final,
         means2D = means2D,
         shs = shs_final,
@@ -132,13 +132,12 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         "viewspace_points": screenspace_points,
         "visibility_filter": radii > 0,
         "radii": radii,
-        "depth": depth,
         "means3D_final": means3D_final,
         "p_diff": p_diff,
         "time": time,
         "accum_weights": accum_weights_ptr,
         "area_proj": accum_weights_count,
-        "area_max": accum_max_count,
+        "area_max": accum_max_count
     }
 
 
