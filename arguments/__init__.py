@@ -158,7 +158,6 @@ class OptimizationParams(ParamGroup):
         self.opacity_threshold_fine_after = 0.005
         self.batch_size = 1
         self.add_point = False
-        self.admm = True
         self.admm_start_iter1 = -1
         self.admm_stop_iter1 = -1
         self.densify_from_iter = -1
@@ -170,9 +169,13 @@ class OptimizationParams(ParamGroup):
         self.opacity_admm_threshold1 = -1
         self.opacity_admm_threshold2 = -1
 
-        self.important_score_type = -1000000000
+        self.important_score_type = "opacity" # opacity, init_blending_weight, all_time_blending_weight, opacity_and_movingInfo, 
         self.important_score_2_moveingLenCoff = -1000000000
         self.important_score_3_outdoor = False
+        self.important_score_4_time_interval = 10
+
+        self.admm = False # 是否进行ADMM约束纠正
+        self.prune_points = False # 是否进行删点
 
         super().__init__(parser, "Optimization Parameters")
 

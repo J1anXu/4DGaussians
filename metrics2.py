@@ -3,13 +3,14 @@
 # GRAPHDECO research group, https://team.inria.fr/graphdeco
 # All rights reserved.
 #
-# This software is free for non-commercial, research and evaluation use 
+# This software is free for non-commercial, research and evaluation use
 # under the terms of the LICENSE.md file.
 #
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
-#os.environ["CUDA_VISIBLE_DEVICES"] = "7"  
+
+# os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 GPU_NUMS = 8
 import pprint
 from pathlib import Path
@@ -27,8 +28,10 @@ from pytorch_msssim import ms_ssim
 
 # 引入日志系统模块
 from logger import initialize_logger
+
 # 初始化日志系统（可以指定日志存储目录和时区）
 import logging
+
 
 def readImages(renders_dir, gt_dir):
     renders = []
@@ -42,12 +45,12 @@ def readImages(renders_dir, gt_dir):
         image_names.append(fname)
     return renders, gts, image_names
 
+
 def evaluate(model_paths):
     full_dict = {}
     per_view_dict = {}
     full_dict_polytopeonly = {}
     per_view_dict_polytopeonly = {}
-    print("")
 
     for scene_dir in model_paths:
         try:
@@ -68,7 +71,7 @@ def evaluate(model_paths):
                 per_view_dict_polytopeonly[scene_dir][method] = {}
 
                 method_dir = test_dir / method
-                gt_dir = method_dir/ "gt"
+                gt_dir = method_dir / "gt"
                 renders_dir = method_dir / "renders"
                 renders, gts, image_names = readImages(renders_dir, gt_dir)
 
@@ -83,8 +86,8 @@ def evaluate(model_paths):
                 ms_ssims = results["MS-SSIM"]
                 Dssims = results["D-SSIM"]
 
-
                 # Print the results
+                print(f"Metrics2 {method_dir}")
                 print("SSIM : {:>12.8f}".format(ssims))
                 print("PSNR : {:>12.8f}".format(psnrs))
                 print("LPIPS-vgg: {:>12.8f}".format(lpipss))
@@ -93,7 +96,7 @@ def evaluate(model_paths):
                 print("D-SSIM: {:>12.8f}".format(Dssims))
 
                 # Logging the results
-                logging.info("Mertics2")
+                logging.info(f"Mertics2 {method_dir}")
                 logging.info("Scene: %s", scene_dir)
                 logging.info("  SSIM: %.8f", ssims)
                 logging.info("  PSNR: %.8f", psnrs)
@@ -102,9 +105,10 @@ def evaluate(model_paths):
                 logging.info("  MS-SSIM: %.8f", ms_ssims)
                 logging.info("  D-SSIM: %.8f", Dssims)
         except Exception as e:
-            
+
             print("Unable to compute metrics for model", scene_dir)
             raise e
+
 
 def parallel_evaluation(renders, gts, num_gpus=8):
     # Split renders and gts into N parts for N GPUs
@@ -127,14 +131,7 @@ def parallel_evaluation(renders, gts, num_gpus=8):
         p.join()
 
     # Aggregate the results from all GPUs
-    aggregated_results = {
-        "SSIM": [],
-        "PSNR": [],
-        "LPIPS-vgg": [],
-        "LPIPS-alex": [],
-        "MS-SSIM": [],
-        "D-SSIM": []
-    }
+    aggregated_results = {"SSIM": [], "PSNR": [], "LPIPS-vgg": [], "LPIPS-alex": [], "MS-SSIM": [], "D-SSIM": []}
     lock = mp.Lock()
 
     # 将结果汇总并计算均值
@@ -144,10 +141,13 @@ def parallel_evaluation(renders, gts, num_gpus=8):
                 aggregated_results[metric].extend(device_results[metric])
 
     # 计算均值
-    mean_results = {metric: sum(map(float, values)) / len(values) if len(values) > 0 else 0
-                    for metric, values in aggregated_results.items()}
+    mean_results = {
+        metric: sum(map(float, values)) / len(values) if len(values) > 0 else 0
+        for metric, values in aggregated_results.items()
+    }
 
     return mean_results
+
 
 def worker(device, renders, gts, start_idx, end_idx, results):
     ssims = []
@@ -156,20 +156,20 @@ def worker(device, renders, gts, start_idx, end_idx, results):
     lpipsa = []
     ms_ssims = []
     Dssims = []
-    
+
     # Move tensors to the corresponding device (GPU)
     renders = [render.to(device) for render in renders[start_idx:end_idx]]
     gts = [gt.to(device) for gt in gts[start_idx:end_idx]]
-    
+
     # Calculate metrics
     for idx in range(start_idx, end_idx):
         ssims.append(ssim(renders[idx - start_idx], gts[idx - start_idx]).item())
         psnrs.append(psnr(renders[idx - start_idx], gts[idx - start_idx]).item())
-        lpipss.append(lpips(renders[idx - start_idx], gts[idx - start_idx], net_type='vgg').item())
+        lpipss.append(lpips(renders[idx - start_idx], gts[idx - start_idx], net_type="vgg").item())
         ms_ssims.append(ms_ssim(renders[idx - start_idx], gts[idx - start_idx], data_range=1, size_average=True).item())
-        lpipsa.append(lpips(renders[idx - start_idx], gts[idx - start_idx], net_type='alex').item())
+        lpipsa.append(lpips(renders[idx - start_idx], gts[idx - start_idx], net_type="alex").item())
         Dssims.append((1 - ms_ssims[-1]) / 2)
-    
+
     # Ensure the results are on CPU and clone the tensors to avoid CUDA issues when passing between processes
     results[device] = {
         "SSIM": ssims,
@@ -177,9 +177,9 @@ def worker(device, renders, gts, start_idx, end_idx, results):
         "LPIPS-vgg": lpipss,
         "LPIPS-alex": lpipsa,
         "MS-SSIM": ms_ssims,
-        "D-SSIM": Dssims
+        "D-SSIM": Dssims,
     }
-    
+
     # Move results to CPU to avoid CUDA context sharing issues across processes
     for key, value in results[device].items():
         # Ensure that the values are not CUDA tensors
@@ -187,13 +187,13 @@ def worker(device, renders, gts, start_idx, end_idx, results):
 
 
 if __name__ == "__main__":
-    initialize_logger(log_dir='./log', timezone_str="Etc/GMT-4")
+    initialize_logger(log_dir="./log", timezone_str="Etc/GMT-4")
     device = torch.device("cuda:0")
     torch.cuda.set_device(device)
-    mp.set_start_method('spawn', force=True)
+    mp.set_start_method("spawn", force=True)
     # Set up command line argument parser
     parser = ArgumentParser(description="Training script parameters")
-    parser.add_argument('--model_paths', '-m', required=True, nargs="+", type=str, default=[])
+    parser.add_argument("--model_paths", "-m", required=True, nargs="+", type=str, default=[])
     args = parser.parse_args()
 
     args_path = Path(args.model_paths[0]) / "opt_params.pth"
@@ -205,10 +205,9 @@ if __name__ == "__main__":
         print("Hyperparameters loaded successfully.")
         # 格式化输出
         pretty_data = pprint.pformat(vars(hp_data), indent=2)
-        logging.info(f"Loaded data:\n{pretty_data}\n")   
+        logging.info(f"Loaded data:\n{pretty_data}\n")
     else:
         # 如果文件不存在，打印错误并放弃
         print(f"Error: The file {args_path} does not exist. Skipping...")
 
- 
     evaluate(args.model_paths)

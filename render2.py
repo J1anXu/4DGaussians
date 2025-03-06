@@ -37,15 +37,17 @@ DRAW = True  # 是否画出高斯中心
 
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
 
+
 def multithread_write(image_list, path):
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=None)
+
     def write_image(image, count, path):
         try:
-            torchvision.utils.save_image(image, os.path.join(path, '{0:05d}'.format(count) + ".png"))
+            torchvision.utils.save_image(image, os.path.join(path, "{0:05d}".format(count) + ".png"))
             return count, True
         except:
             return count, False
-        
+
     tasks = []
     for index, image in enumerate(image_list):
         tasks.append(executor.submit(write_image, image, index, path))
@@ -54,8 +56,10 @@ def multithread_write(image_list, path):
         if status == False:
             write_image(image_list[index], index, path)
 
+
 def ndc2Pix(v, S):
     return ((v + 1.0) * S - 1.0) * 0.5
+
 
 def draw_points_on_image(points, colors, image, size=1):
     image[image > 1] = 1
@@ -67,6 +71,7 @@ def draw_points_on_image(points, colors, image, size=1):
         r, g, b = color
         draw.ellipse((x - size, y - size, x + size, y + size), fill=(int(r), int(g), int(b)))
     return image
+
 
 def render_set(model_path, name, iteration, views, gaussians, pipeline, background, cam_type):
     render_path = os.path.join(model_path, name, f"ours_{iteration}", "renders")
@@ -81,10 +86,6 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     gt_list = []
     render_list = []
     draw_list = []
-
-    print(f"\n\n\n Point count: ${gaussians._xyz.shape[0]} \n\n\n")
-    count = 0
-
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
         rendering_res = render(view, gaussians, pipeline, background, cam_type=cam_type)
         rendering = rendering_res["render"]
@@ -92,7 +93,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
         if DRAW:
             means3D_final = rendering_res["means3D_final"]
             xyz = means3D_final.clone()
-            device = xyz.device  
+            device = xyz.device
             full_proj_transform = view.full_proj_transform.to(device)
             world_view_transform = view.world_view_transform.to(device)
             rgb = gaussians._features_dc[:, 0]
@@ -106,7 +107,12 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
             points = point_image.detach().cpu().numpy()[mask]
             colors = rgb.detach().cpu().numpy()[mask]
 
-            image_proj = draw_points_on_image(points, np.zeros(colors.shape) + [0, 0, 255], rendering.permute(1, 2, 0).detach().cpu().numpy(), size=0.3)
+            image_proj = draw_points_on_image(
+                points,
+                np.zeros(colors.shape) + [0, 0, 255],
+                rendering.permute(1, 2, 0).detach().cpu().numpy(),
+                size=0.3,
+            )
             transform = transforms.ToTensor()
             draw_image = transform(image_proj)
             draw_list.append(draw_image)
@@ -121,9 +127,10 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     return render_list, gt_list, draw_list
     # return render_images
 
+
 def render_worker(gpu_id, dataset, hyperparam, iteration, pipeline, views, mode, result_dict):
-    """ 多进程渲染 Worker 进程 """
-    torch.cuda.set_device(gpu_id)  
+    """多进程渲染 Worker 进程"""
+    torch.cuda.set_device(gpu_id)
     device = torch.device(f"cuda:{gpu_id}")
 
     with torch.no_grad():
@@ -143,13 +150,14 @@ def render_worker(gpu_id, dataset, hyperparam, iteration, pipeline, views, mode,
         "draws": draw_list,
     }
 
-        
-        
+
 import torch.multiprocessing as mp
+
 
 def ensure_directories_exist(*paths):
     for path in paths:
         os.makedirs(path, exist_ok=True)
+
 
 def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, skip_test, skip_video):
     num_gpus = torch.cuda.device_count()
@@ -164,18 +172,18 @@ def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, s
     processes = []
 
     def split_and_render(mode, views):
-        """ 按 GPU 划分 views，并启动多进程渲染 """
+        """按 GPU 划分 views，并启动多进程渲染"""
         if len(views) == 0:
             return
-        
+
         num_views = len(views)
         indices = torch.linspace(0, num_views, num_gpus + 1, dtype=torch.int).tolist()
-        split_views = [Subset(views, range(indices[i], indices[i+1])) for i in range(num_gpus)]
+        split_views = [Subset(views, range(indices[i], indices[i + 1])) for i in range(num_gpus)]
 
         for gpu_id in range(num_gpus):
             p = mp.Process(
                 target=render_worker,
-                args=(gpu_id, dataset, hyperparam, scene.loaded_iter, pipeline, split_views[gpu_id], mode, result_dict)
+                args=(gpu_id, dataset, hyperparam, scene.loaded_iter, pipeline, split_views[gpu_id], mode, result_dict),
             )
             p.start()
             processes.append(p)
@@ -207,23 +215,24 @@ def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, s
             print(f"Writing images to {draw_path}... size = {len(final_draws)}")
             multithread_write(final_draws, draw_path)
 
-    if not skip_train:
-        print("Starting train set rendering...")
-        split_and_render("train", scene.getTrainCameras())
+    # if not skip_train:
+    #     print("Starting train set rendering...")
+    #     split_and_render("train", scene.getTrainCameras())
 
     if not skip_test:
         print("Starting test set rendering...")
         split_and_render("test", scene.getTestCameras())
 
-    if not skip_video:
-        print("Starting video rendering...")
-        split_and_render("video", scene.getVideoCameras())
+    # if not skip_video:
+    #     print("Starting video rendering...")
+    #     split_and_render("video", scene.getVideoCameras())
 
+    print(f"\n\n\n Points count: {gaussians._xyz.shape[0]} \n\n\n")
     print("All rendering processes finished.")
 
 
 if __name__ == "__main__":
-    mp.set_start_method("spawn", force=True)  
+    mp.set_start_method("spawn", force=True)
     # Set up command line argument parser
     parser = ArgumentParser(description="Testing script parameters")
     model = ModelParams(parser, sentinel=True)
@@ -236,13 +245,22 @@ if __name__ == "__main__":
     parser.add_argument("--skip_video", action="store_true")
     parser.add_argument("--configs", type=str)
     args = get_combined_args(parser)
-    print("Rendering " , args.model_path)
+    print("Rendering ", args.model_path)
     if args.configs:
         import mmcv
         from utils.params_utils import merge_hparams
+
         config = mmcv.Config.fromfile(args.configs)
         args = merge_hparams(args, config)
     # Initialize system state (RNG)
     safe_state(args.quiet)
 
-    parallel_render_sets(model.extract(args), hyperparam.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test, args.skip_video)
+    parallel_render_sets(
+        model.extract(args),
+        hyperparam.extract(args),
+        args.iteration,
+        pipeline.extract(args),
+        args.skip_train,
+        args.skip_test,
+        args.skip_video,
+    )

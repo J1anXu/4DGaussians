@@ -48,7 +48,7 @@ class ADMM:
             self.rho = factor * self.init_rho
     
     def metrics_sort(self, z,opt): # 根据透明度的排序值来更新 z。它通过将透明度按升序排序并应用一个阈值来选择透明度值
-        index = int(opt.opacity_admm_threshold2 * len(z))
+        index = int(opt.opacity_admm_threshold1 * len(z))
         z_sort = {}
         z_update = torch.zeros(z.shape)
         z_sort, _ = torch.sort(z, 0)
