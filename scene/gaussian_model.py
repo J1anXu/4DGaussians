@@ -382,9 +382,9 @@ class GaussianModel:
         return optimizable_tensors
 
     def prune_points(self, mask):
+        nums_before = len(self.get_opacity)
         valid_points_mask = ~mask
         optimizable_tensors = self._prune_optimizer(valid_points_mask)
-
         self._xyz = optimizable_tensors["xyz"]
         self._features_dc = optimizable_tensors["f_dc"]
         self._features_rest = optimizable_tensors["f_rest"]
@@ -396,7 +396,9 @@ class GaussianModel:
         self._deformation_table = self._deformation_table[valid_points_mask]
         self.denom = self.denom[valid_points_mask]
         self.max_radii2D = self.max_radii2D[valid_points_mask]
-
+        nums_before = len(self.get_opacity)
+        print(f"Prune Success, before---->{nums_before}, after---->{len(self.get_opacity)}")
+        
     def cat_tensors_to_optimizer(self, tensors_dict):
         optimizable_tensors = {}
         for group in self.optimizer.param_groups:
@@ -694,3 +696,85 @@ class GaussianModel:
             + time_smoothness_weight * self._time_regulation()
             + l1_time_planes_weight * self._l1_regulation()
         )
+
+
+    def get_gs_info(self, time):
+        means3D = self.get_xyz
+        scales = self._scaling
+        rotations = self._rotation
+        opacity = self._opacity
+        shs = self.get_features
+        time = torch.tensor(time).to(means3D.device).repeat(means3D.shape[0], 1)
+        means3D_final, scales_final, rotations_final, opacity_final, shs_final = (
+            self._deformation(means3D, scales, rotations, opacity, shs, time)
+        )
+        return {
+            "means3D_final": means3D_final,
+            "scales_final": scales_final,
+            "rotations_final": rotations_final,
+            "opacity_final": opacity_final,
+            "shs_final": shs_final,
+        }
+
+
+    def get_moving_length(self, times):
+        num_gaussians = self.get_xyz.shape[0]
+        moving_length_table = torch.zeros(num_gaussians, device="cuda" if self.get_xyz.is_cuda else "cpu")
+        prev_means3D = None
+        for time in times:
+            render_point_time_res = self.get_gs_info(time)
+            means3D_at_time_tensor = render_point_time_res["means3D_final"]  # 形状 (num_gaussians, 3)
+            if prev_means3D is not None:
+                # 计算欧几里得距离 ||x_t - x_{t-1}||
+                distance = torch.norm(means3D_at_time_tensor - prev_means3D, dim=1)  # 形状 (num_gaussians,)
+                # 累加到移动长度表
+                moving_length_table += distance
+            # 更新上一时刻的位置
+            prev_means3D = means3D_at_time_tensor.clone()
+        return moving_length_table
+    
+    def calculate_moving_length(self, times):
+        # 获取高斯点数量和时间步数量
+        num_gaussians = self.get_xyz.shape[0]
+        # 初始化累计移动距离张量 (num_gaussians,)
+        moving_length_table = torch.zeros(num_gaussians, device="cuda" if self.get_xyz.is_cuda else "cpu")
+        # 记录上一时间步的坐标
+        pre_xyz = None
+        for time in times:
+            # 获取当前时间步的高斯点位置
+            gs_info = self.get_gs_info(time)
+            xyz = gs_info["means3D_final"]  # 形状 (num_gaussians, 3)
+            if pre_xyz is not None:
+                # 计算欧几里得距离 ||x_t - x_{t-1}||
+                distance = torch.norm(xyz - pre_xyz, dim=1)  # 形状 (num_gaussians,)
+                # 累加到移动长度表
+                moving_length_table += distance
+            # 更新上一时刻的位置
+            pre_xyz = xyz.clone()
+        return moving_length_table
+    
+
+    def reinitial_pts(self, pts, rgb):
+
+        fused_point_cloud = pts
+        fused_color = RGB2SH(rgb)
+        features = torch.zeros((fused_color.shape[0], 3, (self.max_sh_degree + 1) ** 2)).float().cuda()
+        features[:, :3, 0 ] = fused_color
+        features[:, 3:, 1:] = 0.0
+
+        # print("Number of points at initialisation : ", fused_point_cloud.shape[0])
+
+        dist2 = torch.clamp_min(distCUDA2(fused_point_cloud), 0.0000001)
+        scales = torch.log(torch.sqrt(dist2))[...,None].repeat(1, 3)
+        rots = torch.zeros((fused_point_cloud.shape[0], 4), device="cuda")
+        rots[:, 0] = 1
+
+        opacities = inverse_sigmoid(0.1 * torch.ones((fused_point_cloud.shape[0], 1), dtype=torch.float, device="cuda"))
+
+        self._xyz = nn.Parameter(fused_point_cloud.requires_grad_(True))
+        self._features_dc = nn.Parameter(features[:,:,0:1].transpose(1, 2).contiguous().requires_grad_(True))
+        self._features_rest = nn.Parameter(features[:,:,1:].transpose(1, 2).contiguous().requires_grad_(True))
+        self._scaling = nn.Parameter(scales.requires_grad_(True))
+        self._rotation = nn.Parameter(rots.requires_grad_(True))
+        self._opacity = nn.Parameter(opacities.requires_grad_(True))
+        self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")    

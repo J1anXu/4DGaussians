@@ -11,13 +11,13 @@
 import os, sys
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
-
+from typing_extensions import Literal
 import numpy as np
 import random
 import torch
 from random import randint
-from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, network_gui, render_point_time
+from utils.loss_utils import l1_loss, ssim
+from gaussian_renderer import render, network_gui
 import sys
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
@@ -36,10 +36,16 @@ from admm import ADMM
 import wandb
 from logger import initialize_logger
 import logging
-
+from constants import *
 
 WANDB = False
 
+
+C0 = 0.28209479177387814
+def RGB2SH(rgb):
+    return (rgb - 0.5) / C0
+def SH2RGB(sh):
+    return sh * C0 + 0.5
 
 initialize_logger(log_dir="./log", timezone_str="Etc/GMT-4")
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
@@ -65,8 +71,8 @@ def scene_reconstruction(
     checkpoint_iterations,
     checkpoint,
     debug_from,
-    gaussians,
-    scene,
+    gaussians :GaussianModel,
+    scene:Scene,
     stage,
     tb_writer,
     train_iter,
@@ -154,6 +160,16 @@ def scene_reconstruction(
 
     times = scene.train_camera.dataset.image_times[0 : scene.train_camera.dataset.time_number]
     # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
+
+    views = scene.getTrainCameras()  # 获取所有训练视角（相机位置）
+    filtered_views = []
+    # 筛选出0时刻的views
+    # for view in tqdm(views, total=len(views), desc="Filtering views"):
+    #     if view.time == 0.0:
+    #         filtered_views.append(view)
+
+
+
 
     for iteration in range(first_iter, final_iter + 1):
         if WANDB & (iteration % 100 == 0):
@@ -284,7 +300,7 @@ def scene_reconstruction(
             and iteration % opt.admm_interval == 0
             and iteration <= opt.admm_stop_iter1
         ):
-            admm_loss = 0.1 * admm.get_admm_loss(loss)
+            admm_loss = 0.01 * admm.get_admm_loss()
             loss += admm_loss
 
         if stage == "fine" and hyper.time_smoothness_weight != 0:
@@ -317,8 +333,8 @@ def scene_reconstruction(
             if iteration % 10 == 0:
                 progress_bar.set_postfix(
                     {
-                        "Loss": f"{ema_loss_for_log:.{7}f}",
-                        "admm_loss": f"{ema_admm_loss_for_log:.{7}f}",
+                        "loss": f"{ema_loss_for_log:.{7}f}",
+                        "adss": f"{ema_admm_loss_for_log:.{7}f}",
                         "psnr": f"{psnr_:.{2}f}",
                         "point": f"{total_point}",
                     }
@@ -448,41 +464,33 @@ def scene_reconstruction(
                 if iteration % opt.opacity_reset_interval == 0:
                     print("reset opacity")
                     gaussians.reset_opacity()
+
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
+                imp_score = getBlendingWight(filtered_views, gaussians, opt, scene, pipe, background)
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
-                admm.update(opt, update_u=False)
-            elif (
-                iteration % opt.admm_interval == 0
-                and opt.admm == True
-                and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
-            ):
-                admm.update(opt)
+                admm.update(imp_score, opt, update_u=False)
 
-            if args.prune_points and iteration == args.simp_iteration2:
-                opacity = gaussians._opacity[:, 0]
-                # # opacity, init_blending_weight, all_time_blending_weight, opacity_and_movingInfo, 
-                if opt.important_score_type == "opacity":
-                    scores = opacity
-                elif opt.important_score_type == "opacity_and_movingInfo":
-                    moving_length = calculate_moving_length(gaussians, times)
-                    normalized_moving_length = norm_tensor_01(moving_length)
-                    scores = opacity - opt.important_score_2_moveingLenCoff * normalized_moving_length
-                elif opt.important_score_type == "all_time_blending_weight":
-                    scores = allTimeBledWeight(gaussians, opt, scene, pipe, background)
-                elif opt.important_score_type == "init_blending_weight":
-                    scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
-                else:
-                    raise ValueError(f"important_score_type not supported {opt.important_score_type}")
+            elif (iteration % opt.admm_interval == 0 and opt.admm == True and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)):
+                imp_score = getBlendingWight(filtered_views, gaussians, opt, scene, pipe, background)
+                admm.update(imp_score, opt)
 
-                scores_sorted, _ = torch.sort(scores, 0)
-                threshold_idx = int(opt.opacity_admm_threshold2 * len(scores_sorted))
-                abs_threshold = scores_sorted[threshold_idx - 1]
-
-                mask = (scores <= abs_threshold).squeeze()
-                
-                print("\n before admm pruning:", len(gaussians.get_opacity))
+            # 删除只能按opacity,因为所有的约束都体现在opacity上; imp_score可以随意,因为重要的点会被约束成大opacity
+            if iteration == args.simp_iteration1:
+                opacity = gaussians._opacity
+                threshold = opt.opacity_admm_threshold1
+                mask = build_mask(opacity, threshold)
                 gaussians.prune_points(mask)
-                print("\n after admm pruning", len(gaussians.get_opacity))
+                gaussians.max_sh_degree = dataset.sh_degree
+                gaussians.reinitial_pts(gaussians._xyz, SH2RGB(gaussians._features_dc+0)[:,0])
+                gaussians.training_setup(opt)
+                torch.cuda.empty_cache()
+                viewpoint_stack = scene.getTrainCameras()
+            
+            if  iteration == args.simp_iteration2:
+                opacity = gaussians._opacity
+                threshold = opt.opacity_admm_threshold2
+                mask = build_mask(opacity, threshold)
+                gaussians.prune_points(mask)
 
             # Optimizer step
             if iteration < opt.iterations:
@@ -498,21 +506,30 @@ def scene_reconstruction(
     if WANDB:
         wandb.finish()
 
-def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, background):
-    # render 输入数据的所有时间和相机视角,累计高斯点的权重
-    # 根据重要性评分（Importance Score）对 3D Gaussians 进行稀疏化（Pruning），以减少不重要的点，提高渲染效率
+def build_mask(scores, threshold):
+    threshold = int(threshold * len(scores))
+    scores_sorted, _ = torch.sort(scores,0)
+    threshold_abs = scores_sorted[threshold-1]
+    mask = (scores <= threshold_abs).squeeze()
+    return mask
+
+def getMoveInfo(gaussians: GaussianModel, opt: OptimizationParams, scene, pipe, background, times = [0.0]):
+    opacity = gaussians._opacity[:, 0]
+    moving_length = gaussians.calculate_moving_length(gaussians, times)
+    imp_score = opacity + 0.3 * norm_tensor_01(moving_length)
+    return imp_score
+
+def getBlendingWight(views, gaussians: GaussianModel, opt: OptimizationParams, scene, pipe, background):
     imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 存储每个高斯点的重要性评分，初始为 0
     accum_area_max = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 累积每个点在不同视角下的最大投影面积
-    views = scene.getTrainCameras()  # 获取所有训练视角（相机位置）
-    total_views = len(views)  # 获取视角总数
-
-    for view in tqdm(views, total=total_views, desc="allTimeBledWeight"):
+    total_views = len(views)
+    for view in views:
         render_pkg = render(view, gaussians, pipe, background)
         accum_weights = render_pkg["accum_weights"]
         area_proj = render_pkg["area_proj"]
         area_max = render_pkg["area_max"]
         accum_area_max = accum_area_max + area_max
-        if opt.important_score_3_outdoor == True:
+        if opt.outdoor == True:
             mask_t = area_max != 0
             temp = imp_score + accum_weights / area_proj
             imp_score[mask_t] = temp[mask_t]
@@ -524,74 +541,7 @@ def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgroun
     scores = norm_tensor_01(imp_score)
 
     non_zero_count = torch.count_nonzero(scores)  # 统计非零元素个数
-    print(f"Non-zero count: {non_zero_count}")
-    print("imp_score return success")
     return scores
-
-
-def zeroTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, background):
-    # render 输入数据的所有时间和相机视角,累计高斯点的权重
-    # 根据重要性评分（Importance Score）对 3D Gaussians 进行稀疏化（Pruning），以减少不重要的点，提高渲染效率
-    imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 存储每个高斯点的重要性评分，初始为 0
-    accum_area_max = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 累积每个点在不同视角下的最大投影面积
-    views = scene.getTrainCameras()  # 获取所有训练视角（相机位置）
-    total_views = len(views)  # 获取视角总数
-    # 从第一个数开始，每隔important_score_4_time_interval个取一个
-    # time_samples = views.dataset.image_times[:: opt.important_score_4_time_interval]  #
-    # print(f"Time samples: {time_samples}")
-    for view in tqdm(views, total=total_views, desc="init_blending_weight"):
-        # if view.time not in time_samples:  # 相较于ImportantScore3 唯一的区别
-        if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
-            continue
-        render_pkg = render(view, gaussians, pipe, background)
-        accum_weights = render_pkg["accum_weights"]
-        area_proj = render_pkg["area_proj"]
-        area_max = render_pkg["area_max"]
-        accum_area_max = accum_area_max + area_max
-        if opt.important_score_3_outdoor == True:
-            mask_t = area_max != 0
-            temp = imp_score + accum_weights / area_proj
-            imp_score[mask_t] = temp[mask_t]
-        else:
-            imp_score += accum_weights
-
-    imp_score[accum_area_max == 0] = 0  # 对于从未在任何视角中被看到的点，重要性设为 0 ，确保不可见点的 imp_score = 0
-    # scores = imp_score / imp_score.sum()  # 归一化 imp_score 作为采样概率 prob
-    scores = norm_tensor_01(imp_score)
-
-    non_zero_count = torch.count_nonzero(scores)  # 统计非零元素个数
-    print(f"Non-zero count: {non_zero_count}")
-    print("imp_score return success")
-    return scores
-
-
-def calculate_moving_length(gaussians, times):
-
-    # 获取高斯点数量和时间步数量
-    num_gaussians = gaussians.get_xyz.shape[0]
-
-    # 初始化累计移动距离张量 (num_gaussians,)
-    moving_length_table = torch.zeros(num_gaussians, device="cuda" if gaussians.get_xyz.is_cuda else "cpu")
-
-    # 记录上一时间步的坐标
-    prev_means3D = None
-
-    for time in times:
-        # 获取当前时间步的高斯点位置
-        render_point_time_res = render_point_time(time, gaussians, cam_type=None)
-        means3D_at_time_tensor = render_point_time_res["means3D_final"]  # 形状 (num_gaussians, 3)
-
-        if prev_means3D is not None:
-            # 计算欧几里得距离 ||x_t - x_{t-1}||
-            distance = torch.norm(means3D_at_time_tensor - prev_means3D, dim=1)  # 形状 (num_gaussians,)
-
-            # 累加到移动长度表
-            moving_length_table += distance
-
-        # 更新上一时刻的位置
-        prev_means3D = means3D_at_time_tensor.clone()
-
-    return moving_length_table
 
 
 def norm_tensor_01(tensor):
@@ -801,7 +751,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug_from", type=int, default=-1)
     parser.add_argument("--detect_anomaly", action="store_true", default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[])
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[14000, 20000, 30_000, 45000, 60000])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[14000])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default="None")

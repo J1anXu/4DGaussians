@@ -7,7 +7,7 @@ import torch
 import fnmatch
 import numpy as np
 import os
-
+from constants import *
 #os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128'
 #  交替方向乘子法（ADMM） 优化算法，通常用于解决带有约束和正则化的优化问题。
 class ADMM:
@@ -24,11 +24,11 @@ class ADMM:
         self.z = torch.Tensor(opacity.data.cpu().clone().detach()).to(device)
 
     # 注意,paper中的a就是这里的opacity
-    def update(self, opt, update_u = True):
+    def update(self, imp_score, opt, update_u = True):
         # 先更新辅助变量
         z = self.gsmodel.get_opacity + self.u # z = a + λ (Update z via Eq. 16) 
         # 裁剪z,实现h(z)的映射
-        self.z = torch.Tensor(self.prune_z(z, opt)).to(self.device) # z ← proxh(a + λ)
+        self.z = torch.Tensor(self.prune_z(z, imp_score, opt)).to(self.device) # z ← proxh(a + λ)
         # 更新高斯乘子
         if update_u: # λ ← λ + a − z.
             with torch.no_grad():
@@ -36,11 +36,12 @@ class ADMM:
                 self.u += diff
  
     #  该方法根据不同的策略（由 opt 参数控制）来更新 z：
-    def prune_z(self, z, opt):
-        z_update = self.metrics_sort(z,opt)  
+    def prune_z(self, z, imp_score, opt):
+        z_update = self.metrics_sort(z,opt)
+        #z_update = self.metrics_imp_score(z, imp_score, opt)  
         return z_update
 
-    def get_admm_loss(self, loss): # 该方法将 ADMM 的惩罚项添加到损失函数中
+    def get_admm_loss(self): # 该方法将 ADMM 的惩罚项添加到损失函数中
         return 0.5 * self.rho * (torch.norm(self.gsmodel.get_opacity - self.z + self.u, p=2)) ** 2
 
     def adjust_rho(self, epoch, epochs, factor=5): # 根据训练的当前进度（epoch 和 epochs）调整 rho 值。通常，rho 会随着训练的进展而增大，从而增加对约束的惩罚
@@ -48,7 +49,7 @@ class ADMM:
             self.rho = factor * self.init_rho
     
     def metrics_sort(self, z,opt): # 根据透明度的排序值来更新 z。它通过将透明度按升序排序并应用一个阈值来选择透明度值
-        index = int(opt.opacity_admm_threshold1 * len(z))
+        index = int(opt.opacity_admm_threshold2 * len(z))
         z_sort = {}
         z_update = torch.zeros(z.shape)
         z_sort, _ = torch.sort(z, 0)
