@@ -38,10 +38,10 @@ from logger import initialize_logger
 import logging
 
 
-WANDB = False
+WANDB = True
 
 
-initialize_logger(log_dir="./log", timezone_str="Etc/GMT-4")
+current_time = initialize_logger(log_dir="./log", timezone_str="Etc/GMT-4")
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
 
 try:
@@ -66,7 +66,7 @@ def scene_reconstruction(
     checkpoint,
     debug_from,
     gaussians,
-    scene,
+    scene: Scene,
     stage,
     tb_writer,
     train_iter,
@@ -138,7 +138,7 @@ def scene_reconstruction(
     if WANDB:
         wandb.init(
             project="trainadmm_with_ckpt",
-            name=f"stage_{stage}",
+            name=f"{current_time}",
             config={
                 "opt": vars(opt),
                 "dataset": vars(dataset),
@@ -156,8 +156,7 @@ def scene_reconstruction(
     # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
 
     for iteration in range(first_iter, final_iter + 1):
-        if WANDB & (iteration % 100 == 0):
-            wandb.log({"opacity_distribution": wandb.Histogram(gaussians.get_opacity.tolist())})
+
 
         if network_gui.conn == None:
             network_gui.try_connect()
@@ -364,6 +363,7 @@ def scene_reconstruction(
             if iteration in saving_iterations:
                 print("\n[ITER {}] Saving Gaussians".format(iteration))
                 scene.save(iteration, stage)
+
             if dataset.render_process:
                 if (
                     (iteration < 1000 and iteration % 10 == 9)
@@ -398,8 +398,10 @@ def scene_reconstruction(
                     # render_training_image(scene, gaussians, train_cams, render, pipe, background, stage+"train", iteration,timer.get_elapsed_time(),scene.dataset_type)
 
                 # total_images.append(to8b(temp_image).transpose(1,2,0))
+            if WANDB & iteration > opt.admm_start_iter1 & iteration % opt.admm_interval == 0:
+                wandb.log({"opacity_aftet_admm": wandb.Histogram(gaussians.get_opacity.tolist())})
+                
             timer.start()
-
             # Densification
             if iteration < opt.densify_until_iter:
                 # Keep track of max radii in image-space for pruning
@@ -448,6 +450,19 @@ def scene_reconstruction(
                 if iteration % opt.opacity_reset_interval == 0:
                     print("reset opacity")
                     gaussians.reset_opacity()
+            
+            elif args.prune_points and iteration == args.simp_iteration1:
+                scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
+                scores_sorted, _ = torch.sort(scores, 0)
+                threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
+                abs_threshold = scores_sorted[threshold_idx - 1]
+
+                mask = (scores <= abs_threshold).squeeze()
+                
+                print("\n before admm pruning:", len(gaussians.get_opacity))
+                gaussians.prune_points(mask)
+                print("\n after admm pruning", len(gaussians.get_opacity))
+            
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
                 admm.update(opt, update_u=False)
@@ -466,7 +481,7 @@ def scene_reconstruction(
                 elif opt.important_score_type == "opacity_and_movingInfo":
                     moving_length = calculate_moving_length(gaussians, times)
                     normalized_moving_length = norm_tensor_01(moving_length)
-                    scores = opacity - opt.important_score_2_moveingLenCoff * normalized_moving_length
+                    scores = opacity - 0.3 * normalized_moving_length
                 elif opt.important_score_type == "all_time_blending_weight":
                     scores = allTimeBledWeight(gaussians, opt, scene, pipe, background)
                 elif opt.important_score_type == "init_blending_weight":
@@ -801,7 +816,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug_from", type=int, default=-1)
     parser.add_argument("--detect_anomaly", action="store_true", default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[])
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[14000, 20000, 30_000, 45000, 60000])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default="None")

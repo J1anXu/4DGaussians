@@ -162,6 +162,7 @@ class OptimizationParams(ParamGroup):
         self.admm_stop_iter1 = -1
         self.densify_from_iter = -1
         self.densify_until_iter = -1
+        self.simp_iteration1 = -1
         self.simp_iteration2 = -1
         self.iterations = -1
         self.admm_interval = -1
@@ -170,9 +171,7 @@ class OptimizationParams(ParamGroup):
         self.opacity_admm_threshold2 = -1
 
         self.important_score_type = "opacity" # opacity, init_blending_weight, all_time_blending_weight, opacity_and_movingInfo, 
-        self.important_score_2_moveingLenCoff = -1000000000
         self.important_score_3_outdoor = False
-        self.important_score_4_time_interval = 10
 
         self.admm = False # 是否进行ADMM约束纠正
         self.prune_points = False # 是否进行删点

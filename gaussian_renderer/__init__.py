@@ -87,6 +87,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         means3D_final, scales_final, rotations_final, opacity_final, shs_final = pc._deformation(means3D, scales, 
                                                                  rotations, opacity, shs,
                                                                  time)
+        opacity_final = opacity
     else:
         raise NotImplementedError
 

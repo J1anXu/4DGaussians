@@ -11,13 +11,21 @@ def run_command(command):
 
 if __name__ == "__main__":
     # 第一个命令
-    command1 = 'python trainadmm_with_ckpt.py -s data/dynerf/cut_roasted_beef --port 6018 --expname "admm_p_50/cut_roasted_beef" --configs arguments/dynerf/cut_roasted_beef_admm_ckpt.py --start_checkpoint "output/dynerf/cut_roasted_beef/chkpnt_fine_14000.pth"'
+    command1 = 'python trainadmm_with_ckpt.py ' \
+    '-s data/dynerf/cut_roasted_beef --port 6018 ' \
+    '--expname "admm_p_50/cut_roasted_beef" ' \
+    '--configs arguments/dynerf/cut_roasted_beef_admm_ckpt_spa.py ' \
+    '--start_checkpoint "output/dynerf/cut_roasted_beef/chkpnt_fine_14000.pth"'
     
     # 第二个命令
-    command2 = 'python render2.py --model_path "output/admm_p_50/cut_roasted_beef" --skip_train --skip_video --configs arguments/dynerf/cut_roasted_beef.py'
+    command2 = 'python render2.py ' \
+    '--model_path "output/admm_p_50/cut_roasted_beef" ' \
+    '--skip_train --skip_video ' \
+    '--configs arguments/dynerf/cut_roasted_beef.py'
     
     # 第三个命令
-    command3 = 'python metrics2.py --model_path "output/admm_p_50/cut_roasted_beef"'
+    command3 = 'python metrics2.py ' \
+    '--model_path "output/admm_p_50/cut_roasted_beef"'
 
     # 顺序执行命令
     run_command(command1)

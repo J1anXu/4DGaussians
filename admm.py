@@ -37,7 +37,8 @@ class ADMM:
  
     #  该方法根据不同的策略（由 opt 参数控制）来更新 z：
     def prune_z(self, z, opt):
-        z_update = self.metrics_sort(z,opt)  
+        z_update = self.metrics_sort(z, opt)  
+        # z_update = self.metrics_sort(self.gsmodel.get_opacity, opt)  
         return z_update
 
     def get_admm_loss(self, loss): # 该方法将 ADMM 的惩罚项添加到损失函数中

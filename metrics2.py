@@ -9,6 +9,7 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
+from typing_extensions import Literal
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 GPU_NUMS = 8
@@ -162,7 +163,7 @@ def worker(device, renders, gts, start_idx, end_idx, results):
     gts = [gt.to(device) for gt in gts[start_idx:end_idx]]
 
     # Calculate metrics
-    for idx in range(start_idx, end_idx):
+    for idx in tqdm(range(start_idx, end_idx), desc="Evaling", unit="item"):
         ssims.append(ssim(renders[idx - start_idx], gts[idx - start_idx]).item())
         psnrs.append(psnr(renders[idx - start_idx], gts[idx - start_idx]).item())
         lpipss.append(lpips(renders[idx - start_idx], gts[idx - start_idx], net_type="vgg").item())

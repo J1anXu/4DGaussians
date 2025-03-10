@@ -36,4 +36,5 @@ def initialize_logger(log_dir='./log', timezone_str="Etc/GMT+4"):
         ]
     )
     logging.info("Log system initialized.")
+    return current_time
 
