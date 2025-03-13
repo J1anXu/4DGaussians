@@ -383,6 +383,7 @@ class GaussianModel:
 
     def prune_points(self, mask):
         valid_points_mask = ~mask
+        print("\n Before admm pruning:", len(self.get_opacity))
         optimizable_tensors = self._prune_optimizer(valid_points_mask)
 
         self._xyz = optimizable_tensors["xyz"]
@@ -396,6 +397,7 @@ class GaussianModel:
         self._deformation_table = self._deformation_table[valid_points_mask]
         self.denom = self.denom[valid_points_mask]
         self.max_radii2D = self.max_radii2D[valid_points_mask]
+        print("\n After admm pruning", len(self.get_opacity))
 
     def cat_tensors_to_optimizer(self, tensors_dict):
         optimizable_tensors = {}

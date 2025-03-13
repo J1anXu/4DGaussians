@@ -169,10 +169,7 @@ class OptimizationParams(ParamGroup):
         self.rho_lr = -1
         self.opacity_admm_threshold1 = -1
         self.opacity_admm_threshold2 = -1
-
-        self.important_score_type = "opacity" # opacity, init_blending_weight, all_time_blending_weight, opacity_and_movingInfo, 
-        self.important_score_3_outdoor = False
-
+        self.outdoor = False
         self.admm = False # 是否进行ADMM约束纠正
         self.prune_points = False # 是否进行删点
 

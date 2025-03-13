@@ -65,7 +65,7 @@ def scene_reconstruction(
     checkpoint_iterations,
     checkpoint,
     debug_from,
-    gaussians,
+    gaussians: GaussianModel,
     scene: Scene,
     stage,
     tb_writer,
@@ -456,12 +456,8 @@ def scene_reconstruction(
                 scores_sorted, _ = torch.sort(scores, 0)
                 threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
                 abs_threshold = scores_sorted[threshold_idx - 1]
-
                 mask = (scores <= abs_threshold).squeeze()
-                
-                print("\n before admm pruning:", len(gaussians.get_opacity))
                 gaussians.prune_points(mask)
-                print("\n after admm pruning", len(gaussians.get_opacity))
             
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
@@ -474,30 +470,12 @@ def scene_reconstruction(
                 admm.update(opt)
 
             if args.prune_points and iteration == args.simp_iteration2:
-                opacity = gaussians._opacity[:, 0]
-                # # opacity, init_blending_weight, all_time_blending_weight, opacity_and_movingInfo, 
-                if opt.important_score_type == "opacity":
-                    scores = opacity
-                elif opt.important_score_type == "opacity_and_movingInfo":
-                    moving_length = calculate_moving_length(gaussians, times)
-                    normalized_moving_length = norm_tensor_01(moving_length)
-                    scores = opacity - 0.3 * normalized_moving_length
-                elif opt.important_score_type == "all_time_blending_weight":
-                    scores = allTimeBledWeight(gaussians, opt, scene, pipe, background)
-                elif opt.important_score_type == "init_blending_weight":
-                    scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
-                else:
-                    raise ValueError(f"important_score_type not supported {opt.important_score_type}")
-
+                scores = getOpacityScore(gaussians)
                 scores_sorted, _ = torch.sort(scores, 0)
                 threshold_idx = int(opt.opacity_admm_threshold2 * len(scores_sorted))
                 abs_threshold = scores_sorted[threshold_idx - 1]
-
                 mask = (scores <= abs_threshold).squeeze()
-                
-                print("\n before admm pruning:", len(gaussians.get_opacity))
                 gaussians.prune_points(mask)
-                print("\n after admm pruning", len(gaussians.get_opacity))
 
             # Optimizer step
             if iteration < opt.iterations:
@@ -513,6 +491,12 @@ def scene_reconstruction(
     if WANDB:
         wandb.finish()
 
+
+def getOpacityScore(gaussians):
+    opacity = gaussians._opacity[:, 0]
+    scores = opacity
+    return scores
+
 def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, background):
     # render 输入数据的所有时间和相机视角,累计高斯点的权重
     # 根据重要性评分（Importance Score）对 3D Gaussians 进行稀疏化（Pruning），以减少不重要的点，提高渲染效率
@@ -527,7 +511,7 @@ def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgroun
         area_proj = render_pkg["area_proj"]
         area_max = render_pkg["area_max"]
         accum_area_max = accum_area_max + area_max
-        if opt.important_score_3_outdoor == True:
+        if opt.outdoor == True:
             mask_t = area_max != 0
             temp = imp_score + accum_weights / area_proj
             imp_score[mask_t] = temp[mask_t]
@@ -563,7 +547,7 @@ def zeroTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgrou
         area_proj = render_pkg["area_proj"]
         area_max = render_pkg["area_max"]
         accum_area_max = accum_area_max + area_max
-        if opt.important_score_3_outdoor == True:
+        if opt.outdoor == True:
             mask_t = area_max != 0
             temp = imp_score + accum_weights / area_proj
             imp_score[mask_t] = temp[mask_t]
@@ -580,7 +564,7 @@ def zeroTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgrou
     return scores
 
 
-def calculate_moving_length(gaussians, times):
+def movingLength(gaussians, times):
 
     # 获取高斯点数量和时间步数量
     num_gaussians = gaussians.get_xyz.shape[0]
@@ -606,7 +590,8 @@ def calculate_moving_length(gaussians, times):
         # 更新上一时刻的位置
         prev_means3D = means3D_at_time_tensor.clone()
 
-    return moving_length_table
+    normalized_moving_length = norm_tensor_01(moving_length_table)
+    return normalized_moving_length
 
 
 def norm_tensor_01(tensor):

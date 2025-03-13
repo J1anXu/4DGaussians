@@ -12,8 +12,7 @@ OptimizationParams = dict(
     opacity_admm_threshold1=0.90,
     opacity_admm_threshold2=0.90,
     coarse_iterations=0,
-    important_score_type="init_blending_weight", # opacity init_blending_weight
-    important_score_3_outdoor=False,
+    outdoor=False,
     prune_points = True,# 是否进行删点
     admm=True,
 
