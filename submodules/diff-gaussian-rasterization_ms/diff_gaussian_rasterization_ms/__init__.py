@@ -111,21 +111,39 @@ class _RasterizeGaussians(torch.autograd.Function):
         if raster_settings.debug:
             cpu_args = cpu_deep_copy_tuple(args) # Copy them before they can be corrupted
             try:
-                num_rendered, color, accum_weights_ptr, \
-                    accum_weights_count, accum_max_count, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+                result = _C.rasterize_gaussians(*args)
+                num_rendered = result["num_rendered"]
+                out_color = result["out_color"]
+                accum_weights_ptr = result["accum_weights_ptr"]
+                accum_weights_count = result["accum_weights_count"]
+                accum_max_count = result["accum_max_count"]
+                radii = result["radii"]
+                geomBuffer = result["geomBuffer"]
+                binningBuffer = result["binningBuffer"]
+                imgBuffer = result["imgBuffer"]
+                topk_color_mask = result["topk_color_mask"]
             except Exception as ex:
                 torch.save(cpu_args, "snapshot_fw.dump")
                 print("\nAn error occured in forward. Please forward snapshot_fw.dump for debugging.")
                 raise ex
         else:
-            num_rendered, color, accum_weights_ptr, \
-                accum_weights_count, accum_max_count, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+            result = _C.rasterize_gaussians(*args)
+            num_rendered = result["num_rendered"]
+            out_color = result["out_color"]
+            accum_weights_ptr = result["accum_weights_ptr"]
+            accum_weights_count = result["accum_weights_count"]
+            accum_max_count = result["accum_max_count"]
+            radii = result["radii"]
+            geomBuffer = result["geomBuffer"]
+            binningBuffer = result["binningBuffer"]
+            imgBuffer = result["imgBuffer"]
+            topk_color_mask = result["topk_color_mask"]
 
         # Keep relevant tensors for backward
         ctx.raster_settings = raster_settings
         ctx.num_rendered = num_rendered
         ctx.save_for_backward(colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer)
-        return color, radii, accum_weights_ptr, accum_weights_count, accum_max_count
+        return out_color, radii, accum_weights_ptr, accum_weights_count, accum_max_count, topk_color_mask
     
 
     def render_depth(

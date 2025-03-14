@@ -17,7 +17,7 @@ from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
 from time import time as get_time
 
-def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None, stage="fine", cam_type=None,image_gt =None):
+def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None, stage="fine", cam_type=None, image_gt =None):
     """
     Render the scene. 
     
@@ -117,7 +117,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen).
     # time3 = get_time()
-    rendered_image, radii, accum_weights_ptr, accum_weights_count, accum_max_count= rasterizer(
+    rendered_image, radii, accum_weights_ptr, accum_weights_count, accum_max_count, topk_color_mask= rasterizer(
         means3D = means3D_final,
         means2D = means2D,
         shs = shs_final,
@@ -129,6 +129,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
 
     p_diff = means3D_final - pc.get_xyz
     p_diff = torch.norm(p_diff, dim = 1)  # 计算 L2 范数
+    topk_color_mask = topk_color_mask.detach()
     return {
         "render": rendered_image,
         "viewspace_points": screenspace_points,
@@ -139,7 +140,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         "time": time,
         "accum_weights": accum_weights_ptr,
         "area_proj": accum_weights_count,
-        "area_max": accum_max_count
+        "area_max": accum_max_count,
+        "topk_color_mask": topk_color_mask
     }
 
 

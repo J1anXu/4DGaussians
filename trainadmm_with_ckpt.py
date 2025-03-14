@@ -256,15 +256,14 @@ def scene_reconstruction(
             gt_image_tensor = torch.cat(gt_images, 0)
             image_gt = gt_image_tensor[:, :3, :, :].cuda()
             render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type, image_gt = image_gt)
-            image, viewspace_point_tensor, visibility_filter, radii= (
+            image, viewspace_point_tensor, visibility_filter, radii, topk_color_mask= (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
                 render_pkg["visibility_filter"],
-                render_pkg["radii"]
+                render_pkg["radii"],
+                render_pkg["topk_color_mask"]
             )
             images.append(image.unsqueeze(0))
-
-
             radii_list.append(radii.unsqueeze(0))
             visibility_filter_list.append(visibility_filter.unsqueeze(0))
             viewspace_point_tensor_list.append(viewspace_point_tensor)
@@ -508,7 +507,7 @@ def topk_gaussians(gaussians, scene, pipe, background, render):
                                                                          gaussians, 
                                                                          pipe, 
                                                                          background, 
-                                                                         image_gt=viewpoint_cam.original_image.cuda())["important_score"])
+                                                                         image_gt=viewpoint_cam.original_image.cuda())["topk_color_mask"])
 
     return ~valid_prune_mask
 

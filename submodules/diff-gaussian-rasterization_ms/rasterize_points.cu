@@ -32,29 +32,28 @@ std::function<char*(size_t N)> resizeFunctional(torch::Tensor& t) {
     return lambda;
 }
 
-std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, 
-torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+std::map<std::string, torch::Tensor>
 RasterizeGaussiansCUDA(
-  const torch::Tensor& background,
-  const torch::Tensor& means3D,
+    const torch::Tensor& background,
+    const torch::Tensor& means3D,
     const torch::Tensor& colors,
     const torch::Tensor& opacity,
-  const torch::Tensor& scales,
-  const torch::Tensor& rotations,
-  const float scale_modifier,
-  const torch::Tensor& cov3D_precomp,
-  const torch::Tensor& viewmatrix,
-  const torch::Tensor& projmatrix,
-  const float tan_fovx, 
-  const float tan_fovy,
+    const torch::Tensor& scales,
+    const torch::Tensor& rotations,
+    const float scale_modifier,
+    const torch::Tensor& cov3D_precomp,
+    const torch::Tensor& viewmatrix,
+    const torch::Tensor& projmatrix,
+    const float tan_fovx, 
+    const float tan_fovy,
     const int image_height,
     const int image_width,
-  const torch::Tensor& sh,
-  const int degree,
-  const torch::Tensor& campos,
-  const bool prefiltered,
-  const bool debug,
-  const torch::Tensor& image_gt
+    const torch::Tensor& sh,
+    const int degree,
+    const torch::Tensor& campos,
+    const bool prefiltered,
+    const bool debug,
+    const torch::Tensor& image_gt
   )
 {
   if (means3D.ndimension() != 2 || means3D.size(1) != 3) {
@@ -129,10 +128,21 @@ RasterizeGaussiansCUDA(
       radii.contiguous().data<int>(),
       debug);
   }
-
-  return std::make_tuple(rendered, out_color, accum_weights_ptr, accum_weights_count, accum_max_count, radii, geomBuffer, 
-  binningBuffer, imgBuffer, topk_color_mask);  
-  
+  std::map<std::string, torch::Tensor> result;
+  std::cout << "Shape of out_color: " << out_color.sizes() << std::endl;
+      // 使用字典返回结果
+  result["num_rendered"] = torch::tensor(rendered, int_opts);
+  result["out_color"] = out_color.clone();
+  result["accum_weights_ptr"] = accum_weights_ptr.clone();
+  result["accum_weights_count"] = accum_weights_count.clone();
+  result["accum_max_count"] = accum_max_count.clone();
+  result["radii"] = radii.clone();
+  result["geomBuffer"] = geomBuffer.clone();
+  result["binningBuffer"] = binningBuffer.clone();
+  result["imgBuffer"] = imgBuffer.clone();
+  result["topk_color_mask"] = topk_color_mask.clone();
+  //return std::make_tuple(rendered, out_color.clone(), accum_weights_ptr.clone(), accum_weights_count.clone(), accum_max_count.clone(), radii.clone(), geomBuffer.clone(), binningBuffer.clone(), imgBuffer.clone(), topk_color_mask.clone());
+  return result;
 }
 
 
