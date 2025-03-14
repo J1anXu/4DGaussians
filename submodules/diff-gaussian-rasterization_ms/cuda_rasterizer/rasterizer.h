@@ -54,6 +54,9 @@ namespace CudaRasterizer
 			int* accum_weights_count,
 			float* accum_max_count,
 
+			const float* image_gt,
+			bool* topk_color_mask,
+
 			int* radii = nullptr,
 			bool debug = false);
 

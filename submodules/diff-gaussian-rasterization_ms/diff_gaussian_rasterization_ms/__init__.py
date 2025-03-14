@@ -80,7 +80,7 @@ class _RasterizeGaussians(torch.autograd.Function):
         scales,
         rotations,
         cov3Ds_precomp,
-        raster_settings,
+        raster_settings
     ):
 
         # Restructure arguments the way that the C++ lib expects them
@@ -104,6 +104,7 @@ class _RasterizeGaussians(torch.autograd.Function):
             raster_settings.campos,
             raster_settings.prefiltered,
             raster_settings.debug,
+            raster_settings.image_gt
         )
 
         # Invoke C++/CUDA rasterizer
@@ -251,6 +252,7 @@ class GaussianRasterizationSettings(NamedTuple):
     campos : torch.Tensor
     prefiltered : bool
     debug : bool
+    image_gt: torch.Tensor
 
 class GaussianRasterizer(nn.Module):
     def __init__(self, raster_settings):

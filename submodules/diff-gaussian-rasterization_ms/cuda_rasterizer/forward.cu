@@ -259,6 +259,112 @@ __global__ void preprocessCUDA(int P, int D, int M,
 	tiles_touched[idx] = (rect_max.y - rect_min.y) * (rect_max.x - rect_min.x);
 }
 
+
+
+template<uint32_t C>
+__device__ float compute_score(
+	int func_id,
+	float opacity,
+	float alpha,
+	float T,
+	float2* pix_dist,
+	double p_dist_activation_coef = 1.0,
+	double c_dist_activation_coef = 1.0,
+	float* gt_color = nullptr,
+	float* prim_color = nullptr)
+{
+	float activated_dist_err = 0.0f;
+	float activated_color_dist_err = 0.0f;
+	float color_cos_sim = 0.0f;
+	float color_dist_err = 0.0f;
+	float score = 0.0f;
+	switch (func_id & 0x0f)
+	{
+		case 0x00:
+			score = 1; break;
+		case 0x01:
+			score = opacity; break;
+		case 0x02:
+			score = alpha; break;
+		case 0x03:
+			score = opacity * T; break;
+		case 0x04:
+			score = alpha * T; break;
+		case 0x05:
+			activated_dist_err = exp(-1.0f * (p_dist_activation_coef * sqrt(pix_dist->x * pix_dist->x + pix_dist->y * pix_dist->y)));
+			score = activated_dist_err; break;
+		case 0x06:
+			activated_dist_err = exp(-1.0f * (p_dist_activation_coef * sqrt(pix_dist->x * pix_dist->x + pix_dist->y * pix_dist->y)));
+			score = activated_dist_err * opacity; break;
+		case 0x07:
+			activated_dist_err = exp(-1.0f * (p_dist_activation_coef * sqrt(pix_dist->x * pix_dist->x + pix_dist->y * pix_dist->y)));
+			score = activated_dist_err * alpha; break;
+		case 0x08:
+			activated_dist_err = exp(-1.0f * (p_dist_activation_coef * sqrt(pix_dist->x * pix_dist->x + pix_dist->y * pix_dist->y)));
+			score = activated_dist_err * opacity * T; break;
+		case 0x09:
+			activated_dist_err = exp(-1.0f * (p_dist_activation_coef * sqrt(pix_dist->x * pix_dist->x + pix_dist->y * pix_dist->y)));
+			score = activated_dist_err * alpha * T; break;
+		case 0x0a:
+			score = opacity + T; break;
+		case 0x0b:
+			score = alpha + T; break;
+		case 0x0c:
+			activated_dist_err = exp(-1.0f * (p_dist_activation_coef * sqrt(pix_dist->x * pix_dist->x + pix_dist->y * pix_dist->y)));
+			score = activated_dist_err + opacity; break;
+		case 0x0d:
+			activated_dist_err = exp(-1.0f * (p_dist_activation_coef * sqrt(pix_dist->x * pix_dist->x + pix_dist->y * pix_dist->y)));
+			score = activated_dist_err + alpha; break;
+		case 0x0e:
+			activated_dist_err = exp(-1.0f * (p_dist_activation_coef * sqrt(pix_dist->x * pix_dist->x + pix_dist->y * pix_dist->y)));
+			score = activated_dist_err + opacity + T; break;
+		case 0x0f:
+			activated_dist_err = exp(-1.0f * (p_dist_activation_coef * sqrt(pix_dist->x * pix_dist->x + pix_dist->y * pix_dist->y)));
+			score = activated_dist_err + alpha + T; break;
+	}
+
+	switch (func_id & 0xf0)
+	{
+		case 0x00:
+			return score;
+		case 0x10:
+			float gt_color_len = 0;
+			float prim_color_len = 0;
+			
+			for (int ch = 0; ch < C; ch++)
+			{
+				gt_color_len += gt_color[ch] * gt_color[ch];
+				prim_color_len += prim_color[ch] * prim_color[ch];
+			}
+			gt_color_len = sqrt(gt_color_len);
+			prim_color_len = sqrt(prim_color_len);
+
+			for (int ch = 0; ch < C; ch++)
+				color_cos_sim += gt_color[ch] * prim_color[ch];
+			return score * color_cos_sim / (gt_color_len * prim_color_len);
+		case 0x20:
+			for (int ch = 0; ch < C; ch++)
+				color_dist_err += abs(gt_color[ch] - prim_color[ch]);
+			activated_color_dist_err = 1 - color_dist_err / C;
+			return score * activated_color_dist_err;
+		case 0x30:
+			for (int ch = 0; ch < C; ch++)
+				color_dist_err += abs(gt_color[ch] - prim_color[ch]);
+			activated_color_dist_err = exp(-1.0f * c_dist_activation_coef * color_dist_err / C);
+			return score * activated_color_dist_err;
+		case 0x40:
+			for (int ch = 0; ch < C; ch++)
+				color_dist_err += abs(gt_color[ch] - prim_color[ch]);
+			activated_color_dist_err = 1 - color_dist_err / C;
+			return score + activated_color_dist_err;
+		case 0x50:
+			for (int ch = 0; ch < C; ch++)
+				color_dist_err += abs(gt_color[ch] - prim_color[ch]);
+			activated_color_dist_err = exp(-1.0f * c_dist_activation_coef * color_dist_err / C);
+			return score + activated_color_dist_err;
+	}
+}
+
 // Main rasterization method. Collaboratively works on one tile per
 // block, each thread treats one pixel. Alternates between fetching 
 // and rasterizing data.
@@ -279,7 +385,12 @@ renderCUDA(
 	float* __restrict__ final_T,
 	uint32_t* __restrict__ n_contrib,
 	const float* __restrict__ bg_color,
-	float* __restrict__ out_color
+	float* __restrict__ out_color,
+
+	const float* __restrict__ image_gt,
+	uint64_t* __restrict__ gaussian_keys_unsorted,
+	uint32_t* __restrict__ gaussian_values_unsorted
+
 	)
 {
 	// Identify current tile and associated min/max pixel range.
@@ -311,8 +422,16 @@ renderCUDA(
 	uint32_t contributor = 0;
 	uint32_t last_contributor = 0;
 	float C[CHANNELS] = { 0 };
+
+	float gt_color[CHANNELS] = { 0 };
+	for (int ch = 0; ch < CHANNELS; ch++)
+		gt_color[ch] = image_gt[ch * H * W + pix_id];
+
 	float D = { 0 };
 	float sum_W = { 0 };
+
+
+
 
 	float weight_max=0;
 	float depth_max=0;
@@ -371,8 +490,22 @@ renderCUDA(
 			}
 
 			// Eq. (3) from 3D Gaussian splatting paper.
-			for (int ch = 0; ch < CHANNELS; ch++)
+			float prim_color[CHANNELS] = { 0 };
+			for (int ch = 0; ch < CHANNELS; ch++){
 				C[ch] += features[collected_id[j] * CHANNELS + ch] * alpha * T;
+				prim_color[ch] = features[collected_id[j] * CHANNELS + ch];
+			}
+
+
+			uint64_t block_id = block.group_index().y * horizontal_blocks + block.group_index().x;
+			// Use value range of [0, 65535].
+			// To be valid for ascending order sorting, use 1 - score instead of score.
+			float score = compute_score<CHANNELS>(36, con_o.w, alpha, T, &d, 1.0, 1.0, gt_color, prim_color);
+			uint32_t scaled_score = __float2uint_rd((1 - score) * 65535);
+			gaussian_keys_unsorted[range.x + progress] = (block_id << 32) | scaled_score;
+			gaussian_values_unsorted[range.x + progress] = collected_id[j];
+
+
 
 			if(weight_max<alpha * T)
 			{
@@ -678,8 +811,10 @@ void FORWARD::render(
 	float* final_T,
 	uint32_t* n_contrib,
 	const float* bg_color,
-	float* out_color
-	)
+	float* out_color,
+	const float* image_gt,
+	uint64_t* gaussian_keys_unsorted,
+	uint32_t* gaussian_values_unsorted)
 {
 	renderCUDA<NUM_CHANNELS> << <grid, block >> > (
 		ranges,
@@ -694,7 +829,10 @@ void FORWARD::render(
 		final_T,
 		n_contrib,
 		bg_color,
-		out_color
+		out_color,
+		image_gt,
+		gaussian_keys_unsorted,
+		gaussian_values_unsorted
 		);
 }
 

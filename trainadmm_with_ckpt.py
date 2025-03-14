@@ -248,22 +248,23 @@ def scene_reconstruction(
         visibility_filter_list = []
         viewspace_point_tensor_list = []
         for viewpoint_cam in viewpoint_cams:
-            render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
-            image, viewspace_point_tensor, visibility_filter, radii, p_diff, time = (
-                render_pkg["render"],
-                render_pkg["viewspace_points"],
-                render_pkg["visibility_filter"],
-                render_pkg["radii"],
-                render_pkg["p_diff"],
-                render_pkg["time"],
-            )
-            images.append(image.unsqueeze(0))
             if scene.dataset_type != "PanopticSports":
                 gt_image = viewpoint_cam.original_image.cuda()
             else:
                 gt_image = viewpoint_cam["image"].cuda()
-
             gt_images.append(gt_image.unsqueeze(0))
+            gt_image_tensor = torch.cat(gt_images, 0)
+            image_gt = gt_image_tensor[:, :3, :, :].cuda()
+            render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type, image_gt = image_gt)
+            image, viewspace_point_tensor, visibility_filter, radii= (
+                render_pkg["render"],
+                render_pkg["viewspace_points"],
+                render_pkg["visibility_filter"],
+                render_pkg["radii"]
+            )
+            images.append(image.unsqueeze(0))
+
+
             radii_list.append(radii.unsqueeze(0))
             visibility_filter_list.append(visibility_filter.unsqueeze(0))
             viewspace_point_tensor_list.append(viewspace_point_tensor)
@@ -271,7 +272,6 @@ def scene_reconstruction(
         radii = torch.cat(radii_list, 0).max(dim=0).values
         visibility_filter = torch.cat(visibility_filter_list).any(dim=0)
         image_tensor = torch.cat(images, 0)
-        gt_image_tensor = torch.cat(gt_images, 0)
 
         Ll1 = l1_loss(image_tensor, gt_image_tensor[:, :3, :, :])
         psnr_ = psnr(image_tensor, gt_image_tensor).mean().double()
@@ -452,11 +452,12 @@ def scene_reconstruction(
                     gaussians.reset_opacity()
             
             elif args.prune_points and iteration == args.simp_iteration1:
-                scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
-                scores_sorted, _ = torch.sort(scores, 0)
-                threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
-                abs_threshold = scores_sorted[threshold_idx - 1]
-                mask = (scores <= abs_threshold).squeeze()
+                # scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
+                # scores_sorted, _ = torch.sort(scores, 0)
+                # threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
+                # abs_threshold = scores_sorted[threshold_idx - 1]
+                # mask = (scores <= abs_threshold).squeeze()
+                mask = topk_gaussians(scene, pipe, background, render)
                 gaussians.prune_points(mask)
             
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
@@ -497,6 +498,21 @@ def getOpacityScore(gaussians):
     scores = opacity
     return scores
 
+@torch.no_grad()
+def topk_gaussians(gaussians, scene, pipe, background, render):
+    viewpoint_stack = scene.getTrainCameras().copy()
+    valid_prune_mask = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda", dtype=torch.bool)
+
+    for viewpoint_cam in viewpoint_stack:
+            valid_prune_mask = torch.logical_or(valid_prune_mask, render(viewpoint_cam, 
+                                                                         gaussians, 
+                                                                         pipe, 
+                                                                         background, 
+                                                                         image_gt=viewpoint_cam.original_image.cuda())["important_score"])
+
+    return ~valid_prune_mask
+
+
 def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, background):
     # render 输入数据的所有时间和相机视角,累计高斯点的权重
     # 根据重要性评分（Importance Score）对 3D Gaussians 进行稀疏化（Pruning），以减少不重要的点，提高渲染效率
@@ -526,6 +542,7 @@ def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgroun
     print(f"Non-zero count: {non_zero_count}")
     print("imp_score return success")
     return scores
+
 
 
 def zeroTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, background):

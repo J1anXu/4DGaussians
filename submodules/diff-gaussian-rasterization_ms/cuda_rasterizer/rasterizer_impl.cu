@@ -193,6 +193,26 @@ CudaRasterizer::BinningState CudaRasterizer::BinningState::fromChunk(char*& chun
 	return binning;
 }
 
+
+__global__ void markingTopKMasks(int L, int topk, uint64_t* point_list_keys, uint32_t* point_list, bool* masks)
+{
+	auto idx = cg::this_grid().thread_rank();
+	if (idx >= L)
+		return;
+     
+	uint64_t key = point_list_keys[idx];
+	uint32_t val = point_list[idx];
+	uint32_t currtile = key >> 32;
+	if (idx < topk)
+		masks[val] = true;
+	else
+	{
+		uint32_t prevtile = point_list_keys[idx - topk] >> 32;
+		if (currtile != prevtile)
+			masks[val] = true;
+	}
+}
+
 // Forward rendering procedure for differentiable rasterization
 // of Gaussians.
 int CudaRasterizer::Rasterizer::forward(
@@ -220,6 +240,8 @@ int CudaRasterizer::Rasterizer::forward(
 	float* accum_weights_ptr,
 	int* accum_weights_count,
 	float* accum_max_count,
+	const float* image_gt,
+	bool* topk_color_mask,
 
 	int* radii,
 	bool debug)
@@ -325,6 +347,13 @@ int CudaRasterizer::Rasterizer::forward(
 			imgState.ranges);
 	CHECK_CUDA(, debug)
 
+
+	size_t binning_chunk_size_for_opacity = required<BinningState>(num_rendered);
+	char* binning_chunkptr_for_opacity = binningBuffer(binning_chunk_size_for_opacity);
+	BinningState binningState_for_opacity = BinningState::fromChunk(binning_chunkptr_for_opacity, num_rendered);
+	CHECK_CUDA(cudaMemset(binningState_for_opacity.point_list_keys_unsorted, -1, num_rendered * sizeof(uint64_t)), debug);
+	CHECK_CUDA(cudaMemset(binningState_for_opacity.point_list_unsorted, 0, num_rendered * sizeof(uint32_t)), debug);
+
 	// Let each tile blend its range of Gaussians independently in parallel
 	const float* feature_ptr = colors_precomp != nullptr ? colors_precomp : geomState.rgb;
 	
@@ -342,8 +371,29 @@ int CudaRasterizer::Rasterizer::forward(
 		imgState.accum_alpha,
 		imgState.n_contrib,
 		background,
-		out_color
-		), debug)
+		out_color,
+		image_gt,
+		binningState_for_opacity.point_list_keys_unsorted,
+		binningState_for_opacity.point_list_unsorted), debug)
+
+	if (num_rendered > 0)
+	{
+		int topk_color = 10;
+		// Sort by keys (descending order of weight per-tile)
+		CHECK_CUDA(cub::DeviceRadixSort::SortPairs(
+			binningState_for_opacity.list_sorting_space,
+			binningState_for_opacity.sorting_size,
+			binningState_for_opacity.point_list_keys_unsorted, binningState_for_opacity.point_list_keys,
+			binningState_for_opacity.point_list_unsorted, binningState_for_opacity.point_list,
+			num_rendered, 0, 32 + bit), debug)
+		
+		markingTopKMasks << <(num_rendered + 255) / 256, 256 >> > (
+			num_rendered, topk_color,
+			binningState_for_opacity.point_list_keys,
+			binningState_for_opacity.point_list,
+			topk_color_mask);
+		CHECK_CUDA(, debug)
+	}
 
 	return num_rendered;
 }

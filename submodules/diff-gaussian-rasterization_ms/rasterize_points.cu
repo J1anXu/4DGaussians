@@ -33,7 +33,7 @@ std::function<char*(size_t N)> resizeFunctional(torch::Tensor& t) {
 }
 
 std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, 
-torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
 RasterizeGaussiansCUDA(
   const torch::Tensor& background,
   const torch::Tensor& means3D,
@@ -53,7 +53,8 @@ RasterizeGaussiansCUDA(
   const int degree,
   const torch::Tensor& campos,
   const bool prefiltered,
-  const bool debug
+  const bool debug,
+  const torch::Tensor& image_gt
   )
 {
   if (means3D.ndimension() != 2 || means3D.size(1) != 3) {
@@ -66,6 +67,7 @@ RasterizeGaussiansCUDA(
 
   auto int_opts = means3D.options().dtype(torch::kInt32);
   auto float_opts = means3D.options().dtype(torch::kFloat32);
+  auto bool_opts = means3D.options().dtype(torch::kBool);
 
   torch::Tensor out_color = torch::full({NUM_CHANNELS, H, W}, 0.0, float_opts);
   torch::Tensor radii = torch::full({P}, 0, means3D.options().dtype(torch::kInt32));
@@ -83,6 +85,8 @@ RasterizeGaussiansCUDA(
   std::function<char*(size_t)> binningFunc = resizeFunctional(binningBuffer);
   std::function<char*(size_t)> imgFunc = resizeFunctional(imgBuffer);
   
+  // topk_color_mask
+  torch::Tensor topk_color_mask = torch::full({P}, false, bool_opts);
 
   int rendered = 0;
   if(P != 0)
@@ -118,14 +122,16 @@ RasterizeGaussiansCUDA(
 
       accum_weights_ptr.contiguous().data<float>(),  
       accum_weights_count.contiguous().data<int>(),  
-      accum_max_count.contiguous().data<float>(),  
+      accum_max_count.contiguous().data<float>(),
+      image_gt.contiguous().data_ptr<float>(),  
+		  topk_color_mask.contiguous().data<bool>(),
 
       radii.contiguous().data<int>(),
       debug);
   }
 
   return std::make_tuple(rendered, out_color, accum_weights_ptr, accum_weights_count, accum_max_count, radii, geomBuffer, 
-  binningBuffer, imgBuffer);  
+  binningBuffer, imgBuffer, topk_color_mask);  
   
 }
 

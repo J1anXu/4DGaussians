@@ -64,7 +64,10 @@ namespace FORWARD
 		float* final_T,
 		uint32_t* n_contrib,
 		const float* bg_color,
-		float* out_color
+		float* out_color,
+		const float* image_gt,
+		uint64_t* gaussian_keys_unsorted,
+		uint32_t* gaussian_values_unsorted
 		);
 
 
