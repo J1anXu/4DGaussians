@@ -28,6 +28,7 @@ from arguments import ModelParams, PipelineParams, OptimizationParams, ModelHidd
 from torch.utils.data import DataLoader
 from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
+from tqdm import tqdm
 
 from utils.scene_utils import render_training_image
 
@@ -255,7 +256,7 @@ def scene_reconstruction(
             gt_images.append(gt_image.unsqueeze(0))
             gt_image_tensor = torch.cat(gt_images, 0)
             image_gt = gt_image_tensor[:, :3, :, :].cuda()
-            render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type, image_gt = image_gt)
+            render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type, image_gt = gt_image)
             image, viewspace_point_tensor, visibility_filter, radii, topk_color_mask= (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
@@ -452,13 +453,15 @@ def scene_reconstruction(
             
             elif args.prune_points and iteration == args.simp_iteration1:
                 # scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
-                # scores_sorted, _ = torch.sort(scores, 0)
-                # threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
-                # abs_threshold = scores_sorted[threshold_idx - 1]
-                # mask = (scores <= abs_threshold).squeeze()
-                mask = topk_gaussians(scene, pipe, background, render)
+                scores = getOpacityScore(gaussians)
+                scores_sorted, _ = torch.sort(scores, 0)
+                threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
+                abs_threshold = scores_sorted[threshold_idx - 1]
+                mask = (scores <= abs_threshold).squeeze()
+                #mask = topk_gaussians(gaussians, scene, pipe, background, render)
                 gaussians.prune_points(mask)
-            
+                render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type, image_gt = image_gt)
+                print("test")
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
                 admm.update(opt, update_u=False)
@@ -499,15 +502,18 @@ def getOpacityScore(gaussians):
 
 @torch.no_grad()
 def topk_gaussians(gaussians, scene, pipe, background, render):
-    viewpoint_stack = scene.getTrainCameras().copy()
+    viewpoint_stack = scene.getTrainCameras()
     valid_prune_mask = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda", dtype=torch.bool)
-
-    for viewpoint_cam in viewpoint_stack:
+    count = 0
+    for viewpoint_cam in tqdm(viewpoint_stack, desc="topk"):
+            if count == 50:
+                break
             valid_prune_mask = torch.logical_or(valid_prune_mask, render(viewpoint_cam, 
                                                                          gaussians, 
                                                                          pipe, 
                                                                          background, 
                                                                          image_gt=viewpoint_cam.original_image.cuda())["topk_color_mask"])
+            count+=1
 
     return ~valid_prune_mask
 

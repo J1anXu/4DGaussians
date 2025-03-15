@@ -129,7 +129,6 @@ RasterizeGaussiansCUDA(
       debug);
   }
   std::map<std::string, torch::Tensor> result;
-  std::cout << "Shape of out_color: " << out_color.sizes() << std::endl;
       // 使用字典返回结果
   result["num_rendered"] = torch::tensor(rendered, int_opts);
   result["out_color"] = out_color.clone();
