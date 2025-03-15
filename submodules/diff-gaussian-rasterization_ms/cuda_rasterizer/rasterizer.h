@@ -57,6 +57,45 @@ namespace CudaRasterizer
 			int* radii = nullptr,
 			bool debug = false);
 
+		static int forwardTopKColor(
+			std::function<char* (size_t)> geometryBuffer,
+			std::function<char* (size_t)> binningBuffer,
+			std::function<char* (size_t)> imageBuffer,
+			const int P, int D, int M,
+			const float* background,
+			const int width, int height,
+			const float* means3D,
+			const float* shs,
+			const float* colors_precomp,
+			const float* opacities,
+			const float* scales,
+			const float scale_modifier,
+			const float* rotations,
+			const float* cov3D_precomp,
+			const float* viewmatrix,
+			const float* projmatrix,
+			const float* cam_pos,
+			const float tan_fovx, float tan_fovy,
+			const bool prefiltered,
+			float* out_color,
+
+			float* accum_weights_ptr,
+			int* accum_weights_count,
+			float* accum_max_count,
+
+
+			const int topk_color,
+			const int score_function,
+			const float* image_gt,
+			const float p_dist_activation_coef,
+			const float c_dist_activation_coef,
+			bool* topk_color_mask,
+
+			int* radii = nullptr,
+			bool debug = false);
+
+
+
 
 		static int forward_depth(
 			std::function<char* (size_t)> geometryBuffer,

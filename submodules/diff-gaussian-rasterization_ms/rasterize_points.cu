@@ -129,6 +129,125 @@ RasterizeGaussiansCUDA(
   
 }
 
+std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, 
+torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+TopKColorGaussiansCUDA(
+  const torch::Tensor& background,
+  const torch::Tensor& means3D,
+  const torch::Tensor& colors,
+  const torch::Tensor& opacity,
+  const torch::Tensor& scales,
+  const torch::Tensor& rotations,
+  const float scale_modifier,
+  const torch::Tensor& cov3D_precomp,
+  const torch::Tensor& viewmatrix,
+  const torch::Tensor& projmatrix,
+  const float tan_fovx, 
+  const float tan_fovy,
+  const int image_height,
+  const int image_width,
+  const torch::Tensor& sh,
+  const int degree,
+  const torch::Tensor& campos,
+  const bool prefiltered,
+  const bool debug,
+
+  const int topk_color,
+  const int score_function,
+  const torch::Tensor& image_gt,
+  const float p_dist_activation_coef,
+	const float c_dist_activation_coef
+  )
+{
+  if (means3D.ndimension() != 2 || means3D.size(1) != 3) {
+    AT_ERROR("means3D must have dimensions (num_points, 3)");
+  }
+  
+  const int P = means3D.size(0);
+  const int H = image_height;
+  const int W = image_width;
+
+  auto int_opts = means3D.options().dtype(torch::kInt32);
+  auto float_opts = means3D.options().dtype(torch::kFloat32);
+
+  torch::Tensor out_color = torch::full({NUM_CHANNELS, H, W}, 0.0, float_opts);
+  torch::Tensor radii = torch::full({P}, 0, means3D.options().dtype(torch::kInt32));
+  auto bool_opts = means3D.options().dtype(torch::kBool);
+
+  torch::Tensor accum_weights_ptr = torch::full({P}, 0, float_opts);
+  torch::Tensor accum_weights_count = torch::full({P}, 0, int_opts);
+  torch::Tensor accum_max_count = torch::full({P}, 0, float_opts);
+  
+  torch::Device device(torch::kCUDA);
+  torch::TensorOptions options(torch::kByte);
+  torch::Tensor geomBuffer = torch::empty({0}, options.device(device));
+  torch::Tensor binningBuffer = torch::empty({0}, options.device(device));
+  torch::Tensor imgBuffer = torch::empty({0}, options.device(device));
+  std::function<char*(size_t)> geomFunc = resizeFunctional(geomBuffer);
+  std::function<char*(size_t)> binningFunc = resizeFunctional(binningBuffer);
+  std::function<char*(size_t)> imgFunc = resizeFunctional(imgBuffer);
+  
+  // topk_color_mask
+  torch::Tensor topk_color_mask = torch::full({P}, false, bool_opts);
+
+  int rendered = 0;
+  if(P != 0)
+  {
+    int M = 0;
+    if(sh.size(0) != 0)
+    {
+      M = sh.size(1);
+    }
+
+    rendered = CudaRasterizer::Rasterizer::forwardTopKColor(
+      geomFunc,
+      binningFunc,
+      imgFunc,
+      P, degree, M,
+      background.contiguous().data<float>(),
+      W, H,
+      means3D.contiguous().data<float>(),
+      sh.contiguous().data_ptr<float>(),
+      colors.contiguous().data<float>(), 
+      opacity.contiguous().data<float>(), 
+      scales.contiguous().data_ptr<float>(),
+      scale_modifier,
+      rotations.contiguous().data_ptr<float>(),
+      cov3D_precomp.contiguous().data<float>(), 
+      viewmatrix.contiguous().data<float>(), 
+      projmatrix.contiguous().data<float>(),
+      campos.contiguous().data<float>(),
+      tan_fovx,
+      tan_fovy,
+      prefiltered,
+      out_color.contiguous().data<float>(),
+
+      accum_weights_ptr.contiguous().data<float>(),  
+      accum_weights_count.contiguous().data<int>(),  
+      accum_max_count.contiguous().data<float>(),  
+      
+
+      topk_color,
+      score_function,
+      image_gt.contiguous().data_ptr<float>(),
+      p_dist_activation_coef,
+      c_dist_activation_coef,
+      topk_color_mask.contiguous().data<bool>(),
+
+      radii.contiguous().data<int>(),
+      debug
+      );
+  }
+
+  return std::make_tuple(rendered, out_color, accum_weights_ptr, accum_weights_count, accum_max_count, radii, geomBuffer, 
+  binningBuffer, imgBuffer, topk_color_mask);  
+  
+}
+
+
+
+
+
 
 
 

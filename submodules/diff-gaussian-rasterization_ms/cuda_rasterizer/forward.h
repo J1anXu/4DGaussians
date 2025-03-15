@@ -67,6 +67,32 @@ namespace FORWARD
 		float* out_color
 		);
 
+	void topk_color_gaussian(
+		const dim3 grid, dim3 block,
+		const uint2* ranges,
+		const uint32_t* point_list,
+		int W, int H,
+		const float2* points_xy_image,
+		const float* features,
+		float* accum_weights_p,
+		int* accum_weights_count,
+		float* accum_max_count,
+
+		const float4* conic_opacity,
+		float* final_T,
+		uint32_t* n_contrib,
+		const float* bg_color,
+		
+		const float* image_gt,
+		const int score_function,
+		const float p_dist_activation_coef,
+		const float c_dist_activation_coef,
+		uint64_t* gaussian_keys_unsorted,
+		uint32_t* gaussian_values_unsorted,
+
+		float* out_color
+		);
+
 
 	void render_depth(
 		const dim3 grid, dim3 block,

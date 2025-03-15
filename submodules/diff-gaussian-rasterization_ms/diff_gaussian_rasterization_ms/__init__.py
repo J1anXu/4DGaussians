@@ -107,24 +107,36 @@ class _RasterizeGaussians(torch.autograd.Function):
         )
 
         # Invoke C++/CUDA rasterizer
+        important_score = None
         if raster_settings.debug:
             cpu_args = cpu_deep_copy_tuple(args) # Copy them before they can be corrupted
             try:
-                num_rendered, color, accum_weights_ptr, \
-                    accum_weights_count, accum_max_count, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+                if raster_settings.gs_topk is not None and raster_settings.gs_topk != 0:
+                    num_rendered, color, accum_weights_ptr, \
+                        accum_weights_count, accum_max_count, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+                else:
+                    args += (raster_settings.gs_topk)
+                    num_rendered, color, accum_weights_ptr, \
+                        accum_weights_count, accum_max_count, radii, geomBuffer, binningBuffer, imgBuffer, important_score = _C.rasterize_gaussians_color(*args)
             except Exception as ex:
                 torch.save(cpu_args, "snapshot_fw.dump")
                 print("\nAn error occured in forward. Please forward snapshot_fw.dump for debugging.")
                 raise ex
         else:
-            num_rendered, color, accum_weights_ptr, \
-                accum_weights_count, accum_max_count, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+            if raster_settings.gs_topk is not None and raster_settings.gs_topk != 0:
+                num_rendered, color, accum_weights_ptr, \
+                    accum_weights_count, accum_max_count, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+            else:
+                args += (raster_settings.gs_topk)
+                num_rendered, color, accum_weights_ptr, \
+                    accum_weights_count, accum_max_count, radii, geomBuffer, binningBuffer, imgBuffer, important_score = _C.rasterize_gaussians_color(*args)
 
         # Keep relevant tensors for backward
         ctx.raster_settings = raster_settings
         ctx.num_rendered = num_rendered
         ctx.save_for_backward(colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer)
-        return color, radii, accum_weights_ptr, accum_weights_count, accum_max_count
+        
+        return color, radii, accum_weights_ptr, accum_weights_count, accum_max_count, important_score
     
 
     def render_depth(
@@ -251,6 +263,7 @@ class GaussianRasterizationSettings(NamedTuple):
     campos : torch.Tensor
     prefiltered : bool
     debug : bool
+    gs_topk : int
 
 class GaussianRasterizer(nn.Module):
     def __init__(self, raster_settings):
