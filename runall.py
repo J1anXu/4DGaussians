@@ -11,7 +11,7 @@ def run_command(command):
 
 if __name__ == "__main__":
     # 第一个命令
-    command1 = 'python trainadmm_with_ckpt.py ' \
+    command1 = 'python trainadmm_with_ckpt2.py ' \
     '-s data/dynerf/cut_roasted_beef --port 6018 ' \
     '--expname "admm_p_50/cut_roasted_beef" ' \
     '--configs arguments/dynerf/cut_roasted_beef_admm_ckpt_spa.py ' \

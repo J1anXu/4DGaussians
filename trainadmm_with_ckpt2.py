@@ -17,7 +17,7 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, network_gui, render_point_time
+from gaussian_renderer import render, render_topk, render_point_time, network_gui
 import sys
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
@@ -38,7 +38,7 @@ from logger import initialize_logger
 import logging
 
 
-WANDB = True
+WANDB = False
 
 
 current_time = initialize_logger(log_dir="./log", timezone_str="Etc/GMT-4")
@@ -249,11 +249,13 @@ def scene_reconstruction(
         viewspace_point_tensor_list = []
         for viewpoint_cam in viewpoint_cams:
             render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
-            image, viewspace_point_tensor, visibility_filter, radii= (
+            image, viewspace_point_tensor, visibility_filter, radii, p_diff, time = (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
                 render_pkg["visibility_filter"],
-                render_pkg["radii"]
+                render_pkg["radii"],
+                render_pkg["p_diff"],
+                render_pkg["time"],
             )
             images.append(image.unsqueeze(0))
             if scene.dataset_type != "PanopticSports":
@@ -450,13 +452,15 @@ def scene_reconstruction(
                     gaussians.reset_opacity()
             
             elif args.prune_points and iteration == args.simp_iteration1:
-                scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
-                scores_sorted, _ = torch.sort(scores, 0)
-                threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
-                abs_threshold = scores_sorted[threshold_idx - 1]
-                mask = (scores <= abs_threshold).squeeze()
+                # scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
+                # scores_sorted, _ = torch.sort(scores, 0)
+                # threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
+                # abs_threshold = scores_sorted[threshold_idx - 1]
+                # mask = (scores <= abs_threshold).squeeze()
+                mask = get_topk_mask(gaussians, scene, pipe, background)
                 gaussians.prune_points(mask)
-            
+
+
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
                 admm.update(opt, update_u=False)
@@ -599,6 +603,20 @@ def norm_tensor_01(tensor):
     eps = 1e-8  # 避免除以零
     normalized_tensor = (tensor - min_val) / (max_val - min_val + eps)
     return normalized_tensor
+
+
+@torch.no_grad()
+def get_topk_mask(gaussians, scene, pipe, background):
+    viewpoint_stack = scene.getTrainCameras()
+    valid_prune_mask = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda", dtype=torch.bool)
+    for view in tqdm(viewpoint_stack, desc="top k"):
+        # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
+        #     continue
+        renderTopk_pkg = render_topk(view, gaussians, pipe, background, topk=10)
+        topk_mask = renderTopk_pkg["topk_mask"]
+        valid_prune_mask = torch.logical_or(valid_prune_mask, topk_mask)
+    return ~valid_prune_mask
+
 
 
 def training(

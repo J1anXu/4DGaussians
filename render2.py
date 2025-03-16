@@ -227,7 +227,7 @@ def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, s
     #     print("Starting video rendering...")
     #     split_and_render("video", scene.getVideoCameras())
 
-    print(f"\n\n\n Points count: {gaussians._xyz.shape[0]} \n\n\n")
+    print(f"Render Start,  Points count: {gaussians._xyz.shape[0]}")
     print("All rendering processes finished.")
 
 
