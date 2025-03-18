@@ -672,7 +672,9 @@ renderCUDA_topk_color(
 			// To be valid for ascending order sorting, use 1 - score instead of score.
 			float score = compute_score<CHANNELS>(score_function, con_o.w, alpha, T, &d, p_dist_activation_coef, c_dist_activation_coef, gt_color, prim_color);
 			uint32_t scaled_score = __float2uint_rd((1 - score) * 65535);
-			gaussian_keys_unsorted[range.x + progress] = (block_id << 32) | scaled_score;
+			// 将 uint2 pix 转换为 uint64_t
+			uint64_t pix64 = (static_cast<uint64_t>(pix.x) << 32) | pix.y;
+			gaussian_keys_unsorted[range.x + progress] = (pix64 << 32) | scaled_score;
 			gaussian_values_unsorted[range.x + progress] = collected_id[j];
 
 			sum_W += alpha * T;

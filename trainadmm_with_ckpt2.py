@@ -10,7 +10,7 @@
 #
 import os, sys
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import numpy as np
 import random
@@ -612,9 +612,14 @@ def get_topk_mask(gaussians, scene, pipe, background):
     for view in tqdm(viewpoint_stack, desc="top k"):
         # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
         #     continue
-        renderTopk_pkg = render_topk(view, gaussians, pipe, background, topk=10)
+        renderTopk_pkg = render_topk(view, gaussians, pipe, background, topk=20)
         topk_mask = renderTopk_pkg["topk_mask"]
         valid_prune_mask = torch.logical_or(valid_prune_mask, topk_mask)
+
+    # 计算 valid_prune_mask 中 True 的数量
+    num_true = torch.sum(valid_prune_mask).item()
+    print(f"Number of True values in valid_prune_mask: {num_true}")
+    
     return ~valid_prune_mask
 
 
