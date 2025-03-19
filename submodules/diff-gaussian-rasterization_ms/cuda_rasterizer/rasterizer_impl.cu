@@ -355,17 +355,36 @@ __global__ void markingTopKMasks(int L, int topk, uint64_t* point_list_keys, uin
 	if (idx >= L)
 		return;
      
-	uint64_t key = point_list_keys[idx];
-	uint32_t val = point_list[idx];
-	uint32_t currtile = key >> 32;
-	if (idx < topk)
-		masks[val] = true;
-	else
-	{
-		uint32_t prevtile = point_list_keys[idx - topk] >> 32;
-		if (currtile != prevtile)
+	uint64_t key = point_list_keys[idx]; // 64位的
+	uint32_t val = point_list[idx]; // 代表gs坐标
+
+	uint32_t pix_id = key >> 32; // 代表pix一维坐标
+	uint32_t score = static_cast<uint32_t>(key & 0xFFFFFFFF);
+
+
+	if(score > 0 && score < 65535){
+		if (idx < topk){
 			masks[val] = true;
+		}
+		else{
+			uint32_t prevtile = point_list_keys[idx - topk] >> 32;
+			if (pix_id != prevtile)
+				masks[val] = true;
+
+		}
+
+		printf("key_left = %08X, key_right = %08X, pix_1d = %u, score = %u, gs_id=%u \n", 
+			(uint32_t)(key >> 32),   // 打印高 32 位
+			(uint32_t)(key & 0xFFFFFFFF), // 打印低 32 位
+			pix_id,
+			score,
+			val
+			); 
 	}
+
+
+
+
 }
 
 

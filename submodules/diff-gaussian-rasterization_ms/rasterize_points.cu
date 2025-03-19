@@ -152,7 +152,7 @@ TopKColorGaussiansCUDA(
   const bool prefiltered,
   const bool debug,
 
-  const int topk_color,
+  const int topk,
   const int score_function,
   const torch::Tensor& image_gt,
   const float p_dist_activation_coef,
@@ -187,8 +187,8 @@ TopKColorGaussiansCUDA(
   std::function<char*(size_t)> binningFunc = resizeFunctional(binningBuffer);
   std::function<char*(size_t)> imgFunc = resizeFunctional(imgBuffer);
   
-  // topk_color_mask
-  torch::Tensor topk_color_mask = torch::full({P}, false, bool_opts);
+  // topk_mask
+  torch::Tensor topk_mask = torch::full({P}, false, bool_opts);
 
   int rendered = 0;
   if(P != 0)
@@ -227,12 +227,14 @@ TopKColorGaussiansCUDA(
       accum_max_count.contiguous().data<float>(),  
       
 
-      topk_color,
+      topk, // 指定需要保留多少个
+
       score_function,
       image_gt.contiguous().data_ptr<float>(),
       p_dist_activation_coef,
       c_dist_activation_coef,
-      topk_color_mask.contiguous().data<bool>(),
+
+      topk_mask.contiguous().data<bool>(),  // 数据载体
 
       radii.contiguous().data<int>(),
       debug
@@ -240,7 +242,7 @@ TopKColorGaussiansCUDA(
   }
 
   return std::make_tuple(rendered, out_color, accum_weights_ptr, accum_weights_count, accum_max_count, radii, geomBuffer, 
-  binningBuffer, imgBuffer, topk_color_mask);  
+  binningBuffer, imgBuffer, topk_mask);  
   
 }
 

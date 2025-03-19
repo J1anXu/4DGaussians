@@ -89,7 +89,7 @@ namespace CudaRasterizer
 			const float* image_gt,
 			const float p_dist_activation_coef,
 			const float c_dist_activation_coef,
-			bool* topk_color_mask,
+			bool* topk_mask,
 
 			int* radii = nullptr,
 			bool debug = false);

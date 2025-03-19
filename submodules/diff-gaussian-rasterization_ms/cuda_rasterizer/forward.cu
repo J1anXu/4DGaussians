@@ -598,6 +598,8 @@ renderCUDA_topk_color(
 	int idx_max=0;
 	int flag_update=0;
 
+
+
 	// Iterate over batches until all done or range is complete
 	for (int i = 0; i < rounds; i++, toDo -= BLOCK_SIZE)
 	{
@@ -674,8 +676,31 @@ renderCUDA_topk_color(
 			uint32_t scaled_score = __float2uint_rd((1 - score) * 65535);
 			// 将 uint2 pix 转换为 uint64_t
 			uint64_t pix64 = (static_cast<uint64_t>(pix.x) << 32) | pix.y;
-			gaussian_keys_unsorted[range.x + progress] = (pix64 << 32) | scaled_score;
-			gaussian_values_unsorted[range.x + progress] = collected_id[j];
+
+			uint32_t scaled_score_max = 0xFFFFFFFF;
+			uint32_t scaled_score_min = 0x00000000;
+
+			// 输入的gt的pixel为[1,1,1]时,对应的gs分数都置为最大,否则置为最小
+			if (gt_color[0] > 0 & gt_color[1] > 0 & gt_color[2] > 0) {
+				uint64_t shifted_pix_id = static_cast<uint64_t>(pix_id) << 32;  // 将 pix_id 左移 32 位
+				uint64_t key = shifted_pix_id | scaled_score;
+				gaussian_keys_unsorted[range.x + progress] = key;
+				gaussian_values_unsorted[range.x + progress] = collected_id[j];
+				// printf("pix_id = %u, gaussian_keys_unsorted = 0x%08X%08X, pix.x = %d, pix.y = %d, gs_id = %u, scaled_score = %u\n", 
+				// 	pix_id, 
+				// 	(uint32_t)(key >> 32),   // 打印高 32 位
+				// 	(uint32_t)(key & 0xFFFFFFFF), // 打印低 32 位
+				// 	pix.x,
+				// 	pix.y,
+				// 	collected_id[j]);      
+			} else {
+				uint64_t shifted_pix_id = static_cast<uint64_t>(pix_id) << 32;  // 将 pix_id 左移 32 位
+				uint64_t key = shifted_pix_id | scaled_score_min;
+
+				gaussian_keys_unsorted[range.x + progress] = key;
+				gaussian_values_unsorted[range.x + progress] = collected_id[j];
+			}
+
 
 			sum_W += alpha * T;
 			atomicAdd(&(accum_weights_p[collected_id[j]]), alpha * T);
