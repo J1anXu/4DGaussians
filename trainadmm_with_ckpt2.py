@@ -156,8 +156,6 @@ def scene_reconstruction(
     # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
 
     for iteration in range(first_iter, final_iter + 1):
-
-
         if network_gui.conn == None:
             network_gui.try_connect()
 
@@ -231,7 +229,6 @@ def scene_reconstruction(
             viewpoint_cams = []
 
             while idx < batch_size:
-
                 viewpoint_cam = viewpoint_stack.pop(randint(0, len(viewpoint_stack) - 1))
                 if not viewpoint_stack:
                     viewpoint_stack = temp_list.copy()
@@ -400,7 +397,7 @@ def scene_reconstruction(
                 # total_images.append(to8b(temp_image).transpose(1,2,0))
             if WANDB & iteration > opt.admm_start_iter1 & iteration % opt.admm_interval == 0:
                 wandb.log({"opacity_aftet_admm": wandb.Histogram(gaussians.get_opacity.tolist())})
-                
+
             timer.start()
             # Densification
             if iteration < opt.densify_until_iter:
@@ -450,16 +447,21 @@ def scene_reconstruction(
                 if iteration % opt.opacity_reset_interval == 0:
                     print("reset opacity")
                     gaussians.reset_opacity()
-            
-            elif args.prune_points and iteration == args.simp_iteration1:
-                # scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
-                # scores_sorted, _ = torch.sort(scores, 0)
-                # threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
-                # abs_threshold = scores_sorted[threshold_idx - 1]
-                # mask = (scores <= abs_threshold).squeeze()
-                mask = get_topk_mask(gaussians, scene, pipe, background)
-                gaussians.prune_points(mask)
 
+            elif args.prune_points and iteration == args.simp_iteration1:
+                related_gs_mask = get_related_gs(gaussians, scene, pipe, background)
+                scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
+                max_score = torch.max(scores)
+                # 加上一个特别大的分数,防止它被删
+                scores[related_gs_mask] += max_score
+
+                scores_sorted, _ = torch.sort(scores, 0)
+                threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
+                abs_threshold = scores_sorted[threshold_idx - 1]
+                mask = (scores <= abs_threshold).squeeze()
+
+                # 获取标记的pixels对应的gs的gs,相关的gs被标记为true
+                gaussians.prune_points(mask)
 
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
@@ -498,6 +500,7 @@ def getOpacityScore(gaussians):
     opacity = gaussians._opacity[:, 0]
     scores = opacity
     return scores
+
 
 def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, background):
     # render 输入数据的所有时间和相机视角,累计高斯点的权重
@@ -567,7 +570,6 @@ def zeroTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgrou
 
 
 def movingLength(gaussians, times):
-
     # 获取高斯点数量和时间步数量
     num_gaussians = gaussians.get_xyz.shape[0]
 
@@ -606,7 +608,7 @@ def norm_tensor_01(tensor):
 
 
 @torch.no_grad()
-def get_topk_mask(gaussians, scene, pipe, background):
+def get_related_gs(gaussians, scene, pipe, background):
     viewpoint_stack = scene.getTrainCameras()
     valid_prune_mask = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda", dtype=torch.bool)
     for view in tqdm(viewpoint_stack, desc="top k"):
@@ -619,9 +621,7 @@ def get_topk_mask(gaussians, scene, pipe, background):
     # 计算 valid_prune_mask 中 True 的数量
     num_true = torch.sum(valid_prune_mask).item()
     print(f"Number of True values in valid_prune_mask: {num_true}")
-    
-    return ~valid_prune_mask
-
+    return valid_prune_mask
 
 
 def training(
@@ -685,7 +685,6 @@ def training(
 
 def prepare_output_and_logger(expname):
     if not args.model_path:
-
         unique_str = expname
 
         args.model_path = os.path.join("./output/", unique_str)

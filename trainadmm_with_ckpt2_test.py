@@ -42,6 +42,10 @@ import logging
 
 WANDB = False
 
+# 检查文件夹是否存在，如果不存在则创建
+DIR = "diff_analysis"
+if not os.path.exists(DIR):
+    os.makedirs(DIR)
 
 current_time = initialize_logger(log_dir="./log", timezone_str="Etc/GMT-4")
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
@@ -87,22 +91,9 @@ def scene_reconstruction(
             gaussians.restore(model_params, opt)
 
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
-
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
-
-    iter_start = torch.cuda.Event(enable_timing=True)
-    iter_end = torch.cuda.Event(enable_timing=True)
-
     viewpoint_stack = None
-    ema_loss_for_log = 0.0
-    ema_psnr_for_log = 0.0
-    ema_admm_loss_for_log = 0.0
-    final_iter = train_iter
-
-    progress_bar = tqdm(range(first_iter, final_iter), desc="Training...")
     first_iter += 1
-    video_cams = scene.getVideoCameras()
-    test_cams = scene.getTestCameras()
     train_cams = scene.getTrainCameras()
 
     if not viewpoint_stack and not opt.dataloader:
@@ -134,9 +125,6 @@ def scene_reconstruction(
     else:
         load_in_memory = False
 
-    times = scene.train_camera.dataset.image_times[0 : scene.train_camera.dataset.time_number]
-    # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
-
     if opt.dataloader and not load_in_memory:
         try:
             viewpoint_cams = next(loader)
@@ -161,48 +149,47 @@ def scene_reconstruction(
             idx += 1
 
     view = viewpoint_cams[0]
-    print(f"time ==================== {view.time}")
+    print(f"time: {view.time}")
     render_pkg = render(view, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
     image_1 = render_pkg["render"]
     if scene.dataset_type != "PanopticSports":
         gt_image = view.original_image.cuda()
     else:
         gt_image = view["image"].cuda()
-    _, height, width = gt_image.shape
-    mid_col = width // 2
 
-    mark_pixels_image = gt_image
-    mark_pixels_image[:] = 0  # 将所有像素值设置为 [0, 0, 0]
-    mark_pixels_image[:, :, mid_col - 5 : mid_col + 5] = 1  # 设置中间10列的像素为 [0, 0, 0]
+    ## 手动定制一个mark
+    # _, height, width = gt_image.shape
+    # mid_col = width // 2
+    # mark_pixels_image = gt_image
+    # mark_pixels_image[:] = 0  # 将所有像素值设置为 [0, 0, 0]
+    # mark_pixels_image[:, :, mid_col - 5 : mid_col + 5] = 1  # 设置中间10列的像素为 [0, 0, 0]
 
-    # TODO Implement view.mark_pixels_image
-    view.original_image = mark_pixels_image
+    count_ones = torch.sum(view.mark_pixels_image == 1).item()
+    print(f"Number of related pixels: {count_ones}")
 
-    # 转换为 NumPy 格式
-    gt_image = gt_image.permute(1, 2, 0).cpu().numpy()  # 形状变为 (1014, 1352, 3)
-    image = image_1.detach().cpu().permute(1, 2, 0).numpy()  # 形状变为 (1014, 1352, 3)
-    image = (image - image.min()) / (image.max() - image.min())
-
-    # 显示图片
-    plt.imsave("image.png", image)  # 保存图片
-    plt.imsave("gt_image.png", gt_image)  # 保存图片
+    # 保存一下图像
+    mark_pixels_numpy = view.mark_pixels_image.permute(1, 2, 0).cpu().numpy()
+    original_image_numpy = view.original_image.permute(1, 2, 0).cpu().numpy()
+    if mark_pixels_numpy.max() > 1:
+        mark_pixels_numpy = mark_pixels_numpy / 255.0  # 归一化到 [0,1]
+    if original_image_numpy.max() > 1:
+        original_image_numpy = original_image_numpy / 255.0  # 归一化到 [0,1]
+    plt.imsave(os.path.join(DIR, "mark_pixels_image.png"), mark_pixels_numpy)
+    plt.imsave(os.path.join(DIR, "gt_image.png"), original_image_numpy)
 
     with torch.no_grad():
         renderTopk_pkg = render_topk(view, gaussians, pipe, background, topk=50)
         topk_mask = renderTopk_pkg["topk_mask"]
-
         # 统计 True 的数量
         count = torch.sum(topk_mask).item()  # 使用 torch.sum() 计算 True 的数量
         print(f"maskSize =======================: {count}")
-
         gaussians.prune_points(~topk_mask)
-
-        # 删掉指定高斯后,再渲染一次
+        # 只保留指定高斯,再渲染一次
         render_pkg_2 = render(view, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
         image_2 = render_pkg_2["render"]
         image = image_2.detach().cpu().permute(1, 2, 0).numpy()  # 形状变为 (1014, 1352, 3)
         image = (image - image.min()) / (image.max() - image.min())
-        plt.imsave("image_after.png", image)  # 保存图片
+        plt.imsave(os.path.join(DIR, "pixels_relate_gs.png"), image)
 
     rendering = image_1
     means3D_final = render_pkg_2["means3D_final"]
@@ -226,17 +213,17 @@ def scene_reconstruction(
 
     # tune point size for better visualization 0.3, 0.3, 1.2
     image_proj = draw_points_on_image(
-        points, np.zeros(colors.shape) + [0, 0, 255], rendering.permute(1, 2, 0).detach().cpu().numpy(), size=0.3
+        points, np.zeros(colors.shape) + [255, 255, 255], rendering.permute(1, 2, 0).detach().cpu().numpy(), size=0.3
     )
     # 创建转换函数
     transform = transforms.ToTensor()
 
     # 将 PIL 图像转换为 Tensor
-    drwa_image = transform(image_proj)  # pil_image 是你的 PIL.Image 对象
+    draw_image = transform(image_proj)  # pil_image 是你的 PIL.Image 对象
     # image_proj.save(f"{draw_path}/{idx}.jpg")
-    image = drwa_image.detach().cpu().permute(1, 2, 0).numpy()  # 形状变为 (1014, 1352, 3)
+    image = draw_image.detach().cpu().permute(1, 2, 0).numpy()  # 形状变为 (1014, 1352, 3)
     image = (image - image.min()) / (image.max() - image.min())
-    plt.imsave("drwa_image.png", image)  # 保存图片
+    plt.imsave(os.path.join(DIR, "pic_and_mark_pixel.png"), image)
 
     print("success")
 

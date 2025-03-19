@@ -27,7 +27,6 @@ from scene.regulation import compute_plane_smoothness
 
 
 class GaussianModel:
-
     def setup_functions(self):
         def build_covariance_from_scaling_rotation(scaling, scaling_modifier, rotation):
             L = build_scaling_rotation(scaling_modifier * scaling, rotation)
@@ -241,7 +240,6 @@ class GaussianModel:
         return l
 
     def compute_deformation(self, time):
-
         deform = self._deformation[:, :, :time].sum(dim=-1)
         xyz = self._xyz + deform
         return xyz
@@ -383,7 +381,7 @@ class GaussianModel:
 
     def prune_points(self, mask):
         valid_points_mask = ~mask
-        print(f"\n Before Pruning: {len(self.get_opacity)}\n")
+        print(f" Before Pruning: {len(self.get_opacity)}")
         optimizable_tensors = self._prune_optimizer(valid_points_mask)
         self._xyz = optimizable_tensors["xyz"]
         self._features_dc = optimizable_tensors["f_dc"]
@@ -396,8 +394,7 @@ class GaussianModel:
         self._deformation_table = self._deformation_table[valid_points_mask]
         self.denom = self.denom[valid_points_mask]
         self.max_radii2D = self.max_radii2D[valid_points_mask]
-        print(f"\n After Pruning: {len(self.get_opacity)}\n")
-
+        print(f" After Pruning: {len(self.get_opacity)}")
 
     def cat_tensors_to_optimizer(self, tensors_dict):
         optimizable_tensors = {}
@@ -408,7 +405,6 @@ class GaussianModel:
             extension_tensor = tensors_dict[group["name"]]
             stored_state = self.optimizer.state.get(group["params"][0], None)
             if stored_state is not None:
-
                 stored_state["exp_avg"] = torch.cat(
                     (stored_state["exp_avg"], torch.zeros_like(extension_tensor)), dim=0
                 )
@@ -613,7 +609,6 @@ class GaussianModel:
         self.densify_and_split(grads, max_grad, extent)
 
     def standard_constaint(self):
-
         means3D = self._xyz.detach()
         scales = self._scaling.detach()
         rotations = self._rotation.detach()
@@ -642,7 +637,6 @@ class GaussianModel:
         for name, weight in self._deformation.named_parameters():
             if weight.requires_grad:
                 if weight.grad is None:
-
                     print(name, " :", weight.grad)
                 else:
                     if weight.grad.mean() != 0:

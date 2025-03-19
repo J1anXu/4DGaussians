@@ -373,13 +373,13 @@ __global__ void markingTopKMasks(int L, int topk, uint64_t* point_list_keys, uin
 
 		}
 
-		printf("key_left = %08X, key_right = %08X, pix_1d = %u, score = %u, gs_id=%u \n", 
-			(uint32_t)(key >> 32),   // 打印高 32 位
-			(uint32_t)(key & 0xFFFFFFFF), // 打印低 32 位
-			pix_id,
-			score,
-			val
-			); 
+		// printf("key_left = %08X, key_right = %08X, pix_1d = %u, score = %u, gs_id=%u \n", 
+		// 	(uint32_t)(key >> 32),   // 打印高 32 位
+		// 	(uint32_t)(key & 0xFFFFFFFF), // 打印低 32 位
+		// 	pix_id,
+		// 	score,
+		// 	val
+		// 	); 
 	}
 
 
