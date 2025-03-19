@@ -171,12 +171,14 @@ def scene_reconstruction(
         gt_image = view["image"].cuda()
     _, height, width = gt_image.shape
     mid_col = width // 2
-    gt_image[:] = 0  # 将所有像素值设置为 [0, 0, 0]
-    gt_image[:, :, mid_col-5:mid_col+5] = 1  # 设置中间10列的像素为 [0, 0, 0]
+    important_pixels_img = gt_image
+    important_pixels_img[:] = 0  # 将所有像素值设置为 [0, 0, 0]
+    important_pixels_img[:, :, mid_col-5:mid_col+5] = 1  # 设置中间10列的像素为 [0, 0, 0]
 
     
-    # 把标记了重要点的图片写成original_image,发送出去
-    view.original_image = gt_image
+    # TODO 把标记了重要点的图片写成original_image,发送出去  改这里
+    view.original_image = important_pixels_img
+
 
     # 转换为 NumPy 格式
     gt_image = gt_image.permute(1, 2, 0).cpu().numpy()  # 形状变为 (1014, 1352, 3)
