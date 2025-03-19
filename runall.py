@@ -18,13 +18,13 @@ if __name__ == "__main__":
     '--start_checkpoint "output/dynerf/cut_roasted_beef/chkpnt_fine_14000.pth"'
     
     # 第二个命令
-    command2 = 'python render.py ' \
+    command2 = 'python render_parallel.py ' \
     '--model_path "output/admm_p_50/cut_roasted_beef" ' \
     '--skip_train --skip_video ' \
     '--configs arguments/dynerf/cut_roasted_beef.py'
     
     # 第三个命令
-    command3 = 'python metrics.py ' \
+    command3 = 'python metrics_parallel.py ' \
     '--model_path "output/admm_p_50/cut_roasted_beef"'
 
     # 顺序执行命令
