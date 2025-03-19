@@ -120,9 +120,9 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
             FovY = focal2fov(focal_length_y, height)
             FovX = focal2fov(focal_length_x, width)
         else:
-            assert (
-                False
-            ), "Colmap camera model not handled: only undistorted datasets (PINHOLE or SIMPLE_PINHOLE cameras) supported!"
+            assert False, (
+                "Colmap camera model not handled: only undistorted datasets (PINHOLE or SIMPLE_PINHOLE cameras) supported!"
+            )
 
         image_path = os.path.join(images_folder, os.path.basename(extr.name))
         image_name = os.path.basename(image_path).split(".")[0]
@@ -543,7 +543,7 @@ def add_points(pointsclouds, xyz_min, xyz_max):
     # new_
 
 
-def readdynerfInfo(datadir, use_bg_points, eval):
+def readDynerfInfo(datadir, use_bg_points, eval):
     # loading all the data follow hexplane format
     # ply_path = os.path.join(datadir, "points3D_dense.ply")
     ply_path = os.path.join(datadir, "points3D_downsample2.ply")
@@ -716,7 +716,6 @@ def readPanopticSportsinfos(datadir):
 
 
 def readMultipleViewinfos(datadir, llffhold=8):
-
     cameras_extrinsic_file = os.path.join(datadir, "sparse_/images.bin")
     cameras_intrinsic_file = os.path.join(datadir, "sparse_/cameras.bin")
     cam_extrinsics = read_extrinsics_binary(cameras_extrinsic_file)
@@ -765,7 +764,7 @@ def readMultipleViewinfos(datadir, llffhold=8):
 sceneLoadTypeCallbacks = {
     "Colmap": readColmapSceneInfo,
     "Blender": readNerfSyntheticInfo,
-    "dynerf": readdynerfInfo,
+    "dynerf": readDynerfInfo,
     "nerfies": readHyperDataInfos,  # NeRFies & HyperNeRF dataset proposed by [https://github.com/google/hypernerf/releases/tag/v0.1]
     "PanopticSports": readPanopticSportsinfos,
     "MultipleView": readMultipleViewinfos,

@@ -154,7 +154,6 @@ def scene_reconstruction(
         viewpoint_cams = []
         batch_size = 1
         while idx < batch_size:
-
             view = viewpoint_stack.pop(randint(0, len(viewpoint_stack) - 1))
             if not viewpoint_stack:
                 viewpoint_stack = temp_list.copy()
@@ -171,14 +170,13 @@ def scene_reconstruction(
         gt_image = view["image"].cuda()
     _, height, width = gt_image.shape
     mid_col = width // 2
-    important_pixels_img = gt_image
-    important_pixels_img[:] = 0  # 将所有像素值设置为 [0, 0, 0]
-    important_pixels_img[:, :, mid_col-5:mid_col+5] = 1  # 设置中间10列的像素为 [0, 0, 0]
 
-    
-    # TODO 把标记了重要点的图片写成original_image,发送出去  改这里
-    view.original_image = important_pixels_img
+    mark_pixels_image = gt_image
+    mark_pixels_image[:] = 0  # 将所有像素值设置为 [0, 0, 0]
+    mark_pixels_image[:, :, mid_col - 5 : mid_col + 5] = 1  # 设置中间10列的像素为 [0, 0, 0]
 
+    # TODO Implement view.mark_pixels_image
+    view.original_image = mark_pixels_image
 
     # 转换为 NumPy 格式
     gt_image = gt_image.permute(1, 2, 0).cpu().numpy()  # 形状变为 (1014, 1352, 3)
@@ -189,9 +187,7 @@ def scene_reconstruction(
     plt.imsave("image.png", image)  # 保存图片
     plt.imsave("gt_image.png", gt_image)  # 保存图片
 
-
     with torch.no_grad():
-    
         renderTopk_pkg = render_topk(view, gaussians, pipe, background, topk=50)
         topk_mask = renderTopk_pkg["topk_mask"]
 
@@ -201,7 +197,6 @@ def scene_reconstruction(
 
         gaussians.prune_points(~topk_mask)
 
-        
         # 删掉指定高斯后,再渲染一次
         render_pkg_2 = render(view, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
         image_2 = render_pkg_2["render"]
@@ -222,27 +217,29 @@ def scene_reconstruction(
     p_hom = torch.matmul(xyz, full_proj_transform[:3]) + full_proj_transform[3:4]
     p_w = 1.0 / (p_hom[:, 3] + 0.0000001)
     p_proj = p_hom[:, :3] * p_w[:, None]
-    p_view = torch.matmul(xyz, world_view_transform[:3,:3])+world_view_transform[3:4, :3]
-    mask = p_view[:,2].cpu().numpy()>0.2
-    point_image = ndc2Pix(p_proj[:,0], rendering.shape[2]), ndc2Pix(p_proj[:,1], rendering.shape[1])
-    point_image = torch.cat((point_image[0][:,None], point_image[1][:,None]), -1)
+    p_view = torch.matmul(xyz, world_view_transform[:3, :3]) + world_view_transform[3:4, :3]
+    mask = p_view[:, 2].cpu().numpy() > 0.2
+    point_image = ndc2Pix(p_proj[:, 0], rendering.shape[2]), ndc2Pix(p_proj[:, 1], rendering.shape[1])
+    point_image = torch.cat((point_image[0][:, None], point_image[1][:, None]), -1)
     points = point_image.detach().cpu().numpy()[mask]
     colors = rgb.detach().cpu().numpy()[mask]
 
     # tune point size for better visualization 0.3, 0.3, 1.2
-    image_proj = draw_points_on_image(points, np.zeros(colors.shape)+[0,0,255], rendering.permute(1,2,0).detach().cpu().numpy(), size=0.3)
+    image_proj = draw_points_on_image(
+        points, np.zeros(colors.shape) + [0, 0, 255], rendering.permute(1, 2, 0).detach().cpu().numpy(), size=0.3
+    )
     # 创建转换函数
     transform = transforms.ToTensor()
 
     # 将 PIL 图像转换为 Tensor
     drwa_image = transform(image_proj)  # pil_image 是你的 PIL.Image 对象
-    #image_proj.save(f"{draw_path}/{idx}.jpg")
+    # image_proj.save(f"{draw_path}/{idx}.jpg")
     image = drwa_image.detach().cpu().permute(1, 2, 0).numpy()  # 形状变为 (1014, 1352, 3)
     image = (image - image.min()) / (image.max() - image.min())
     plt.imsave("drwa_image.png", image)  # 保存图片
 
-
     print("success")
+
 
 C0 = 0.28209479177387814
 
@@ -250,28 +247,33 @@ C0 = 0.28209479177387814
 def SH2RGB(sh):
     return sh * C0 + 0.5
 
+
 def ndc2Pix(v, S):
     return ((v + 1.0) * S - 1.0) * 0.5
+
 
 def getOpacityScore(gaussians):
     opacity = gaussians._opacity[:, 0]
     scores = opacity
     return scores
+
+
 from PIL import Image, ImageDraw
 
-def draw_points_on_image(points, colors, image, size=1):
 
-    image[image>1]=1
-    image[image<0]=0
-    image = Image.fromarray((image*255).astype(np.uint8))
+def draw_points_on_image(points, colors, image, size=1):
+    image[image > 1] = 1
+    image[image < 0] = 0
+    image = Image.fromarray((image * 255).astype(np.uint8))
     draw = ImageDraw.Draw(image)
     for point, color in zip(points, colors):
         x = point[0]
         y = point[1]
-        
+
         r, g, b = color
-        draw.ellipse((x-size,y-size,x+size,y+size), fill=(int(r), int(g), int(b)))
+        draw.ellipse((x - size, y - size, x + size, y + size), fill=(int(r), int(g), int(b)))
     return image
+
 
 def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, background):
     # render 输入数据的所有时间和相机视角,累计高斯点的权重
@@ -341,7 +343,6 @@ def zeroTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgrou
 
 
 def movingLength(gaussians, times):
-
     # 获取高斯点数量和时间步数量
     num_gaussians = gaussians.get_xyz.shape[0]
 
@@ -393,9 +394,8 @@ def get_topk_mask(gaussians, scene, pipe, background):
     # 计算 valid_prune_mask 中 True 的数量
     num_true = torch.sum(valid_prune_mask).item()
     print(f"Number of True values in valid_prune_mask: {num_true}")
-    
-    return ~valid_prune_mask
 
+    return ~valid_prune_mask
 
 
 def training(
@@ -413,7 +413,6 @@ def training(
     # first_iter = 0
     tb_writer = prepare_output_and_logger(expname)
     gaussians = GaussianModel(dataset.sh_degree, hyper)
-
 
     dataset.model_path = args.model_path
     timer = Timer()
@@ -461,7 +460,6 @@ def training(
 
 def prepare_output_and_logger(expname):
     if not args.model_path:
-
         unique_str = expname
 
         args.model_path = os.path.join("./output/", unique_str)
