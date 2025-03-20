@@ -11,7 +11,8 @@
 
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,4,5"
+
 import torch
 import torch.multiprocessing as mp
 import imageio
@@ -31,10 +32,8 @@ from PIL import Image, ImageDraw
 from torchvision import transforms
 from torch.utils.data import Subset
 import concurrent.futures
-import warnings
+import torch.multiprocessing as mp
 
-# 关闭特定的 UserWarning
-warnings.filterwarnings("ignore", category=UserWarning, module="torchvision")
 DRAW = True  # 是否画出高斯中心
 
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
@@ -88,6 +87,10 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     gt_list = []
     render_list = []
     draw_list = []
+
+    print("Point count:", gaussians._xyz.shape[0])
+    count = 0
+
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
         rendering_res = render(view, gaussians, pipeline, background, cam_type=cam_type)
         rendering = rendering_res["render"]
@@ -206,27 +209,28 @@ def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, s
 
         print(f"Writing images to {gts_path}... size = {len(final_gts)}")
         multithread_write(final_gts, gts_path)
+        time.sleep(5)
 
         print(f"Writing images to {render_path}... size = {len(final_renders)}")
         multithread_write(final_renders, render_path)
+        time.sleep(5)
 
         if DRAW:
             print(f"Writing images to {draw_path}... size = {len(final_draws)}")
             multithread_write(final_draws, draw_path)
 
-    # if not skip_train:
-    #     print("Starting train set rendering...")
-    #     split_and_render("train", scene.getTrainCameras())
+    if not skip_train:
+        print("Starting train set rendering...")
+        split_and_render("train", scene.getTrainCameras())
 
     if not skip_test:
         print("Starting test set rendering...")
         split_and_render("test", scene.getTestCameras())
 
-    # if not skip_video:
-    #     print("Starting video rendering...")
-    #     split_and_render("video", scene.getVideoCameras())
+    if not skip_video:
+        print("Starting video rendering...")
+        split_and_render("video", scene.getVideoCameras())
 
-    print(f"Render Start,  Points count: {gaussians._xyz.shape[0]}")
     print("All rendering processes finished.")
 
 

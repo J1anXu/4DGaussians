@@ -26,14 +26,14 @@ if __name__ == "__main__":
 
     # 第二个命令
     command2 = (
-        "python render_parallel.py "
+        "python render2.py "
         '--model_path "output/admm_p_50/cut_roasted_beef" '
         "--skip_train --skip_video "
         "--configs arguments/dynerf/cut_roasted_beef.py"
     )
 
     # 第三个命令
-    command3 = 'python metrics_parallel.py --model_path "output/admm_p_50/cut_roasted_beef"'
+    command3 = 'python metrics2.py --model_path "output/admm_p_50/cut_roasted_beef"'
 
     # 顺序执行命令
     run_command(command1)

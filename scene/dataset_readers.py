@@ -429,7 +429,7 @@ def format_infos(dataset, split):
     cameras = []
     image = dataset[0][0]
     if split == "train":
-        for idx in tqdm(range(len(dataset))):
+        for idx in range(len(dataset)):
             image_path = None
             image_name = f"{idx}"
             time = dataset.image_times[idx]
@@ -493,7 +493,7 @@ def format_render_poses(poses, data_infos):
     len_poses = len(poses)
     times = [i / len_poses for i in range(len_poses)]
     image = data_infos[0][0]
-    for idx, p in tqdm(enumerate(poses)):
+    for idx, p in tqdm(enumerate(poses), desc="format_render_poses"):
         # image = None
         image_path = None
         image_name = f"{idx}"
@@ -642,7 +642,7 @@ def plot_camera_orientations(cam_list, xyz):
     ]
 
     ax.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2], c="r", s=0.1)
-    for cam in tqdm(cam_list):
+    for cam in tqdm(cam_list, desc="plot_camera_orientations"):
         # 提取 R 和 T
         R = cam.R
         T = cam.T

@@ -14,7 +14,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 def get_related_gs(gaussians, scene, pipe, background, related_gs_num):
     viewpoint_stack = scene.getTrainCameras()
     valid_prune_mask = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda", dtype=torch.bool)
-    for view in tqdm(viewpoint_stack, desc="top k"):
+    for view in tqdm(viewpoint_stack, desc=f"top{related_gs_num}"):
         # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
         #     continue
         renderTopk_pkg = render_topk(view, gaussians, pipe, background, topk=related_gs_num)
