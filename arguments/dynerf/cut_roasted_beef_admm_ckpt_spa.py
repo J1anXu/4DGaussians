@@ -10,11 +10,11 @@ OptimizationParams = dict(
     iterations=16000,  # 整体迭代 20000
     admm_interval=50,  #
     rho_lr=0.0005,
-    opacity_admm_threshold1=0.50, #0.8
+    opacity_admm_threshold1=0.50,  # 0.8
     opacity_admm_threshold2=0.50,
     coarse_iterations=0,
     outdoor=False,
-    prune_points = True,# 是否进行删点
+    prune_points=True,  # 是否进行删点
     admm=False,
-
+    related_gs_num=20,
 )

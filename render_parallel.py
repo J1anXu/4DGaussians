@@ -11,7 +11,7 @@
 
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,4,5,6"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
 import torch
 import torch.multiprocessing as mp
 import imageio
@@ -32,6 +32,7 @@ from torchvision import transforms
 from torch.utils.data import Subset
 import concurrent.futures
 import warnings
+import torch.multiprocessing as mp
 
 # 关闭特定的 UserWarning
 warnings.filterwarnings("ignore", category=UserWarning, module="torchvision")
@@ -151,9 +152,6 @@ def render_worker(gpu_id, dataset, hyperparam, iteration, pipeline, views, mode,
         "gts": gt_list,
         "draws": draw_list,
     }
-
-
-import torch.multiprocessing as mp
 
 
 def ensure_directories_exist(*paths):

@@ -10,7 +10,7 @@
 #
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,4,5,6"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
 
 from typing_extensions import Literal
 
