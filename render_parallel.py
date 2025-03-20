@@ -32,7 +32,6 @@ from torchvision import transforms
 from torch.utils.data import Subset
 import concurrent.futures
 import warnings
-import torch.multiprocessing as mp
 
 # 关闭特定的 UserWarning
 warnings.filterwarnings("ignore", category=UserWarning, module="torchvision")
