@@ -1,4 +1,8 @@
 import subprocess
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,4,5,6"
+
 
 def run_command(command):
     """运行命令并等待其完成"""
@@ -9,23 +13,27 @@ def run_command(command):
     else:
         print(f"Error occurred while executing: {command}")
 
+
 if __name__ == "__main__":
     # 第一个命令
-    command1 = 'python trainadmm_with_ckpt2.py ' \
-    '-s data/dynerf/cut_roasted_beef --port 6018 ' \
-    '--expname "admm_p_50/cut_roasted_beef" ' \
-    '--configs arguments/dynerf/cut_roasted_beef_admm_ckpt_spa.py ' \
-    '--start_checkpoint "output/dynerf/cut_roasted_beef/chkpnt_fine_14000.pth"'
-    
+    command1 = (
+        "python trainadmm_with_ckpt2.py "
+        "-s data/dynerf/cut_roasted_beef --port 6018 "
+        '--expname "admm_p_50/cut_roasted_beef" '
+        "--configs arguments/dynerf/cut_roasted_beef_admm_ckpt_spa.py "
+        '--start_checkpoint "output/dynerf/cut_roasted_beef/chkpnt_fine_14000.pth"'
+    )
+
     # 第二个命令
-    command2 = 'python render_parallel.py ' \
-    '--model_path "output/admm_p_50/cut_roasted_beef" ' \
-    '--skip_train --skip_video ' \
-    '--configs arguments/dynerf/cut_roasted_beef.py'
-    
+    command2 = (
+        "python render_parallel.py "
+        '--model_path "output/admm_p_50/cut_roasted_beef" '
+        "--skip_train --skip_video "
+        "--configs arguments/dynerf/cut_roasted_beef.py"
+    )
+
     # 第三个命令
-    command3 = 'python metrics_parallel.py ' \
-    '--model_path "output/admm_p_50/cut_roasted_beef"'
+    command3 = 'python metrics_parallel.py --model_path "output/admm_p_50/cut_roasted_beef"'
 
     # 顺序执行命令
     run_command(command1)

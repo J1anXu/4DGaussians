@@ -10,7 +10,7 @@
 #
 import os, sys
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 
 import numpy as np
 import random
@@ -449,11 +449,10 @@ def scene_reconstruction(
                     gaussians.reset_opacity()
 
             elif args.prune_points and iteration == args.simp_iteration1:
-                related_gs_mask = get_related_gs(gaussians, scene, pipe, background)
                 scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
-                max_score = torch.max(scores)
-                # 加上一个特别大的分数,防止它被删
-                scores[related_gs_mask] += max_score
+                # related_gs_mask = get_related_gs(gaussians, scene, pipe, background)
+                # max_score = torch.max(scores)
+                # scores[related_gs_mask] += max_score
 
                 scores_sorted, _ = torch.sort(scores, 0)
                 threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))

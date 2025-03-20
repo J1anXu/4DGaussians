@@ -9,6 +9,9 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,4,5,6"
+
 from typing_extensions import Literal
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "7"
@@ -106,7 +109,6 @@ def evaluate(model_paths):
                 logging.info("  MS-SSIM: %.8f", ms_ssims)
                 logging.info("  D-SSIM: %.8f", Dssims)
         except Exception as e:
-
             print("Unable to compute metrics for model", scene_dir)
             raise e
 
