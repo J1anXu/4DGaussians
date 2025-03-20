@@ -11,7 +11,7 @@
 
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3,4,5,6"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,4,5"
 
 import torch
 import torch.multiprocessing as mp
@@ -219,17 +219,17 @@ def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, s
             print(f"Writing images to {draw_path}... size = {len(final_draws)}")
             multithread_write(final_draws, draw_path)
 
-    if not skip_train:
-        print("Starting train set rendering...")
-        split_and_render("train", scene.getTrainCameras())
+    # if not skip_train:
+    #     print("Starting train set rendering...")
+    #     split_and_render("train", scene.getTrainCameras())
 
     if not skip_test:
         print("Starting test set rendering...")
         split_and_render("test", scene.getTestCameras())
 
-    if not skip_video:
-        print("Starting video rendering...")
-        split_and_render("video", scene.getVideoCameras())
+    # if not skip_video:
+    #     print("Starting video rendering...")
+    #     split_and_render("video", scene.getVideoCameras())
 
     print("All rendering processes finished.")
 

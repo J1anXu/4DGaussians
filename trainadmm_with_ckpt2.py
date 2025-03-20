@@ -448,8 +448,8 @@ def scene_reconstruction(
                     gaussians.reset_opacity()
 
             elif args.prune_points and iteration == args.simp_iteration1:
-                scores = getOpacityScore(gaussians)
-                # scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
+                # scores = getOpacityScore(gaussians)
+                scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
                 # related_gs_mask = get_related_gs(gaussians, scene, pipe, background, args.related_gs_num)
                 # max_score = torch.max(scores)
                 # scores[related_gs_mask] += max_score
