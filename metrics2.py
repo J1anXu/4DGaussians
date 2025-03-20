@@ -9,9 +9,12 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
+from typing_extensions import Literal
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,4,5"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3,4,5,6"
 
+import pprint
 from pathlib import Path
 import torch.multiprocessing as mp
 from PIL import Image
@@ -24,10 +27,12 @@ from tqdm import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser
 from pytorch_msssim import ms_ssim
-import logging
 
 # 引入日志系统模块
 from logger import initialize_logger
+
+# 初始化日志系统（可以指定日志存储目录和时区）
+import logging
 
 
 def readImages(renders_dir, gt_dir):
@@ -48,7 +53,6 @@ def evaluate(model_paths):
     per_view_dict = {}
     full_dict_polytopeonly = {}
     per_view_dict_polytopeonly = {}
-    print("")
 
     for scene_dir in model_paths:
         try:
@@ -85,6 +89,7 @@ def evaluate(model_paths):
                 Dssims = results["D-SSIM"]
 
                 # Print the results
+                print(f"Metrics2 {method_dir}")
                 print("SSIM : {:>12.8f}".format(ssims))
                 print("PSNR : {:>12.8f}".format(psnrs))
                 print("LPIPS-vgg: {:>12.8f}".format(lpipss))
@@ -93,6 +98,7 @@ def evaluate(model_paths):
                 print("D-SSIM: {:>12.8f}".format(Dssims))
 
                 # Logging the results
+                logging.info(f"Mertics2 {method_dir}")
                 logging.info("Scene: %s", scene_dir)
                 logging.info("  SSIM: %.8f", ssims)
                 logging.info("  PSNR: %.8f", psnrs)
@@ -157,7 +163,7 @@ def worker(device, renders, gts, start_idx, end_idx, results):
     gts = [gt.to(device) for gt in gts[start_idx:end_idx]]
 
     # Calculate metrics
-    for idx in tqdm(range(start_idx, end_idx), desc="Eval progress"):
+    for idx in tqdm(range(start_idx, end_idx), desc="Evaling", unit="item"):
         ssims.append(ssim(renders[idx - start_idx], gts[idx - start_idx]).item())
         psnrs.append(psnr(renders[idx - start_idx], gts[idx - start_idx]).item())
         lpipss.append(lpips(renders[idx - start_idx], gts[idx - start_idx], net_type="vgg").item())
@@ -182,15 +188,27 @@ def worker(device, renders, gts, start_idx, end_idx, results):
 
 
 if __name__ == "__main__":
-    # 初始化日志系统（可以指定日志存储目录和时区）
-    initialize_logger(log_dir="./log", timezone_str="America/Chicago")
-
-    device = torch.device("cuda:2")
+    initialize_logger(log_dir="./log", timezone_str="Etc/GMT-4")
+    device = torch.device("cuda:0")
     torch.cuda.set_device(device)
-
     mp.set_start_method("spawn", force=True)
     # Set up command line argument parser
     parser = ArgumentParser(description="Training script parameters")
     parser.add_argument("--model_paths", "-m", required=True, nargs="+", type=str, default=[])
     args = parser.parse_args()
+
+    args_path = Path(args.model_paths[0]) / "opt_params.pth"
+
+    # 检查文件是否存在
+    if args_path.exists():
+        # 如果文件存在，加载数据
+        hp_data = torch.load(args_path)
+        print("Hyperparameters loaded successfully.")
+        # 格式化输出
+        pretty_data = pprint.pformat(vars(hp_data), indent=2)
+        logging.info(f"Loaded data:\n{pretty_data}\n")
+    else:
+        # 如果文件不存在，打印错误并放弃
+        print(f"Error: The file {args_path} does not exist. Skipping...")
+
     evaluate(args.model_paths)
