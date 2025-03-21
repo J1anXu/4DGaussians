@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from random import randint
-from gaussian_renderer import render, render_topk, render_point_time
+from gaussian_renderer import render, render_topk_mask, render_point_time, render_topk_score
 from tqdm import tqdm
 from utils.image_utils import psnr
 from arguments import ModelParams, PipelineParams, OptimizationParams, ModelHiddenParams
@@ -12,15 +12,31 @@ import concurrent.futures
 
 
 @torch.no_grad()
-def topk_gs_of_pixels(gaussians, scene, pipe, background, related_gs_num):
+def topk_gs_of_pixels_mask(gaussians, scene, pipe, background, related_gs_num):
     viewpoint_stack = scene.getTrainCameras()
     valid_prune_mask = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda", dtype=torch.bool)
     for view in tqdm(viewpoint_stack, desc=f"CalTopKGSOfPixels,K={related_gs_num}"):
         # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
         #     continue
-        renderTopk_pkg = render_topk(view, gaussians, pipe, background, topk=related_gs_num)
+        renderTopk_pkg = render_topk_mask(view, gaussians, pipe, background, topk=related_gs_num)
         topk_mask = renderTopk_pkg["topk_mask"]
         valid_prune_mask = torch.logical_or(valid_prune_mask, topk_mask)
+    # 计算 valid_prune_mask 中 True 的数量
+    num_true = torch.sum(valid_prune_mask).item()
+    print(f"Number of True values in valid_prune_mask: {num_true}")
+    return valid_prune_mask
+
+
+@torch.no_grad()
+def topk_gs_of_pixels_score(gaussians, scene, pipe, background, related_gs_num):
+    viewpoint_stack = scene.getTrainCameras()
+    valid_prune_mask = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda")
+    for view in tqdm(viewpoint_stack, desc=f"CalTopKGSOfPixels,K={related_gs_num}"):
+        # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
+        #     continue
+        renderTopk_pkg = render_topk_score(view, gaussians, pipe, background, topk=related_gs_num)
+        topk_scores = renderTopk_pkg["topk_scores"]
+        valid_prune_mask += topk_scores
     # 计算 valid_prune_mask 中 True 的数量
     num_true = torch.sum(valid_prune_mask).item()
     print(f"Number of True values in valid_prune_mask: {num_true}")

@@ -398,6 +398,11 @@ __global__ void markingTopKScore(int L, int topk, uint64_t* point_list_keys, uin
 
 
 	if(score > 0 && score < 65535){
+
+		// uint32_t scaled_score = __float2uint_rd((1 - score) * 65535);
+
+		float score = 1.0f - __uint2float_rd(score) / 65535.0f;
+
 		if (idx < topk){
 			scores[val] += score;
 		}

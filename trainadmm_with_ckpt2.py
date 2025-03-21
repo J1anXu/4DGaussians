@@ -467,7 +467,7 @@ def scene_reconstruction(
 
                 # 定义第二个线程
                 def thread2():
-                    related_gs_mask = topk_gs_of_pixels(gaussians, scene, pipe, background, args.related_gs_num)
+                    related_gs_mask = topk_gs_of_pixels_mask(gaussians, scene, pipe, background, args.related_gs_num)
                     related_gs_queue.put(related_gs_mask)  # 把结果放入队列
 
                 # 创建并启动线程
