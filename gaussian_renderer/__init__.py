@@ -13,7 +13,7 @@ import torch
 import math
 from diff_gaussian_rasterization_ms import GaussianRasterizationSettings, GaussianRasterizer
 from diff_gaussian_rasterization_ms import GaussianRasterizationTopkSettings, GaussianTopkRasterizer
-from diff_gaussian_rasterization_ms import GaussianRasterizationTopkSettings, GaussianTopkScoreRasterizer
+from diff_gaussian_rasterization_ms import GaussianRasterizationTopkScoreSettings, GaussianTopkScoreRasterizer
 
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
@@ -363,7 +363,7 @@ def render_topk_score(
     if cam_type != "PanopticSports":
         tanfovx = math.tan(viewpoint_camera.FoVx * 0.5)
         tanfovy = math.tan(viewpoint_camera.FoVy * 0.5)
-        raster_settings = GaussianRasterizationTopkSettings(
+        raster_settings = GaussianRasterizationTopkScoreSettings(
             image_height=int(viewpoint_camera.image_height),
             image_width=int(viewpoint_camera.image_width),
             tanfovx=tanfovx,
@@ -378,7 +378,7 @@ def render_topk_score(
             debug=pipe.debug,
             topk_color=topk,
             score_function=36,
-            image_gt=viewpoint_camera.mark_pixels_image.cuda(),  # 这个变量名要改为mark_pixels_image
+            image_gt=viewpoint_camera.original_image.cuda(),  # 这个变量名要改为mark_pixels_image
             p_dist_activation_coef=1.0,
             c_dist_activation_coef=1.0,
         )

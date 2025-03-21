@@ -5,17 +5,18 @@ from gaussian_renderer import render, render_topk_mask, render_point_time, rende
 from tqdm import tqdm
 from utils.image_utils import psnr
 from arguments import ModelParams, PipelineParams, OptimizationParams, ModelHiddenParams
-from impScoreUtils import *
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 import concurrent.futures
+import threading
+import queue
 
 
 @torch.no_grad()
 def topk_gs_of_pixels_mask(gaussians, scene, pipe, background, related_gs_num):
     viewpoint_stack = scene.getTrainCameras()
     valid_prune_mask = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda", dtype=torch.bool)
-    for view in tqdm(viewpoint_stack, desc=f"CalTopKGSOfPixels,K={related_gs_num}"):
+    for view in tqdm(viewpoint_stack, desc=f"CalTopKGSOfPixels, K={related_gs_num}"):
         # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
         #     continue
         renderTopk_pkg = render_topk_mask(view, gaussians, pipe, background, topk=related_gs_num)
@@ -31,7 +32,7 @@ def topk_gs_of_pixels_mask(gaussians, scene, pipe, background, related_gs_num):
 def topk_gs_of_pixels_score(gaussians, scene, pipe, background, related_gs_num):
     viewpoint_stack = scene.getTrainCameras()
     valid_prune_mask = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda")
-    for view in tqdm(viewpoint_stack, desc=f"CalTopKGSOfPixels,K={related_gs_num}"):
+    for view in tqdm(viewpoint_stack, desc=f"CalTopKGSScoreOfPixels,K={related_gs_num}"):
         # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
         #     continue
         renderTopk_pkg = render_topk_score(view, gaussians, pipe, background, topk=related_gs_num)
@@ -152,4 +153,39 @@ def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgroun
     non_zero_count = torch.count_nonzero(scores)  # 统计非零元素个数
     print(f"Non-zero count: {non_zero_count}")
     print("imp_score return success")
+    return scores
+
+
+def cal_scores_1(gaussians, opt, scene, pipe, background, topk):
+    scores_queue = queue.Queue()
+    related_gs_queue = queue.Queue()
+
+    # 定义第一个线程
+    def thread1():
+        scores = time_0_bleding_weight(gaussians, opt, scene, pipe, background)
+        scores_queue.put(scores)  # 把结果放入队列
+
+    # 定义第二个线程
+    def thread2():
+        related_gs_mask = topk_gs_of_pixels_mask(gaussians, scene, pipe, background, topk)
+        related_gs_queue.put(related_gs_mask)  # 把结果放入队列
+
+    # 创建并启动线程
+    t1 = threading.Thread(target=thread1)
+    t2 = threading.Thread(target=thread2)
+    t1.start()
+    t2.start()
+    # 等待线程完成
+    t1.join()
+    t2.join()
+    # 从队列中获取线程结果
+    scores = scores_queue.get()
+    related_gs_mask = related_gs_queue.get()
+    # 线程完成后，可以安全地使用 scores 和 related_gs_mask
+    max_score = torch.max(scores)
+    print(f"Max score: {max_score}")
+    # scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
+    # related_gs_mask = get_related_gs(gaussians, scene, pipe, background, args.related_gs_num)
+    max_score = torch.max(scores)
+    scores[related_gs_mask] += max_score
     return scores

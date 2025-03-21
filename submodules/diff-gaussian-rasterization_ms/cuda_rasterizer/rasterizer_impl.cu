@@ -384,7 +384,8 @@ __global__ void markingTopKMasks(int L, int topk, uint64_t* point_list_keys, uin
 }
 
 
-__global__ void markingTopKScore(int L, int topk, uint64_t* point_list_keys, uint32_t* point_list, float* scores)
+// 不是把topk高分点标记出来,而是把分数累计
+__global__ void accumulateTopKScore(int L, int topk, uint64_t* point_list_keys, uint32_t* point_list, float* scores)
 {
 	auto idx = cg::this_grid().thread_rank();
 	if (idx >= L)
@@ -400,7 +401,7 @@ __global__ void markingTopKScore(int L, int topk, uint64_t* point_list_keys, uin
 	if(score > 0 && score < 65535){
 
 		// uint32_t scaled_score = __float2uint_rd((1 - score) * 65535);
-
+		// 分数切回0-1区间
 		float score = 1.0f - __uint2float_rd(score) / 65535.0f;
 
 		if (idx < topk){
@@ -760,7 +761,7 @@ int CudaRasterizer::Rasterizer::forwardTopKScore(
 	
 	// Let each tile blend its range of Gaussians independently in parallel
 	const float* feature_ptr = colors_precomp != nullptr ? colors_precomp : geomState.rgb;
-	CHECK_CUDA(FORWARD::topk_color_gaussian(
+	CHECK_CUDA(FORWARD::topk_score_gaussian(
 		tile_grid, block,
 		imgState.ranges,
 		binningState.point_list,
@@ -795,7 +796,7 @@ int CudaRasterizer::Rasterizer::forwardTopKScore(
 			binningState_for_opacity.point_list_unsorted, binningState_for_opacity.point_list,
 			num_rendered, 0, 32 + bit), debug)
 		
-		markingTopKScore << <(num_rendered + 255) / 256, 256 >> > (
+		accumulateTopKScore << <(num_rendered + 255) / 256, 256 >> > (
 			num_rendered, 
 			topk,
 			binningState_for_opacity.point_list_keys,

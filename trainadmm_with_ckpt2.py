@@ -18,7 +18,7 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, render_topk, render_point_time, network_gui
+from gaussian_renderer import render, render_point_time, network_gui
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
 from tqdm import tqdm
@@ -452,48 +452,9 @@ def scene_reconstruction(
 
             elif args.prune_points and iteration == args.simp_iteration1:
                 # scores = getOpacityScore(gaussians)
-                # 定义一个线程执行 zeroTimeBledWeight
-                import threading
-                import queue
-
                 # 定义一个队列来存储线程的返回值
-                scores_queue = queue.Queue()
-                related_gs_queue = queue.Queue()
-
-                # 定义第一个线程
-                def thread1():
-                    scores = time_0_bleding_weight(gaussians, opt, scene, pipe, background)
-                    scores_queue.put(scores)  # 把结果放入队列
-
-                # 定义第二个线程
-                def thread2():
-                    related_gs_mask = topk_gs_of_pixels_mask(gaussians, scene, pipe, background, args.related_gs_num)
-                    related_gs_queue.put(related_gs_mask)  # 把结果放入队列
-
-                # 创建并启动线程
-                t1 = threading.Thread(target=thread1)
-                t2 = threading.Thread(target=thread2)
-
-                t1.start()
-                t2.start()
-
-                # 等待线程完成
-                t1.join()
-                t2.join()
-
-                # 从队列中获取线程结果
-                scores = scores_queue.get()
-                related_gs_mask = related_gs_queue.get()
-
-                # 线程完成后，可以安全地使用 scores 和 related_gs_mask
-                max_score = torch.max(scores)
-                print(f"Max score: {max_score}")
-
-                # scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
-                # related_gs_mask = get_related_gs(gaussians, scene, pipe, background, args.related_gs_num)
-                max_score = torch.max(scores)
-                scores[related_gs_mask] += max_score
-
+                topk = args.related_gs_num
+                scores = cal_scores_1(gaussians, opt, scene, pipe, background, topk)
                 scores_sorted, _ = torch.sort(scores, 0)
                 threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
                 abs_threshold = scores_sorted[threshold_idx - 1]

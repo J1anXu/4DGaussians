@@ -731,6 +731,212 @@ renderCUDA_topk_color(
 	}
 }
 
+template <uint32_t CHANNELS>
+__global__ void __launch_bounds__(BLOCK_X * BLOCK_Y)
+renderCUDA_topk_score(
+	const uint2* __restrict__ ranges,
+	const uint32_t* __restrict__ point_list,
+	int W, int H,
+	const float2* __restrict__ points_xy_image,
+	const float* __restrict__ features,
+
+	float* __restrict__ accum_weights_p,
+	int* __restrict__ accum_weights_count,
+	float* __restrict__ accum_max_count,
+
+	const float4* __restrict__ conic_opacity,
+	float* __restrict__ final_T,
+	uint32_t* __restrict__ n_contrib,
+	const float* __restrict__ bg_color,
+
+	const float* __restrict__ image_gt,
+	const int score_function,
+	const float p_dist_activation_coef,
+	const float c_dist_activation_coef,
+	uint64_t* __restrict__ gaussian_keys_unsorted,
+	uint32_t* __restrict__ gaussian_values_unsorted,
+
+	float* __restrict__ out_color
+	)
+{
+	// Identify current tile and associated min/max pixel range.
+	auto block = cg::this_thread_block();
+	uint32_t horizontal_blocks = (W + BLOCK_X - 1) / BLOCK_X;
+	uint2 pix_min = { block.group_index().x * BLOCK_X, block.group_index().y * BLOCK_Y };
+	uint2 pix_max = { min(pix_min.x + BLOCK_X, W), min(pix_min.y + BLOCK_Y , H) };
+	uint2 pix = { pix_min.x + block.thread_index().x, pix_min.y + block.thread_index().y };
+	uint32_t pix_id = W * pix.y + pix.x;
+	float2 pixf = { (float)pix.x, (float)pix.y };
+
+	// Check if this thread is associated with a valid pixel or outside.
+	bool inside = pix.x < W&& pix.y < H;
+	// Done threads can help with fetching, but don't rasterize
+	bool done = !inside;
+
+	// Load start/end range of IDs to process in bit sorted list.
+	uint2 range = ranges[block.group_index().y * horizontal_blocks + block.group_index().x];
+	const int rounds = ((range.y - range.x + BLOCK_SIZE - 1) / BLOCK_SIZE);
+	int toDo = range.y - range.x;
+
+	// Allocate storage for batches of collectively fetched data.
+	__shared__ int collected_id[BLOCK_SIZE];
+	__shared__ float2 collected_xy[BLOCK_SIZE];
+	__shared__ float4 collected_conic_opacity[BLOCK_SIZE];
+
+	// Initialize helper variables
+	float T = 1.0f;
+	uint32_t contributor = 0;
+	uint32_t last_contributor = 0;
+	float C[CHANNELS] = { 0 };
+	float gt_color[CHANNELS] = { 0 };
+	for (int ch = 0; ch < CHANNELS; ch++){
+		gt_color[ch] = image_gt[ch * H * W + pix_id];
+	}
+		
+	float D = { 0 };
+	float sum_W = { 0 };
+
+
+
+
+	float weight_max=0;
+	float depth_max=0;
+
+	int idx_max=0;
+	int flag_update=0;
+
+
+
+	// Iterate over batches until all done or range is complete
+	for (int i = 0; i < rounds; i++, toDo -= BLOCK_SIZE)
+	{
+		// End if entire block votes that it is done rasterizing
+		int num_done = __syncthreads_count(done);
+		if (num_done == BLOCK_SIZE)
+		{
+			break;
+		}
+			
+
+		// Collectively fetch per-Gaussian data from global to shared
+		int progress = i * BLOCK_SIZE + block.thread_rank();
+		if (range.x + progress < range.y)
+		{
+			int coll_id = point_list[range.x + progress];
+			collected_id[block.thread_rank()] = coll_id;
+			collected_xy[block.thread_rank()] = points_xy_image[coll_id];
+			collected_conic_opacity[block.thread_rank()] = conic_opacity[coll_id];
+		}
+		block.sync();
+
+		// Iterate over current batch
+		for (int j = 0; !done && j < min(BLOCK_SIZE, toDo); j++)
+		{
+
+			// Keep track of current position in range
+			contributor++;
+
+			// Resample using conic matrix (cf. "Surface 
+			// Splatting" by Zwicker et al., 2001)
+			float2 xy = collected_xy[j];
+			float2 d = { xy.x - pixf.x, xy.y - pixf.y };
+			float4 con_o = collected_conic_opacity[j];
+			float power = -0.5f * (con_o.x * d.x * d.x + con_o.z * d.y * d.y) - con_o.y * d.x * d.y;
+			if (power > 0.0f){
+				continue;
+			}
+				
+
+
+			// Eq. (2) from 3D Gaussian splatting paper.
+			// Obtain alpha by multiplying with Gaussian opacity
+			// and its exponential falloff from mean.
+			// Avoid numerical instabilities (see paper appendix). 
+			float alpha = min(0.99f, con_o.w * exp(power));
+			if (alpha < 1.0f / 255.0f)
+				continue;
+			float test_T = T * (1 - alpha);
+			if (test_T < 0.0001f)
+			{
+				done = true;
+				continue;
+			}
+
+			// Eq. (3) from 3D Gaussian splatting paper.
+			float prim_color[CHANNELS] = { 0 };
+			for (int ch = 0; ch < CHANNELS; ch++)
+			{
+				C[ch] += features[collected_id[j] * CHANNELS + ch] * alpha * T;
+				prim_color[ch] = features[collected_id[j] * CHANNELS + ch];
+			}
+
+			if(weight_max<alpha * T)
+			{
+				weight_max=alpha * T;
+				idx_max = collected_id[j];
+				flag_update = 1;
+			}
+			uint64_t block_id = block.group_index().y * horizontal_blocks + block.group_index().x;
+			// Use value range of [0, 65535].
+			// To be valid for ascending order sorting, use 1 - score instead of score.
+			float score = compute_score<CHANNELS>(score_function, con_o.w, alpha, T, &d, p_dist_activation_coef, c_dist_activation_coef, gt_color, prim_color);
+			uint32_t scaled_score = __float2uint_rd((1 - score) * 65535);
+			// 将 uint2 pix 转换为 uint64_t
+			uint64_t pix64 = (static_cast<uint64_t>(pix.x) << 32) | pix.y;
+
+			uint32_t scaled_score_max = 0xFFFFFFFF;
+			uint32_t scaled_score_min = 0x00000000;
+
+			// 输入的gt的pixel为[1,1,1]时,对应的gs分数都置为最大,否则置为最小
+			if (gt_color[0] > 0 & gt_color[1] > 0 & gt_color[2] > 0) {
+				uint64_t shifted_pix_id = static_cast<uint64_t>(pix_id) << 32;  // 将 pix_id 左移 32 位
+				uint64_t key = shifted_pix_id | scaled_score;
+				gaussian_keys_unsorted[range.x + progress] = key;
+				gaussian_values_unsorted[range.x + progress] = collected_id[j];
+				// printf("pix_id = %u, gaussian_keys_unsorted = 0x%08X%08X, pix.x = %d, pix.y = %d, gs_id = %u, scaled_score = %u\n", 
+				// 	pix_id, 
+				// 	(uint32_t)(key >> 32),   // 打印高 32 位
+				// 	(uint32_t)(key & 0xFFFFFFFF), // 打印低 32 位
+				// 	pix.x,
+				// 	pix.y,
+				// 	collected_id[j]);      
+			} else {
+				uint64_t shifted_pix_id = static_cast<uint64_t>(pix_id) << 32;  // 将 pix_id 左移 32 位
+				uint64_t key = shifted_pix_id | scaled_score_min;
+
+				gaussian_keys_unsorted[range.x + progress] = key;
+				gaussian_values_unsorted[range.x + progress] = collected_id[j];
+			}
+
+
+			sum_W += alpha * T;
+			atomicAdd(&(accum_weights_p[collected_id[j]]), alpha * T);
+			atomicAdd(&(accum_weights_count[collected_id[j]]), 1);
+			
+			T = test_T;
+
+			// Keep track of last range entry to update this
+			// pixel.
+			last_contributor = contributor;
+		}
+	}
+
+	if(flag_update==1)
+	{
+		atomicAdd(&(accum_max_count[idx_max]), 1);
+	}
+
+
+	// All threads that treat valid pixel write out their final
+	// rendering data to the frame and auxiliary buffers.
+	if (inside)
+	{
+		final_T[pix_id] = T;
+		n_contrib[pix_id] = last_contributor;
+		for (int ch = 0; ch < CHANNELS; ch++)
+			out_color[ch * H * W + pix_id] = C[ch] + T * bg_color[ch];	
+	}
+}
 
 
 
@@ -1049,6 +1255,60 @@ void FORWARD::topk_color_gaussian(
 	)
 {
 	renderCUDA_topk_color<NUM_CHANNELS> << <grid, block >> > (
+		ranges,
+		point_list,
+		W, H,
+		means2D,
+		colors,
+		accum_weights_p,	
+		accum_weights_count,
+		accum_max_count,
+		conic_opacity,
+		final_T,
+		n_contrib,
+		bg_color,
+
+		image_gt,
+		score_function,
+		p_dist_activation_coef,
+		c_dist_activation_coef,
+		gaussian_keys_unsorted,
+		gaussian_values_unsorted,
+
+		out_color
+		);
+}
+
+
+
+
+void FORWARD::topk_score_gaussian(
+	const dim3 grid, dim3 block,
+	const uint2* ranges,
+	const uint32_t* point_list,
+	int W, int H,
+	const float2* means2D,
+	const float* colors,
+	float* accum_weights_p,
+	int* accum_weights_count,
+	float* accum_max_count,
+	
+	const float4* conic_opacity,
+	float* final_T,
+	uint32_t* n_contrib,
+	const float* bg_color,
+
+	const float* image_gt,
+	const int score_function,
+	const float p_dist_activation_coef,
+	const float c_dist_activation_coef,
+	uint64_t* gaussian_keys_unsorted,
+	uint32_t* gaussian_values_unsorted,
+
+	float* out_color
+	)
+{
+	renderCUDA_topk_score<NUM_CHANNELS> << <grid, block >> > (
 		ranges,
 		point_list,
 		W, H,

@@ -541,6 +541,26 @@ class GaussianRasterizationTopkSettings(NamedTuple):
     c_dist_activation_coef: float
 
 
+class GaussianRasterizationTopkScoreSettings(NamedTuple):
+    image_height: int
+    image_width: int
+    tanfovx: float
+    tanfovy: float
+    bg: torch.Tensor
+    scale_modifier: float
+    viewmatrix: torch.Tensor
+    projmatrix: torch.Tensor
+    sh_degree: int
+    campos: torch.Tensor
+    prefiltered: bool
+    debug: bool
+    topk_color: int
+    score_function: float
+    image_gt: torch.Tensor
+    p_dist_activation_coef: float
+    c_dist_activation_coef: float
+
+
 class GaussianRasterizer(nn.Module):
     def __init__(self, raster_settings):
         super().__init__()
@@ -700,7 +720,7 @@ class GaussianTopkScoreRasterizer(nn.Module):
             cov3D_precomp = torch.Tensor([])
 
         # Invoke C++/CUDA rasterization routine
-        return rasterize_gaussians_topk(
+        return rasterize_gaussians_topk_scores(
             means3D,
             means2D,
             shs,

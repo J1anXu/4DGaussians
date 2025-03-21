@@ -18,7 +18,7 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, render_topk, render_point_time, network_gui
+from gaussian_renderer import render, render_topk_score, render_point_time, network_gui
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
 from tqdm import tqdm
@@ -241,227 +241,19 @@ def scene_reconstruction(
 
         if (iteration - 1) == debug_from:
             pipe.debug = True
-        images = []
-        gt_images = []
-        radii_list = []
-        visibility_filter_list = []
-        viewspace_point_tensor_list = []
-        for viewpoint_cam in viewpoint_cams:
-            render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
-            image, viewspace_point_tensor, visibility_filter, radii, p_diff, time = (
-                render_pkg["render"],
-                render_pkg["viewspace_points"],
-                render_pkg["visibility_filter"],
-                render_pkg["radii"],
-                render_pkg["p_diff"],
-                render_pkg["time"],
-            )
-            images.append(image.unsqueeze(0))
-            if scene.dataset_type != "PanopticSports":
-                gt_image = viewpoint_cam.original_image.cuda()
-            else:
-                gt_image = viewpoint_cam["image"].cuda()
-
-            gt_images.append(gt_image.unsqueeze(0))
-            radii_list.append(radii.unsqueeze(0))
-            visibility_filter_list.append(visibility_filter.unsqueeze(0))
-            viewspace_point_tensor_list.append(viewspace_point_tensor)
-
-        radii = torch.cat(radii_list, 0).max(dim=0).values
-        visibility_filter = torch.cat(visibility_filter_list).any(dim=0)
-        image_tensor = torch.cat(images, 0)
-        gt_image_tensor = torch.cat(gt_images, 0)
-
-        Ll1 = l1_loss(image_tensor, gt_image_tensor[:, :3, :, :])
-        psnr_ = psnr(image_tensor, gt_image_tensor).mean().double()
-        loss = Ll1
-
-        if (
-            opt.admm == True
-            and iteration > opt.admm_start_iter1
-            and iteration % opt.admm_interval == 0
-            and iteration <= opt.admm_stop_iter1
-        ):
-            admm_loss = 0.1 * admm.get_admm_loss(loss)
-            loss += admm_loss
-
-        if stage == "fine" and hyper.time_smoothness_weight != 0:
-            tv_loss = gaussians.compute_regulation(
-                hyper.time_smoothness_weight, hyper.l1_time_planes, hyper.plane_tv_weight
-            )
-            loss += tv_loss
-
-        if opt.lambda_dssim != 0:
-            ssim_loss = ssim(image_tensor, gt_image_tensor)
-            loss += opt.lambda_dssim * (1.0 - ssim_loss)
-
-        loss.backward()
-
-        if torch.isnan(loss).any():
-            print("loss is nan,end training, reexecv program now.")
-            os.execv(sys.executable, [sys.executable] + sys.argv)
-
-        viewspace_point_tensor_grad = torch.zeros_like(viewspace_point_tensor)
-        for idx in range(0, len(viewspace_point_tensor_list)):
-            viewspace_point_tensor_grad = viewspace_point_tensor_grad + viewspace_point_tensor_list[idx].grad
-        iter_end.record()
 
         with torch.no_grad():
-            ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
-            ema_psnr_for_log = 0.4 * psnr_ + 0.6 * ema_psnr_for_log
-            ema_admm_loss_for_log = 0.4 * admm_loss.item() + 0.6 * ema_admm_loss_for_log
-
-            total_point = gaussians._xyz.shape[0]
-            if iteration % 10 == 0:
-                progress_bar.set_postfix(
-                    {
-                        "Loss": f"{ema_loss_for_log:.{7}f}",
-                        "admm_loss": f"{ema_admm_loss_for_log:.{7}f}",
-                        "psnr": f"{psnr_:.{2}f}",
-                        "point": f"{total_point}",
-                    }
-                )
-                progress_bar.update(10)
-                logging.info(
-                    {
-                        "Loss": f"{ema_loss_for_log:.5f}",
-                        "admm_loss": f"{ema_admm_loss_for_log:.5f}",
-                        "psnr": f"{psnr_:.2f}",
-                        "point": total_point,  # 直接使用数值，无需字符串格式化
-                    }
-                )
-                if WANDB:
-                    wandb.log(
-                        {
-                            "loss": round(ema_loss_for_log, 7),
-                            "admm_loss": round(ema_admm_loss_for_log, 7),
-                            "psnr": round(psnr_.item(), 7),
-                            "point": total_point,  # 直接使用数值，无需字符串格式化
-                        }
-                    )
-
-            if iteration == opt.iterations:
-                progress_bar.close()
-
-            # Log and save
-            timer.pause()
-            training_report(
-                tb_writer,
-                iteration,
-                Ll1,
-                loss,
-                l1_loss,
-                iter_start.elapsed_time(iter_end),
-                testing_iterations,
-                scene,
-                render,
-                [pipe, background],
-                stage,
-                scene.dataset_type,
-            )
-            if iteration in saving_iterations:
-                print("\n[ITER {}] Saving Gaussians".format(iteration))
-                scene.save(iteration, stage)
-
-            if dataset.render_process:
-                if (
-                    (iteration < 1000 and iteration % 10 == 9)
-                    or (iteration < 3000 and iteration % 50 == 49)
-                    or (iteration < 60000 and iteration % 100 == 99)
-                ):
-                    # breakpoint()
-                    render_training_image(
-                        scene,
-                        gaussians,
-                        [test_cams[iteration % len(test_cams)]],
-                        render,
-                        pipe,
-                        background,
-                        stage + "test",
-                        iteration,
-                        timer.get_elapsed_time(),
-                        scene.dataset_type,
-                    )
-                    render_training_image(
-                        scene,
-                        gaussians,
-                        [train_cams[iteration % len(train_cams)]],
-                        render,
-                        pipe,
-                        background,
-                        stage + "train",
-                        iteration,
-                        timer.get_elapsed_time(),
-                        scene.dataset_type,
-                    )
-                    # render_training_image(scene, gaussians, train_cams, render, pipe, background, stage+"train", iteration,timer.get_elapsed_time(),scene.dataset_type)
-
-                # total_images.append(to8b(temp_image).transpose(1,2,0))
-            if WANDB & iteration > opt.admm_start_iter1 & iteration % opt.admm_interval == 0:
-                wandb.log({"opacity_aftet_admm": wandb.Histogram(gaussians.get_opacity.tolist())})
-
-            timer.start()
-            # Densification
-            if iteration < opt.densify_until_iter:
-                # Keep track of max radii in image-space for pruning
-                gaussians.max_radii2D[visibility_filter] = torch.max(
-                    gaussians.max_radii2D[visibility_filter], radii[visibility_filter]
-                )
-                gaussians.add_densification_stats(viewspace_point_tensor_grad, visibility_filter)
-
-                if stage == "coarse":
-                    abs_threshold = opt.opacity_threshold_coarse
-                    densify_threshold = opt.densify_grad_threshold_coarse
-                else:
-                    abs_threshold = opt.opacity_threshold_fine_init - iteration * (
-                        opt.opacity_threshold_fine_init - opt.opacity_threshold_fine_after
-                    ) / (opt.densify_until_iter)
-                    densify_threshold = opt.densify_grad_threshold_fine_init - iteration * (
-                        opt.densify_grad_threshold_fine_init - opt.densify_grad_threshold_after
-                    ) / (opt.densify_until_iter)
-
-                if (
-                    iteration > opt.densify_from_iter
-                    and iteration % opt.densification_interval == 0
-                    and gaussians.get_xyz.shape[0] < 360000
-                ):
-                    size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.densify(
-                        densify_threshold,
-                        abs_threshold,
-                        scene.cameras_extent,
-                        size_threshold,
-                        5,
-                        5,
-                        scene.model_path,
-                        iteration,
-                        stage,
-                    )
-
-                if (
-                    iteration > opt.pruning_from_iter
-                    and iteration % opt.pruning_interval == 0
-                    and gaussians.get_xyz.shape[0] > 200000
-                ):
-                    size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.prune(densify_threshold, abs_threshold, scene.cameras_extent, size_threshold)
-
-                if iteration % opt.opacity_reset_interval == 0:
-                    print("reset opacity")
-                    gaussians.reset_opacity()
-
-            elif args.prune_points and iteration == args.simp_iteration1:
-                scores = topk_gs_of_pixels_score(gaussians, scene, pipe, background, args.related_gs_num)
-                # 假设 related_gs_mask 已经存在
-                print("Statistics of scores:")
-                print(f"Max: {torch.max(scores).item()}")
-                print(f"Min: {torch.min(scores).item()}")
-                print(f"Mean: {torch.mean(scores).item()}")
-                print(f"Count > 0: {torch.sum(scores > 0).item()}")
-                # 保存到本地
-                torch.save(related_gs_mask, "scores.pt")
-                print("scores saved to scores.pt")
-
+            scores = topk_gs_of_pixels_score(gaussians, scene, pipe, background, args.related_gs_num)
+            # 假设 related_gs_mask 已经存在
+            print("Statistics of scores:")
+            print(f"Max: {torch.max(scores).item()}")
+            print(f"Min: {torch.min(scores).item()}")
+            print(f"Mean: {torch.mean(scores).item()}")
+            print(f"Count > 0: {torch.sum(scores > 0).item()}")
+            # 保存到本地
+            torch.save(scores, "scores.pt")
+            print("scores saved to scores.pt")
+        break
     if WANDB:
         wandb.finish()
 
