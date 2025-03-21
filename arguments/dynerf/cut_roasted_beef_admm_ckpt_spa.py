@@ -5,7 +5,7 @@ OptimizationParams = dict(
     densify_until_iter=0,  # 动态调整结束
     simp_iteration1=14001,  # 删点执行 18000
     admm_start_iter1=14050,  # admm迭代开始  test
-    admm_stop_iter1=14050,  # admm迭代结束 18000
+    admm_stop_iter1=16000,  # admm迭代结束 18000
     simp_iteration2=20000,  # 删点执行 18000
     iterations=14050,  # 整体迭代 20000
     admm_interval=50,  #
@@ -16,5 +16,5 @@ OptimizationParams = dict(
     outdoor=False,
     prune_points=True,  # 是否进行删点
     admm=False,
-    related_gs_num=20,
+    related_gs_num=1,
 )

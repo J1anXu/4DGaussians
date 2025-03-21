@@ -8,19 +8,19 @@ from arguments import ModelParams, PipelineParams, OptimizationParams, ModelHidd
 from impScoreUtils import *
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
+import concurrent.futures
 
 
 @torch.no_grad()
-def get_related_gs(gaussians, scene, pipe, background, related_gs_num):
+def topk_gs_of_pixels(gaussians, scene, pipe, background, related_gs_num):
     viewpoint_stack = scene.getTrainCameras()
     valid_prune_mask = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda", dtype=torch.bool)
-    for view in tqdm(viewpoint_stack, desc=f"top{related_gs_num}"):
+    for view in tqdm(viewpoint_stack, desc=f"CalTopKGSOfPixels,K={related_gs_num}"):
         # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
         #     continue
         renderTopk_pkg = render_topk(view, gaussians, pipe, background, topk=related_gs_num)
         topk_mask = renderTopk_pkg["topk_mask"]
         valid_prune_mask = torch.logical_or(valid_prune_mask, topk_mask)
-
     # 计算 valid_prune_mask 中 True 的数量
     num_true = torch.sum(valid_prune_mask).item()
     print(f"Number of True values in valid_prune_mask: {num_true}")
@@ -65,17 +65,18 @@ def norm_tensor_01(tensor):
     return normalized_tensor
 
 
-def zeroTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, background):
+def time_0_bleding_weight(gaussians, opt: OptimizationParams, scene, pipe, background, views=None):
     # render 输入数据的所有时间和相机视角,累计高斯点的权重
     # 根据重要性评分（Importance Score）对 3D Gaussians 进行稀疏化（Pruning），以减少不重要的点，提高渲染效率
     imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 存储每个高斯点的重要性评分，初始为 0
     accum_area_max = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 累积每个点在不同视角下的最大投影面积
-    views = scene.getTrainCameras()  # 获取所有训练视角（相机位置）
+    if views is None:
+        views = scene.getTrainCameras()  # 获取所有训练视角（相机位置）
     total_views = len(views)  # 获取视角总数
     # 从第一个数开始，每隔important_score_4_time_interval个取一个
     # time_samples = views.dataset.image_times[:: opt.important_score_4_time_interval]  #
     # print(f"Time samples: {time_samples}")
-    for view in tqdm(views, total=total_views, desc="init_blending_weight"):
+    for view in tqdm(views, total=total_views, desc="CalTime0BlendingWeight"):
         # if view.time not in time_samples:  # 相较于ImportantScore3 唯一的区别
         if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
             continue

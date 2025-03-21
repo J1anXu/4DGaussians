@@ -10,7 +10,7 @@
 #
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # 先设置 GPU 设备
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"  # 先设置 GPU 设备
 
 import sys
 import numpy as np
@@ -153,6 +153,9 @@ def scene_reconstruction(
 
     times = scene.train_camera.dataset.image_times[0 : scene.train_camera.dataset.time_number]
     # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
+
+    scores = None
+    related_gs_mask = None
 
     for iteration in range(first_iter, final_iter + 1):
         if network_gui.conn == None:
@@ -449,10 +452,47 @@ def scene_reconstruction(
 
             elif args.prune_points and iteration == args.simp_iteration1:
                 # scores = getOpacityScore(gaussians)
-                scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
+                # 定义一个线程执行 zeroTimeBledWeight
+                import threading
+                import queue
+
+                # 定义一个队列来存储线程的返回值
+                scores_queue = queue.Queue()
+                related_gs_queue = queue.Queue()
+
+                # 定义第一个线程
+                def thread1():
+                    scores = time_0_bleding_weight(gaussians, opt, scene, pipe, background)
+                    scores_queue.put(scores)  # 把结果放入队列
+
+                # 定义第二个线程
+                def thread2():
+                    related_gs_mask = topk_gs_of_pixels(gaussians, scene, pipe, background, args.related_gs_num)
+                    related_gs_queue.put(related_gs_mask)  # 把结果放入队列
+
+                # 创建并启动线程
+                t1 = threading.Thread(target=thread1)
+                t2 = threading.Thread(target=thread2)
+
+                t1.start()
+                t2.start()
+
+                # 等待线程完成
+                t1.join()
+                t2.join()
+
+                # 从队列中获取线程结果
+                scores = scores_queue.get()
+                related_gs_mask = related_gs_queue.get()
+
+                # 线程完成后，可以安全地使用 scores 和 related_gs_mask
+                max_score = torch.max(scores)
+                print(f"Max score: {max_score}")
+
+                # scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
                 # related_gs_mask = get_related_gs(gaussians, scene, pipe, background, args.related_gs_num)
-                # max_score = torch.max(scores)
-                # scores[related_gs_mask] += max_score
+                max_score = torch.max(scores)
+                scores[related_gs_mask] += max_score
 
                 scores_sorted, _ = torch.sort(scores, 0)
                 threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
@@ -473,12 +513,12 @@ def scene_reconstruction(
                 admm.update(opt)
 
             if args.prune_points and iteration == args.simp_iteration2:
-                scores = getOpacityScore(gaussians)
-                scores_sorted, _ = torch.sort(scores, 0)
-                threshold_idx = int(opt.opacity_admm_threshold2 * len(scores_sorted))
-                abs_threshold = scores_sorted[threshold_idx - 1]
-                mask = (scores <= abs_threshold).squeeze()
-                gaussians.prune_points(mask)
+                scores_2 = getOpacityScore(gaussians)
+                scores_sorted_2, _ = torch.sort(scores_2, 0)
+                threshold_idx = int(opt.opacity_admm_threshold2 * len(scores_sorted_2))
+                abs_threshold = scores_sorted_2[threshold_idx - 1]
+                mask_2 = (scores <= abs_threshold).squeeze()
+                gaussians.prune_points(mask_2)
 
             # Optimizer step
             if iteration < opt.iterations:
