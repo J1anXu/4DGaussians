@@ -47,7 +47,7 @@ DIR = "diff_analysis"
 if not os.path.exists(DIR):
     os.makedirs(DIR)
 
-current_time = initialize_logger(log_dir="./log", timezone_str="Etc/GMT-4")
+current_time = initialize_logger()
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
 
 try:

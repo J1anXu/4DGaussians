@@ -62,6 +62,7 @@ class GaussianModel:
         self.spatial_lr_scale = 0
         self._deformation_table = torch.empty(0)
         self.setup_functions()
+        self.checkpoint = None
 
     def capture(self):
         return (

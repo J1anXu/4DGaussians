@@ -11,7 +11,7 @@
 
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,4,5"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,4,5,6"
 
 import torch
 import torch.multiprocessing as mp

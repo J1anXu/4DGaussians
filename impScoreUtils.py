@@ -10,6 +10,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import concurrent.futures
 import threading
 import queue
+import os
 
 
 @torch.no_grad()
@@ -82,20 +83,27 @@ def norm_tensor_01(tensor):
     return normalized_tensor
 
 
-def time_0_bleding_weight(gaussians, opt: OptimizationParams, scene, pipe, background, views=None):
+def blending_weight(gaussians, opt: OptimizationParams, scene, pipe, background, cache=False, onlyTime0=False):
     # render 输入数据的所有时间和相机视角,累计高斯点的权重
     # 根据重要性评分（Importance Score）对 3D Gaussians 进行稀疏化（Pruning），以减少不重要的点，提高渲染效率
+    # eg output/dynerf/cut_roasted_beef/chkpnt_fine_14000.pth
+    file_path = gaussians.checkpoint + f"_t0bw_{gaussians._xyz.shape[0]}.pt"
+    if cache:
+        if os.path.exists(file_path):
+            scores = torch.load(file_path)
+            print(f"[time_0_bleding_weight] existing in: ${file_path}, loading...")
+            return scores
+
     imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 存储每个高斯点的重要性评分，初始为 0
     accum_area_max = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 累积每个点在不同视角下的最大投影面积
-    if views is None:
-        views = scene.getTrainCameras()  # 获取所有训练视角（相机位置）
+    views = scene.getTrainCameras()  # 获取所有训练视角（相机位置）
     total_views = len(views)  # 获取视角总数
     # 从第一个数开始，每隔important_score_4_time_interval个取一个
     # time_samples = views.dataset.image_times[:: opt.important_score_4_time_interval]  #
     # print(f"Time samples: {time_samples}")
     for view in tqdm(views, total=total_views, desc="CalTime0BlendingWeight"):
         # if view.time not in time_samples:  # 相较于ImportantScore3 唯一的区别
-        if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
+        if onlyTime0 & (view.time != 0.0):  # 相较于ImportantScore3 唯一的区别
             continue
         render_pkg = render(view, gaussians, pipe, background)
         accum_weights = render_pkg["accum_weights"]
@@ -112,10 +120,11 @@ def time_0_bleding_weight(gaussians, opt: OptimizationParams, scene, pipe, backg
     imp_score[accum_area_max == 0] = 0  # 对于从未在任何视角中被看到的点，重要性设为 0 ，确保不可见点的 imp_score = 0
     # scores = imp_score / imp_score.sum()  # 归一化 imp_score 作为采样概率 prob
     scores = norm_tensor_01(imp_score)
-
     non_zero_count = torch.count_nonzero(scores)  # 统计非零元素个数
     print(f"Non-zero count: {non_zero_count}")
     print("imp_score return success")
+    torch.save(scores, file_path)
+    print(f"[time_0_bleding_weight] save in: ${file_path} success")
     return scores
 
 
@@ -125,44 +134,13 @@ def getOpacityScore(gaussians):
     return scores
 
 
-def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, background):
-    # render 输入数据的所有时间和相机视角,累计高斯点的权重
-    # 根据重要性评分（Importance Score）对 3D Gaussians 进行稀疏化（Pruning），以减少不重要的点，提高渲染效率
-    imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 存储每个高斯点的重要性评分，初始为 0
-    accum_area_max = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 累积每个点在不同视角下的最大投影面积
-    views = scene.getTrainCameras()  # 获取所有训练视角（相机位置）
-    total_views = len(views)  # 获取视角总数
-
-    for view in tqdm(views, total=total_views, desc="allTimeBledWeight"):
-        render_pkg = render(view, gaussians, pipe, background)
-        accum_weights = render_pkg["accum_weights"]
-        area_proj = render_pkg["area_proj"]
-        area_max = render_pkg["area_max"]
-        accum_area_max = accum_area_max + area_max
-        if opt.outdoor == True:
-            mask_t = area_max != 0
-            temp = imp_score + accum_weights / area_proj
-            imp_score[mask_t] = temp[mask_t]
-        else:
-            imp_score += accum_weights
-
-    imp_score[accum_area_max == 0] = 0  # 对于从未在任何视角中被看到的点，重要性设为 0 ，确保不可见点的 imp_score = 0
-    # scores = imp_score / imp_score.sum()  # 归一化 imp_score 作为采样概率 prob
-    scores = norm_tensor_01(imp_score)
-
-    non_zero_count = torch.count_nonzero(scores)  # 统计非零元素个数
-    print(f"Non-zero count: {non_zero_count}")
-    print("imp_score return success")
-    return scores
-
-
 def cal_scores_1(gaussians, opt, scene, pipe, background, topk):
     scores_queue = queue.Queue()
     related_gs_queue = queue.Queue()
 
     # 定义第一个线程
     def thread1():
-        scores = time_0_bleding_weight(gaussians, opt, scene, pipe, background)
+        scores = blending_weight(gaussians, opt, scene, pipe, background)
         scores_queue.put(scores)  # 把结果放入队列
 
     # 定义第二个线程

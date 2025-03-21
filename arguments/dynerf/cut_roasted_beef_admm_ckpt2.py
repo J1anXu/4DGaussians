@@ -1,0 +1,20 @@
+_base_ = "./default.py"
+OptimizationParams = dict(
+    batch_size=2,
+    densify_from_iter=0,  # 动态调整开始
+    densify_until_iter=0,  # 动态调整结束
+    simp_iteration1=14001,  # 删点执行 18000
+    admm_start_iter1=14002,  # admm迭代开始  test
+    admm_stop_iter1=20002,  # admm迭代结束 18000
+    simp_iteration2=20003,  # 删点执行 18000
+    iterations=22000,  # 整体迭代 20000
+    admm_interval=100,  #
+    rho_lr=0.0005,
+    opacity_admm_threshold1=0.8,  # 0.8
+    opacity_admm_threshold2=0.50,
+    coarse_iterations=0,
+    outdoor=False,
+    prune_points=True,  # 是否进行删点
+    admm=True,
+    related_gs_num=1,
+)

@@ -2,7 +2,7 @@
 #
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"  # 先设置 GPU 设备
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # 先设置 GPU 设备
 
 import sys
 import numpy as np
@@ -27,12 +27,13 @@ from admm import ADMM
 import wandb
 from logger import initialize_logger
 import logging
+import shutil
 
 
-WANDB = False
+WANDB = True
 
 
-current_time = initialize_logger(log_dir="./log", timezone_str="Etc/GMT-4")
+current_time = initialize_logger()
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
 
 try:
@@ -74,7 +75,7 @@ def scene_reconstruction(
             print("checkpoint load!")
             (model_params, first_iter) = torch.load(checkpoint)
             gaussians.restore(model_params, opt)
-
+            gaussians.checkpoint = checkpoint
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
 
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
@@ -144,10 +145,6 @@ def scene_reconstruction(
         )
 
     times = scene.train_camera.dataset.image_times[0 : scene.train_camera.dataset.time_number]
-    # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
-
-    scores = None
-    related_gs_mask = None
 
     for iteration in range(first_iter, final_iter + 1):
         if network_gui.conn == None:
@@ -442,35 +439,41 @@ def scene_reconstruction(
                     print("reset opacity")
                     gaussians.reset_opacity()
 
-            elif args.prune_points and iteration == args.simp_iteration1:
+            elif args.prune_points and iteration == args.simp_iteration1:  # step1 硬阈值删点
                 # scores = getOpacityScore(gaussians)
-                # 定义一个队列来存储线程的返回值
-                topk = args.related_gs_num
-                scores = cal_scores_1(gaussians, opt, scene, pipe, background, topk)
-                scores_sorted, _ = torch.sort(scores, 0)
+                imp_score = blending_weight(gaussians, opt, scene, pipe, background, cache=True, onlyTime0=True)
+                # topk = args.related_gs_num
+                # scores = cal_scores_1(gaussians, opt, scene, pipe, background, topk)
+                scores_sorted, _ = torch.sort(imp_score, 0)
                 threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
                 abs_threshold = scores_sorted[threshold_idx - 1]
-                mask = (scores <= abs_threshold).squeeze()
+                mask = (imp_score <= abs_threshold).squeeze()
 
                 # 获取标记的pixels对应的gs的gs,相关的gs被标记为true
                 gaussians.prune_points(mask)
 
-            elif iteration == opt.admm_start_iter1 and opt.admm == True:
+            elif iteration == opt.admm_start_iter1 and opt.admm == True:  # step2 ADMM初始化
+                # 重新获取删点后的imp_score
+                # imp_score = gaussians._opacity[:, 0]
+                imp_score = blending_weight(gaussians, opt, scene, pipe, background)  # 这里不能cache
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
-                admm.update(opt, update_u=False)
-            elif (
+                admm.update(imp_score, opt, update_u=False)
+
+            elif (  # step3 ADMM 迭代更新
                 iteration % opt.admm_interval == 0
                 and opt.admm == True
                 and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
             ):
-                admm.update(opt)
+                # imp_score = gaussians._opacity[:, 0]
+                imp_score = blending_weight(gaussians, opt, scene, pipe, background)  # 这里不能cache
+                admm.update(imp_score, opt)
 
-            if args.prune_points and iteration == args.simp_iteration2:
-                scores_2 = getOpacityScore(gaussians)
-                scores_sorted_2, _ = torch.sort(scores_2, 0)
-                threshold_idx = int(opt.opacity_admm_threshold2 * len(scores_sorted_2))
-                abs_threshold = scores_sorted_2[threshold_idx - 1]
-                mask_2 = (scores <= abs_threshold).squeeze()
+            if args.prune_points and iteration == args.simp_iteration2:  # step4 ADMM软阈值删点 这里只能用opactiy来删
+                opacity = gaussians._opacity[:, 0]
+                opacity_sorted, _ = torch.sort(opacity, 0)
+                threshold_idx = int(opt.opacity_admm_threshold2 * len(opacity_sorted))
+                abs_threshold = opacity_sorted[threshold_idx - 1]
+                mask_2 = (opacity <= abs_threshold).squeeze()
                 gaussians.prune_points(mask_2)
 
             # Optimizer step
@@ -548,10 +551,6 @@ def training(
 
 
 def prepare_output_and_logger(expname):
-    if not args.model_path:
-        unique_str = expname
-
-        args.model_path = os.path.join("./output/", unique_str)
     # Set up output folder
     print("Output folder: {}".format(args.model_path))
     os.makedirs(args.model_path, exist_ok=True)
@@ -671,6 +670,18 @@ def setup_seed(seed):
     torch.backends.cudnn.deterministic = True
 
 
+def delete_folder_contents(path):
+    if os.path.exists(folder_path):
+        for root, dirs, files in os.walk(folder_path, topdown=False):
+            for name in files:
+                file_path = os.path.join(root, name)
+                os.remove(file_path)
+            for name in dirs:
+                dir_path = os.path.join(root, name)
+                shutil.rmtree(dir_path)
+        print(f"[delete_folder_contents] clean {folder_path} success")
+
+
 if __name__ == "__main__":
     torch.cuda.empty_cache()
     parser = ArgumentParser(description="Training script parameters")
@@ -709,11 +720,19 @@ if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
 
     args.save_iterations.append(args.iterations)
+    if not args.model_path:
+        unique_str = args.expname
+        args.model_path = os.path.join("./output/", unique_str)
 
     # 记录参数到日志
     logging.info("Training started with the following arguments:")
     for arg, value in vars(args).items():
         logging.info(f"{arg}: {value}")
+
+    # 清理目录 防止串台
+    for folder in ["point_cloud", "test"]:
+        folder_path = os.path.join(args.model_path, folder)
+        delete_folder_contents(folder_path)
 
     training(
         lp.extract(args),
