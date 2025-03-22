@@ -517,7 +517,7 @@ def scene_reconstruction(
                 scores_sorted_2, _ = torch.sort(scores_2, 0)
                 threshold_idx = int(opt.opacity_admm_threshold2 * len(scores_sorted_2))
                 abs_threshold = scores_sorted_2[threshold_idx - 1]
-                mask_2 = (scores <= abs_threshold).squeeze()
+                mask_2 = (scores_2 <= abs_threshold).squeeze()
                 gaussians.prune_points(mask_2)
 
             # Optimizer step
