@@ -332,7 +332,7 @@ def scene_reconstruction(
                 )
                 if WANDB:
                     wandb.log(
-                        {
+                        {   "iteration":iteration,
                             "loss": round(ema_loss_for_log, 7),
                             "admm_loss": round(ema_admm_loss_for_log, 7),
                             "psnr": round(psnr_.item(), 7),
@@ -492,7 +492,7 @@ def scene_reconstruction(
                 # scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
                 # related_gs_mask = get_related_gs(gaussians, scene, pipe, background, args.related_gs_num)
                 max_score = torch.max(scores)
-                scores[related_gs_mask] += max_score
+                # scores[related_gs_mask] += max_score
 
                 scores_sorted, _ = torch.sort(scores, 0)
                 threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
