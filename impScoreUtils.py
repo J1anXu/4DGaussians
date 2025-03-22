@@ -15,6 +15,7 @@ import os
 
 @torch.no_grad()
 def topk_gs_of_pixels(gaussians, scene, pipe, args, background, related_gs_num):
+    print("get topk_gs_of_pixels...")
     tensor_path = args.start_checkpoint + f"_tok{related_gs_num}.pt"
     # 检查文件是否存在
     if os.path.exists(tensor_path):
@@ -74,6 +75,7 @@ def norm_tensor_01(tensor):
 
 
 def time_0_bleding_weight(gaussians, opt: OptimizationParams, args, scene, pipe, background, views=None):
+    print("get time_0_bleding_weight...")
     tensor_path = args.start_checkpoint + "_t0bw.pt"
     # 检查文件是否存在
     if os.path.exists(tensor_path):

@@ -11,7 +11,7 @@
 import os
 from typing_extensions import Literal
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4,5,6,7"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
 
 import pprint
 from pathlib import Path
@@ -211,6 +211,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     args_path = Path(args.model_paths[0]) / "opt_params.pth"
+    initialize_logger()
 
     # 检查文件是否存在
     if args_path.exists():
@@ -235,6 +236,5 @@ if __name__ == "__main__":
         resume="allow"
         )
 
-    initialize_logger()
 
     evaluate(args.model_paths)

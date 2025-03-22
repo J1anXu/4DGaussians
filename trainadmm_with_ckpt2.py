@@ -10,7 +10,7 @@
 #
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"  # 先设置 GPU 设备
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"  # 先设置 GPU 设备
 
 import sys
 import numpy as np
@@ -37,7 +37,7 @@ from admm import ADMM
 import wandb
 import logging
 from logger import initialize_logger
-
+WANDB = True
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
 
 try:
@@ -306,7 +306,7 @@ def scene_reconstruction(
                         "point": total_point,  # 直接使用数值，无需字符串格式化
                     }
                 )
-                if args.wandb:
+                if WANDB:
                     wandb.log(
                         {   "iteration":iteration,
                             "loss": round(ema_loss_for_log, 7),
@@ -373,7 +373,7 @@ def scene_reconstruction(
                     # render_training_image(scene, gaussians, train_cams, render, pipe, background, stage+"train", iteration,timer.get_elapsed_time(),scene.dataset_type)
 
                 # total_images.append(to8b(temp_image).transpose(1,2,0))
-            if args.wandb & iteration > opt.admm_start_iter1 & iteration % opt.admm_interval == 0:
+            if WANDB & iteration > opt.admm_start_iter1 & iteration % opt.admm_interval == 0:
                 wandb.log({"opacity_aftet_admm": wandb.Histogram(gaussians.get_opacity.tolist())})
 
             timer.start()
@@ -427,16 +427,17 @@ def scene_reconstruction(
                     gaussians.reset_opacity()
 
             elif args.prune_points and iteration == args.simp_iteration1:
+                if args.simp_iteration1_score_type == 1:
+                    scores = time_0_bleding_weight(gaussians, opt, args, scene, pipe, background)
+                elif args.simp_iteration1_score_type == 2:
+                    scores, related_gs_mask = run_tasks_in_parallel(
+                        (time_0_bleding_weight, gaussians, opt, args, scene, pipe, background),
+                        (topk_gs_of_pixels, gaussians, scene, pipe, args, background, args.related_gs_num)
+                    )
+                    scores[related_gs_mask] += torch.max(scores)
+                elif args.simp_iteration1_score_type == 3:
+                    scores = getOpacityScore(gaussians)
 
-                # scores, related_gs_mask = run_tasks_in_parallel(
-                #     (time_0_bleding_weight, gaussians, opt, scene, pipe, background),
-                #     (topk_gs_of_pixels, gaussians, scene, pipe, background, args.related_gs_num)
-                # )
-                # max_score = torch.max(scores)
-                # scores[related_gs_mask] += max_score
-                # print(f"Max score: {max_score}")
-
-                scores = time_0_bleding_weight(gaussians, opt, args, scene, pipe, background)
                 # related_gs_mask = topk_gs_of_pixels(gaussians, scene, pipe, background, args.related_gs_num)
 
                 scores_sorted, _ = torch.sort(scores, 0)
@@ -704,7 +705,7 @@ if __name__ == "__main__":
     for arg, value in vars(op.extract(args)).items():
         logging.info(f"{arg}: {value}")
         
-    if args.wandb:
+    if WANDB:
         wandb.login()
         run = wandb.init(
             project="admm",
@@ -733,6 +734,6 @@ if __name__ == "__main__":
         args.expname,
     )
     
-    if args.wandb:
+    if WANDB:
         wandb.finish()
 

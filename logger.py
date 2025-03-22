@@ -40,4 +40,5 @@ def initialize_logger():
         ],
     )
     logging.info("Log system initialized.")
+    print("Log system initialized.")
     return current_time

@@ -17,5 +17,5 @@ OptimizationParams = dict(
     prune_points=True,  # 是否进行删点
     admm=True,
     related_gs_num=1,
-    wandb=True
+    simp_iteration1_score_type = 1
 )
