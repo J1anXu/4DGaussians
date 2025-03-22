@@ -4,7 +4,9 @@ from datetime import datetime
 import pytz
 
 
-def initialize_logger(log_dir="./log", timezone_str="America/Chicago", prefix=""):
+def initialize_logger():
+    log_dir = "./log"
+    timezone_str = "America/Chicago"
     """
     Initializes the logging system with a timestamped log file and a given timezone.
 
@@ -24,7 +26,7 @@ def initialize_logger(log_dir="./log", timezone_str="America/Chicago", prefix=""
     os.makedirs(log_dir, exist_ok=True)
 
     # 设置日志文件名
-    log_file = os.path.join(log_dir, f"{prefix}_{current_time}.log")
+    log_file = os.path.join(log_dir, f"{current_time}.log")
 
     # 配置日志系统
     logging.basicConfig(

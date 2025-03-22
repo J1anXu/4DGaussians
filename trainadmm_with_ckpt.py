@@ -41,7 +41,7 @@ import logging
 WANDB = True
 
 
-current_time = initialize_logger(log_dir="./log", timezone_str="Etc/GMT-4")
+current_time = initialize_logger()
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
 
 try:
@@ -156,8 +156,6 @@ def scene_reconstruction(
     # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
 
     for iteration in range(first_iter, final_iter + 1):
-
-
         if network_gui.conn == None:
             network_gui.try_connect()
 
@@ -231,7 +229,6 @@ def scene_reconstruction(
             viewpoint_cams = []
 
             while idx < batch_size:
-
                 viewpoint_cam = viewpoint_stack.pop(randint(0, len(viewpoint_stack) - 1))
                 if not viewpoint_stack:
                     viewpoint_stack = temp_list.copy()
@@ -249,11 +246,11 @@ def scene_reconstruction(
         viewspace_point_tensor_list = []
         for viewpoint_cam in viewpoint_cams:
             render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
-            image, viewspace_point_tensor, visibility_filter, radii= (
+            image, viewspace_point_tensor, visibility_filter, radii = (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
                 render_pkg["visibility_filter"],
-                render_pkg["radii"]
+                render_pkg["radii"],
             )
             images.append(image.unsqueeze(0))
             if scene.dataset_type != "PanopticSports":
@@ -398,7 +395,7 @@ def scene_reconstruction(
                 # total_images.append(to8b(temp_image).transpose(1,2,0))
             if WANDB & iteration > opt.admm_start_iter1 & iteration % opt.admm_interval == 0:
                 wandb.log({"opacity_aftet_admm": wandb.Histogram(gaussians.get_opacity.tolist())})
-                
+
             timer.start()
             # Densification
             if iteration < opt.densify_until_iter:
@@ -448,7 +445,7 @@ def scene_reconstruction(
                 if iteration % opt.opacity_reset_interval == 0:
                     print("reset opacity")
                     gaussians.reset_opacity()
-            
+
             elif args.prune_points and iteration == args.simp_iteration1:
                 scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
                 scores_sorted, _ = torch.sort(scores, 0)
@@ -456,7 +453,7 @@ def scene_reconstruction(
                 abs_threshold = scores_sorted[threshold_idx - 1]
                 mask = (scores <= abs_threshold).squeeze()
                 gaussians.prune_points(mask)
-            
+
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
                 admm.update(opt, update_u=False)
@@ -494,6 +491,7 @@ def getOpacityScore(gaussians):
     opacity = gaussians._opacity[:, 0]
     scores = opacity
     return scores
+
 
 def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, background):
     # render 输入数据的所有时间和相机视角,累计高斯点的权重
@@ -563,7 +561,6 @@ def zeroTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgrou
 
 
 def movingLength(gaussians, times):
-
     # 获取高斯点数量和时间步数量
     num_gaussians = gaussians.get_xyz.shape[0]
 
@@ -662,7 +659,6 @@ def training(
 
 def prepare_output_and_logger(expname):
     if not args.model_path:
-
         unique_str = expname
 
         args.model_path = os.path.join("./output/", unique_str)

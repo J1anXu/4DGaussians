@@ -187,7 +187,7 @@ def worker(device, renders, gts, start_idx, end_idx, results):
 
 
 if __name__ == "__main__":
-    initialize_logger(log_dir="./log", timezone_str="Etc/GMT-4")
+    initialize_logger()
     device = torch.device("cuda:0")
     torch.cuda.set_device(device)
     mp.set_start_method("spawn", force=True)
