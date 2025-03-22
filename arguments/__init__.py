@@ -173,6 +173,7 @@ class OptimizationParams(ParamGroup):
         self.admm = False  # 是否进行ADMM约束纠正
         self.prune_points = False  # 是否进行删点
         self.related_gs_num = 5
+        self.wandb = True
         super().__init__(parser, "Optimization Parameters")
 
 

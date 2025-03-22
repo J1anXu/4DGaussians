@@ -30,29 +30,21 @@ from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
 from utils.scene_utils import render_training_image
 from impScoreUtils import *
+import shutil
+
 import copy
 from admm import ADMM
 import wandb
-from logger import initialize_logger
 import logging
+from logger import initialize_logger
 
-
-WANDB = True
-
-
-current_time = initialize_logger()
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
 
 try:
     from torch.utils.tensorboard import SummaryWriter
-
     TENSORBOARD_FOUND = True
 except ImportError:
     TENSORBOARD_FOUND = False
-
-if WANDB:
-    wandb.login()
-
 
 def scene_reconstruction(
     dataset,
@@ -134,22 +126,6 @@ def scene_reconstruction(
     admm_loss = torch.tensor(0)
 
     count = 0
-    if WANDB:
-        wandb.init(
-            project="trainadmm_with_ckpt",
-            name=f"{current_time}",
-            config={
-                "opt": vars(opt),
-                "dataset": vars(dataset),
-                "hyper": vars(hyper),
-                "pipe": vars(pipe),
-                "testing_iterations": testing_iterations,
-                "saving_iterations": saving_iterations,
-                "checkpoint": checkpoint,
-                "stage": stage,
-                "train_iter": train_iter,
-            },
-        )
 
     times = scene.train_camera.dataset.image_times[0 : scene.train_camera.dataset.time_number]
     # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
@@ -330,7 +306,7 @@ def scene_reconstruction(
                         "point": total_point,  # 直接使用数值，无需字符串格式化
                     }
                 )
-                if WANDB:
+                if args.wandb:
                     wandb.log(
                         {   "iteration":iteration,
                             "loss": round(ema_loss_for_log, 7),
@@ -397,7 +373,7 @@ def scene_reconstruction(
                     # render_training_image(scene, gaussians, train_cams, render, pipe, background, stage+"train", iteration,timer.get_elapsed_time(),scene.dataset_type)
 
                 # total_images.append(to8b(temp_image).transpose(1,2,0))
-            if WANDB & iteration > opt.admm_start_iter1 & iteration % opt.admm_interval == 0:
+            if args.wandb & iteration > opt.admm_start_iter1 & iteration % opt.admm_interval == 0:
                 wandb.log({"opacity_aftet_admm": wandb.Histogram(gaussians.get_opacity.tolist())})
 
             timer.start()
@@ -451,48 +427,17 @@ def scene_reconstruction(
                     gaussians.reset_opacity()
 
             elif args.prune_points and iteration == args.simp_iteration1:
-                # scores = getOpacityScore(gaussians)
-                # 定义一个线程执行 zeroTimeBledWeight
-                import threading
-                import queue
 
-                # 定义一个队列来存储线程的返回值
-                scores_queue = queue.Queue()
-                related_gs_queue = queue.Queue()
-
-                # 定义第一个线程
-                def thread1():
-                    scores = time_0_bleding_weight(gaussians, opt, scene, pipe, background)
-                    scores_queue.put(scores)  # 把结果放入队列
-
-                # 定义第二个线程
-                def thread2():
-                    related_gs_mask = topk_gs_of_pixels(gaussians, scene, pipe, background, args.related_gs_num)
-                    related_gs_queue.put(related_gs_mask)  # 把结果放入队列
-
-                # 创建并启动线程
-                t1 = threading.Thread(target=thread1)
-                t2 = threading.Thread(target=thread2)
-
-                t1.start()
-                t2.start()
-
-                # 等待线程完成
-                t1.join()
-                t2.join()
-
-                # 从队列中获取线程结果
-                scores = scores_queue.get()
-                related_gs_mask = related_gs_queue.get()
-
-                # 线程完成后，可以安全地使用 scores 和 related_gs_mask
-                max_score = torch.max(scores)
-                print(f"Max score: {max_score}")
-
-                # scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
-                # related_gs_mask = get_related_gs(gaussians, scene, pipe, background, args.related_gs_num)
-                max_score = torch.max(scores)
+                # scores, related_gs_mask = run_tasks_in_parallel(
+                #     (time_0_bleding_weight, gaussians, opt, scene, pipe, background),
+                #     (topk_gs_of_pixels, gaussians, scene, pipe, background, args.related_gs_num)
+                # )
+                # max_score = torch.max(scores)
                 # scores[related_gs_mask] += max_score
+                # print(f"Max score: {max_score}")
+
+                scores = time_0_bleding_weight(gaussians, opt, args, scene, pipe, background)
+                # related_gs_mask = topk_gs_of_pixels(gaussians, scene, pipe, background, args.related_gs_num)
 
                 scores_sorted, _ = torch.sort(scores, 0)
                 threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
@@ -531,9 +476,6 @@ def scene_reconstruction(
                     (gaussians.capture(), iteration),
                     scene.model_path + "/chkpnt" + f"_{stage}_" + str(iteration) + ".pth",
                 )
-    if WANDB:
-        wandb.finish()
-
 
 def training(
     dataset,
@@ -738,7 +680,7 @@ if __name__ == "__main__":
     parser.add_argument("--start_checkpoint", type=str, default="None")
     parser.add_argument("--expname", type=str, default="")
     parser.add_argument("--configs", type=str, default="")
-
+    parser.add_argument("--log_name", type=str, default="default")
     args = parser.parse_args(sys.argv[1:])
     if args.configs:
         import mmcv
@@ -757,11 +699,27 @@ if __name__ == "__main__":
 
     args.save_iterations.append(args.iterations)
 
-    # 记录参数到日志
-    logging.info("Training started with the following arguments:")
-    for arg, value in vars(args).items():
-        logging.info(f"{arg}: {value}")
+    current_time = initialize_logger()
 
+    for arg, value in vars(op.extract(args)).items():
+        logging.info(f"{arg}: {value}")
+        
+    if args.wandb:
+        wandb.login()
+        run = wandb.init(
+            project="admm",
+            name=f"{current_time}",  # 让不同脚本的数据归为一组
+            job_type="training",
+            config=vars(op.extract(args))
+        )
+        wandb.define_metric("iteration")  # 将 iteration 作为横坐标
+
+    # 保存 run_id 供后续使用
+    with open("wandb_run_id.txt", "w") as f:
+        f.write(run.id)
+
+    output_path = "./output/"+args.expname
+    shutil.rmtree(output_path)
     training(
         lp.extract(args),
         hp.extract(args),
@@ -774,6 +732,7 @@ if __name__ == "__main__":
         args.debug_from,
         args.expname,
     )
+    
+    if args.wandb:
+        wandb.finish()
 
-    # All done
-    print("\nTraining complete.")

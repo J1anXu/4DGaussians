@@ -9,10 +9,16 @@ from impScoreUtils import *
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 import concurrent.futures
-
+import threading
+import queue
+import os
 
 @torch.no_grad()
-def topk_gs_of_pixels(gaussians, scene, pipe, background, related_gs_num):
+def topk_gs_of_pixels(gaussians, scene, pipe, args, background, related_gs_num):
+    tensor_path = args.start_checkpoint + f"_tok{related_gs_num}.pt"
+    # 检查文件是否存在
+    if os.path.exists(tensor_path):
+        return torch.load(tensor_path)
     viewpoint_stack = scene.getTrainCameras()
     valid_prune_mask = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda", dtype=torch.bool)
     for view in tqdm(viewpoint_stack, desc=f"CalTopKGSOfPixels, K={related_gs_num}"):
@@ -24,6 +30,8 @@ def topk_gs_of_pixels(gaussians, scene, pipe, background, related_gs_num):
     # 计算 valid_prune_mask 中 True 的数量
     num_true = torch.sum(valid_prune_mask).item()
     print(f"Number of True values in valid_prune_mask: {num_true}")
+    torch.save(valid_prune_mask, tensor_path)
+    print(f"topk_gs_of_pixels saved to {tensor_path}")
     return valid_prune_mask
 
 
@@ -65,20 +73,20 @@ def norm_tensor_01(tensor):
     return normalized_tensor
 
 
-def time_0_bleding_weight(gaussians, opt: OptimizationParams, scene, pipe, background, views=None):
-    # render 输入数据的所有时间和相机视角,累计高斯点的权重
-    # 根据重要性评分（Importance Score）对 3D Gaussians 进行稀疏化（Pruning），以减少不重要的点，提高渲染效率
-    imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 存储每个高斯点的重要性评分，初始为 0
-    accum_area_max = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 累积每个点在不同视角下的最大投影面积
+def time_0_bleding_weight(gaussians, opt: OptimizationParams, args, scene, pipe, background, views=None):
+    tensor_path = args.start_checkpoint + "_t0bw.pt"
+    # 检查文件是否存在
+    if os.path.exists(tensor_path):
+        return torch.load(tensor_path)
+
+    # 对于相同的ckpt, 结果总是一样的
+    imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda() 
+    accum_area_max = torch.zeros(gaussians._xyz.shape[0]).cuda()  
     if views is None:
-        views = scene.getTrainCameras()  # 获取所有训练视角（相机位置）
-    total_views = len(views)  # 获取视角总数
-    # 从第一个数开始，每隔important_score_4_time_interval个取一个
-    # time_samples = views.dataset.image_times[:: opt.important_score_4_time_interval]  #
-    # print(f"Time samples: {time_samples}")
+        views = scene.getTrainCameras()  
+    total_views = len(views)  
     for view in tqdm(views, total=total_views, desc="CalTime0BlendingWeight"):
-        # if view.time not in time_samples:  # 相较于ImportantScore3 唯一的区别
-        if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
+        if view.time != 0.0:  
             continue
         render_pkg = render(view, gaussians, pipe, background)
         accum_weights = render_pkg["accum_weights"]
@@ -95,7 +103,8 @@ def time_0_bleding_weight(gaussians, opt: OptimizationParams, scene, pipe, backg
     imp_score[accum_area_max == 0] = 0  # 对于从未在任何视角中被看到的点，重要性设为 0 ，确保不可见点的 imp_score = 0
     # scores = imp_score / imp_score.sum()  # 归一化 imp_score 作为采样概率 prob
     scores = norm_tensor_01(imp_score)
-
+    torch.save(scores, tensor_path)
+    print(f"time_0_bleding_weight saved to {tensor_path}")
     non_zero_count = torch.count_nonzero(scores)  # 统计非零元素个数
     print(f"Non-zero count: {non_zero_count}")
     print("imp_score return success")
@@ -108,9 +117,12 @@ def getOpacityScore(gaussians):
     return scores
 
 
-def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, background):
-    # render 输入数据的所有时间和相机视角,累计高斯点的权重
-    # 根据重要性评分（Importance Score）对 3D Gaussians 进行稀疏化（Pruning），以减少不重要的点，提高渲染效率
+def allTimeBledWeight(gaussians, opt: OptimizationParams, args, scene, pipe, background):
+    tensor_path = args.start_checkpoint + "_tallbw.pt"
+    # 检查文件是否存在
+    if os.path.exists(tensor_path):
+        return torch.load(tensor_path)
+    
     imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 存储每个高斯点的重要性评分，初始为 0
     accum_area_max = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 累积每个点在不同视角下的最大投影面积
     views = scene.getTrainCameras()  # 获取所有训练视角（相机位置）
@@ -132,8 +144,42 @@ def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgroun
     imp_score[accum_area_max == 0] = 0  # 对于从未在任何视角中被看到的点，重要性设为 0 ，确保不可见点的 imp_score = 0
     # scores = imp_score / imp_score.sum()  # 归一化 imp_score 作为采样概率 prob
     scores = norm_tensor_01(imp_score)
-
+    torch.save(scores, tensor_path)
+    print(f"allTimeBledWeight saved to {tensor_path}")
     non_zero_count = torch.count_nonzero(scores)  # 统计非零元素个数
     print(f"Non-zero count: {non_zero_count}")
     print("imp_score return success")
     return scores
+
+
+
+def run_tasks_in_parallel(*tasks):
+    """
+    并行执行多个任务，并返回所有任务的结果。
+    
+    参数:
+        tasks: 一个或多个 (函数, *参数) 形式的任务。
+    
+    返回:
+        任务的执行结果列表，顺序与传入任务一致。
+    """
+    result_queues = [queue.Queue() for _ in tasks]
+    threads = []
+
+    # 定义通用的线程包装函数
+    def thread_wrapper(func, args, result_queue):
+        result = func(*args)  # 运行任务
+        result_queue.put(result)  # 结果放入队列
+
+    # 创建并启动线程
+    for i, (func, *args) in enumerate(tasks):
+        t = threading.Thread(target=thread_wrapper, args=(func, args, result_queues[i]))
+        threads.append(t)
+        t.start()
+
+    # 等待所有线程完成
+    for t in threads:
+        t.join()
+
+    # 收集所有任务的执行结果
+    return [q.get() for q in result_queues]

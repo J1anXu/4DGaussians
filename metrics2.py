@@ -11,7 +11,7 @@
 import os
 from typing_extensions import Literal
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,4,5"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4,5,6,7"
 
 import pprint
 from pathlib import Path
@@ -26,13 +26,10 @@ from tqdm import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser
 from pytorch_msssim import ms_ssim
+import wandb
 
-# 引入日志系统模块
-from logger import initialize_logger
-
-# 初始化日志系统（可以指定日志存储目录和时区）
 import logging
-
+from logger import initialize_logger
 
 def readImages(renders_dir, gt_dir):
     renders = []
@@ -105,6 +102,23 @@ def evaluate(model_paths):
                 logging.info("  LPIPS-alex: %.8f", lpipsa)
                 logging.info("  MS-SSIM: %.8f", ms_ssims)
                 logging.info("  D-SSIM: %.8f", Dssims)
+
+                wandb.log({
+                    "SSIM": ssims,
+                    "PSNR": psnrs,
+                    "LPIPS-vgg": lpipss,
+                    "LPIPS-alex": lpipsa,
+                    "MS-SSIM": ms_ssims,
+                    "D-SSIM": Dssims
+                })
+
+                wandb.summary["SSIM"] = ssims
+                wandb.summary["PSNR"] = psnrs
+                wandb.summary["LPIPS-vgg"] = lpipss
+                wandb.summary["LPIPS-alex"] = lpipsa
+                wandb.summary["MS-SSIM"] = ms_ssims
+                wandb.summary["D-SSIM"] = Dssims
+
         except Exception as e:
             print("Unable to compute metrics for model", scene_dir)
             raise e
@@ -187,13 +201,13 @@ def worker(device, renders, gts, start_idx, end_idx, results):
 
 
 if __name__ == "__main__":
-    initialize_logger()
     device = torch.device("cuda:0")
     torch.cuda.set_device(device)
     mp.set_start_method("spawn", force=True)
     # Set up command line argument parser
     parser = ArgumentParser(description="Training script parameters")
     parser.add_argument("--model_paths", "-m", required=True, nargs="+", type=str, default=[])
+
     args = parser.parse_args()
 
     args_path = Path(args.model_paths[0]) / "opt_params.pth"
@@ -209,5 +223,18 @@ if __name__ == "__main__":
     else:
         # 如果文件不存在，打印错误并放弃
         print(f"Error: The file {args_path} does not exist. Skipping...")
+        
+    # 读取 run.id
+    with open("wandb_run_id.txt", "r") as f:
+        run_id = f.read().strip()
+        
+    wandb.init(
+        project="admm", 
+        job_type="eval",
+        id=run_id, 
+        resume="allow"
+        )
+
+    initialize_logger()
 
     evaluate(args.model_paths)

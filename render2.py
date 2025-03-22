@@ -11,7 +11,7 @@
 
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,4,5"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4,5,6,7"
 
 import torch
 import torch.multiprocessing as mp
@@ -33,7 +33,6 @@ from torchvision import transforms
 from torch.utils.data import Subset
 import concurrent.futures
 import torch.multiprocessing as mp
-
 DRAW = True  # 是否画出高斯中心
 
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)

@@ -1,0 +1,1305 @@
+2025-03-22 04:37:11,544 - INFO - Training started with the following arguments:
+2025-03-22 04:37:11,545 - INFO - sh_degree: 3
+2025-03-22 04:37:11,545 - INFO - source_path: data/dynerf/cut_roasted_beef
+2025-03-22 04:37:11,545 - INFO - model_path: 
+2025-03-22 04:37:11,545 - INFO - images: images
+2025-03-22 04:37:11,545 - INFO - resolution: -1
+2025-03-22 04:37:11,545 - INFO - white_background: True
+2025-03-22 04:37:11,545 - INFO - data_device: cuda
+2025-03-22 04:37:11,545 - INFO - eval: True
+2025-03-22 04:37:11,545 - INFO - render_process: False
+2025-03-22 04:37:11,545 - INFO - add_points: False
+2025-03-22 04:37:11,545 - INFO - extension: .png
+2025-03-22 04:37:11,545 - INFO - llffhold: 8
+2025-03-22 04:37:11,546 - INFO - dataloader: True
+2025-03-22 04:37:11,546 - INFO - zerostamp_init: False
+2025-03-22 04:37:11,546 - INFO - custom_sampler: None
+2025-03-22 04:37:11,546 - INFO - iterations: 22000
+2025-03-22 04:37:11,546 - INFO - coarse_iterations: 0
+2025-03-22 04:37:11,546 - INFO - position_lr_init: 0.00016
+2025-03-22 04:37:11,546 - INFO - position_lr_final: 1.6e-06
+2025-03-22 04:37:11,546 - INFO - position_lr_delay_mult: 0.01
+2025-03-22 04:37:11,546 - INFO - position_lr_max_steps: 20000
+2025-03-22 04:37:11,546 - INFO - deformation_lr_init: 0.00016
+2025-03-22 04:37:11,546 - INFO - deformation_lr_final: 1.6e-05
+2025-03-22 04:37:11,546 - INFO - deformation_lr_delay_mult: 0.01
+2025-03-22 04:37:11,546 - INFO - grid_lr_init: 0.0016
+2025-03-22 04:37:11,546 - INFO - grid_lr_final: 0.00016
+2025-03-22 04:37:11,546 - INFO - feature_lr: 0.0025
+2025-03-22 04:37:11,546 - INFO - opacity_lr: 0.05
+2025-03-22 04:37:11,547 - INFO - scaling_lr: 0.005
+2025-03-22 04:37:11,547 - INFO - rotation_lr: 0.001
+2025-03-22 04:37:11,547 - INFO - percent_dense: 0.01
+2025-03-22 04:37:11,547 - INFO - lambda_dssim: 0
+2025-03-22 04:37:11,547 - INFO - lambda_lpips: 0
+2025-03-22 04:37:11,547 - INFO - weight_constraint_init: 1
+2025-03-22 04:37:11,547 - INFO - weight_constraint_after: 0.2
+2025-03-22 04:37:11,547 - INFO - weight_decay_iteration: 5000
+2025-03-22 04:37:11,547 - INFO - opacity_reset_interval: 60000
+2025-03-22 04:37:11,547 - INFO - densification_interval: 100
+2025-03-22 04:37:11,547 - INFO - densify_from_iter: 0
+2025-03-22 04:37:11,547 - INFO - densify_until_iter: 0
+2025-03-22 04:37:11,547 - INFO - densify_grad_threshold_coarse: 0.0002
+2025-03-22 04:37:11,547 - INFO - densify_grad_threshold_fine_init: 0.0002
+2025-03-22 04:37:11,547 - INFO - densify_grad_threshold_after: 0.0002
+2025-03-22 04:37:11,548 - INFO - pruning_from_iter: 500
+2025-03-22 04:37:11,548 - INFO - pruning_interval: 100
+2025-03-22 04:37:11,548 - INFO - opacity_threshold_coarse: 0.005
+2025-03-22 04:37:11,548 - INFO - opacity_threshold_fine_init: 0.005
+2025-03-22 04:37:11,548 - INFO - opacity_threshold_fine_after: 0.005
+2025-03-22 04:37:11,548 - INFO - batch_size: 2
+2025-03-22 04:37:11,548 - INFO - add_point: False
+2025-03-22 04:37:11,548 - INFO - admm_start_iter1: 14002
+2025-03-22 04:37:11,548 - INFO - admm_stop_iter1: 20000
+2025-03-22 04:37:11,548 - INFO - simp_iteration1: 14001
+2025-03-22 04:37:11,548 - INFO - simp_iteration2: 20001
+2025-03-22 04:37:11,548 - INFO - admm_interval: 50
+2025-03-22 04:37:11,548 - INFO - rho_lr: 0.0005
+2025-03-22 04:37:11,548 - INFO - opacity_admm_threshold1: 0.8
+2025-03-22 04:37:11,548 - INFO - opacity_admm_threshold2: 0.5
+2025-03-22 04:37:11,549 - INFO - outdoor: False
+2025-03-22 04:37:11,549 - INFO - admm: True
+2025-03-22 04:37:11,549 - INFO - prune_points: True
+2025-03-22 04:37:11,549 - INFO - related_gs_num: 1
+2025-03-22 04:37:11,549 - INFO - convert_SHs_python: False
+2025-03-22 04:37:11,549 - INFO - compute_cov3D_python: False
+2025-03-22 04:37:11,549 - INFO - debug: False
+2025-03-22 04:37:11,549 - INFO - net_width: 128
+2025-03-22 04:37:11,549 - INFO - timebase_pe: 4
+2025-03-22 04:37:11,549 - INFO - defor_depth: 0
+2025-03-22 04:37:11,549 - INFO - posebase_pe: 10
+2025-03-22 04:37:11,549 - INFO - scale_rotation_pe: 2
+2025-03-22 04:37:11,549 - INFO - opacity_pe: 2
+2025-03-22 04:37:11,549 - INFO - timenet_width: 64
+2025-03-22 04:37:11,549 - INFO - timenet_output: 32
+2025-03-22 04:37:11,549 - INFO - bounds: 1.6
+2025-03-22 04:37:11,549 - INFO - plane_tv_weight: 0.0002
+2025-03-22 04:37:11,549 - INFO - time_smoothness_weight: 0.001
+2025-03-22 04:37:11,550 - INFO - l1_time_planes: 0.0001
+2025-03-22 04:37:11,550 - INFO - kplanes_config: {'grid_dimensions': 2, 'input_coordinate_dim': 4, 'output_coordinate_dim': 16, 'resolution': [64, 64, 64, 150]}
+2025-03-22 04:37:11,550 - INFO - multires: [1, 2]
+2025-03-22 04:37:11,550 - INFO - no_dx: False
+2025-03-22 04:37:11,550 - INFO - no_grid: False
+2025-03-22 04:37:11,550 - INFO - no_ds: False
+2025-03-22 04:37:11,550 - INFO - no_dr: False
+2025-03-22 04:37:11,550 - INFO - no_do: False
+2025-03-22 04:37:11,550 - INFO - no_dshs: False
+2025-03-22 04:37:11,550 - INFO - empty_voxel: False
+2025-03-22 04:37:11,550 - INFO - grid_pe: 0
+2025-03-22 04:37:11,550 - INFO - static_mlp: False
+2025-03-22 04:37:11,550 - INFO - apply_rotation: False
+2025-03-22 04:37:11,550 - INFO - ip: 127.0.0.1
+2025-03-22 04:37:11,550 - INFO - port: 6018
+2025-03-22 04:37:11,551 - INFO - debug_from: -1
+2025-03-22 04:37:11,551 - INFO - detect_anomaly: False
+2025-03-22 04:37:11,551 - INFO - test_iterations: []
+2025-03-22 04:37:11,551 - INFO - save_iterations: [22000]
+2025-03-22 04:37:11,551 - INFO - quiet: False
+2025-03-22 04:37:11,551 - INFO - checkpoint_iterations: []
+2025-03-22 04:37:11,551 - INFO - start_checkpoint: output/dynerf/cut_roasted_beef/chkpnt_fine_14000.pth
+2025-03-22 04:37:11,551 - INFO - expname: admm/cut_roasted_beef
+2025-03-22 04:37:11,551 - INFO - configs: arguments/dynerf/cut_roasted_beef_admm_ckpt_spa.py
+2025-03-22 04:38:03,028 - INFO - Training started with the following arguments:
+2025-03-22 04:38:03,029 - INFO - sh_degree: 3
+2025-03-22 04:38:03,029 - INFO - source_path: data/dynerf/cut_roasted_beef
+2025-03-22 04:38:03,029 - INFO - model_path: 
+2025-03-22 04:38:03,029 - INFO - images: images
+2025-03-22 04:38:03,029 - INFO - resolution: -1
+2025-03-22 04:38:03,029 - INFO - white_background: True
+2025-03-22 04:38:03,029 - INFO - data_device: cuda
+2025-03-22 04:38:03,029 - INFO - eval: True
+2025-03-22 04:38:03,029 - INFO - render_process: False
+2025-03-22 04:38:03,029 - INFO - add_points: False
+2025-03-22 04:38:03,029 - INFO - extension: .png
+2025-03-22 04:38:03,029 - INFO - llffhold: 8
+2025-03-22 04:38:03,029 - INFO - dataloader: True
+2025-03-22 04:38:03,029 - INFO - zerostamp_init: False
+2025-03-22 04:38:03,029 - INFO - custom_sampler: None
+2025-03-22 04:38:03,029 - INFO - iterations: 22000
+2025-03-22 04:38:03,029 - INFO - coarse_iterations: 0
+2025-03-22 04:38:03,029 - INFO - position_lr_init: 0.00016
+2025-03-22 04:38:03,029 - INFO - position_lr_final: 1.6e-06
+2025-03-22 04:38:03,030 - INFO - position_lr_delay_mult: 0.01
+2025-03-22 04:38:03,030 - INFO - position_lr_max_steps: 20000
+2025-03-22 04:38:03,030 - INFO - deformation_lr_init: 0.00016
+2025-03-22 04:38:03,030 - INFO - deformation_lr_final: 1.6e-05
+2025-03-22 04:38:03,030 - INFO - deformation_lr_delay_mult: 0.01
+2025-03-22 04:38:03,030 - INFO - grid_lr_init: 0.0016
+2025-03-22 04:38:03,030 - INFO - grid_lr_final: 0.00016
+2025-03-22 04:38:03,030 - INFO - feature_lr: 0.0025
+2025-03-22 04:38:03,030 - INFO - opacity_lr: 0.05
+2025-03-22 04:38:03,030 - INFO - scaling_lr: 0.005
+2025-03-22 04:38:03,030 - INFO - rotation_lr: 0.001
+2025-03-22 04:38:03,030 - INFO - percent_dense: 0.01
+2025-03-22 04:38:03,030 - INFO - lambda_dssim: 0
+2025-03-22 04:38:03,030 - INFO - lambda_lpips: 0
+2025-03-22 04:38:03,030 - INFO - weight_constraint_init: 1
+2025-03-22 04:38:03,030 - INFO - weight_constraint_after: 0.2
+2025-03-22 04:38:03,030 - INFO - weight_decay_iteration: 5000
+2025-03-22 04:38:03,030 - INFO - opacity_reset_interval: 60000
+2025-03-22 04:38:03,030 - INFO - densification_interval: 100
+2025-03-22 04:38:03,030 - INFO - densify_from_iter: 0
+2025-03-22 04:38:03,030 - INFO - densify_until_iter: 0
+2025-03-22 04:38:03,031 - INFO - densify_grad_threshold_coarse: 0.0002
+2025-03-22 04:38:03,031 - INFO - densify_grad_threshold_fine_init: 0.0002
+2025-03-22 04:38:03,031 - INFO - densify_grad_threshold_after: 0.0002
+2025-03-22 04:38:03,031 - INFO - pruning_from_iter: 500
+2025-03-22 04:38:03,031 - INFO - pruning_interval: 100
+2025-03-22 04:38:03,031 - INFO - opacity_threshold_coarse: 0.005
+2025-03-22 04:38:03,031 - INFO - opacity_threshold_fine_init: 0.005
+2025-03-22 04:38:03,031 - INFO - opacity_threshold_fine_after: 0.005
+2025-03-22 04:38:03,031 - INFO - batch_size: 2
+2025-03-22 04:38:03,031 - INFO - add_point: False
+2025-03-22 04:38:03,031 - INFO - admm_start_iter1: 14002
+2025-03-22 04:38:03,031 - INFO - admm_stop_iter1: 20000
+2025-03-22 04:38:03,031 - INFO - simp_iteration1: 14001
+2025-03-22 04:38:03,031 - INFO - simp_iteration2: 20001
+2025-03-22 04:38:03,031 - INFO - admm_interval: 50
+2025-03-22 04:38:03,031 - INFO - rho_lr: 0.0005
+2025-03-22 04:38:03,031 - INFO - opacity_admm_threshold1: 0.8
+2025-03-22 04:38:03,031 - INFO - opacity_admm_threshold2: 0.5
+2025-03-22 04:38:03,031 - INFO - outdoor: False
+2025-03-22 04:38:03,031 - INFO - admm: True
+2025-03-22 04:38:03,031 - INFO - prune_points: True
+2025-03-22 04:38:03,031 - INFO - related_gs_num: 1
+2025-03-22 04:38:03,031 - INFO - convert_SHs_python: False
+2025-03-22 04:38:03,031 - INFO - compute_cov3D_python: False
+2025-03-22 04:38:03,032 - INFO - debug: False
+2025-03-22 04:38:03,032 - INFO - net_width: 128
+2025-03-22 04:38:03,032 - INFO - timebase_pe: 4
+2025-03-22 04:38:03,032 - INFO - defor_depth: 0
+2025-03-22 04:38:03,032 - INFO - posebase_pe: 10
+2025-03-22 04:38:03,032 - INFO - scale_rotation_pe: 2
+2025-03-22 04:38:03,032 - INFO - opacity_pe: 2
+2025-03-22 04:38:03,032 - INFO - timenet_width: 64
+2025-03-22 04:38:03,032 - INFO - timenet_output: 32
+2025-03-22 04:38:03,032 - INFO - bounds: 1.6
+2025-03-22 04:38:03,032 - INFO - plane_tv_weight: 0.0002
+2025-03-22 04:38:03,032 - INFO - time_smoothness_weight: 0.001
+2025-03-22 04:38:03,032 - INFO - l1_time_planes: 0.0001
+2025-03-22 04:38:03,032 - INFO - kplanes_config: {'grid_dimensions': 2, 'input_coordinate_dim': 4, 'output_coordinate_dim': 16, 'resolution': [64, 64, 64, 150]}
+2025-03-22 04:38:03,032 - INFO - multires: [1, 2]
+2025-03-22 04:38:03,032 - INFO - no_dx: False
+2025-03-22 04:38:03,032 - INFO - no_grid: False
+2025-03-22 04:38:03,032 - INFO - no_ds: False
+2025-03-22 04:38:03,032 - INFO - no_dr: False
+2025-03-22 04:38:03,032 - INFO - no_do: False
+2025-03-22 04:38:03,032 - INFO - no_dshs: False
+2025-03-22 04:38:03,032 - INFO - empty_voxel: False
+2025-03-22 04:38:03,032 - INFO - grid_pe: 0
+2025-03-22 04:38:03,032 - INFO - static_mlp: False
+2025-03-22 04:38:03,032 - INFO - apply_rotation: False
+2025-03-22 04:38:03,032 - INFO - ip: 127.0.0.1
+2025-03-22 04:38:03,033 - INFO - port: 6018
+2025-03-22 04:38:03,033 - INFO - debug_from: -1
+2025-03-22 04:38:03,033 - INFO - detect_anomaly: False
+2025-03-22 04:38:03,033 - INFO - test_iterations: []
+2025-03-22 04:38:03,033 - INFO - save_iterations: [22000]
+2025-03-22 04:38:03,033 - INFO - quiet: False
+2025-03-22 04:38:03,033 - INFO - checkpoint_iterations: []
+2025-03-22 04:38:03,033 - INFO - start_checkpoint: output/dynerf/cut_roasted_beef/chkpnt_fine_14000.pth
+2025-03-22 04:38:03,033 - INFO - expname: admm/cut_roasted_beef
+2025-03-22 04:38:03,033 - INFO - configs: arguments/dynerf/cut_roasted_beef_admm_ckpt_spa.py
+2025-03-22 04:40:07,286 - INFO - Training started with the following arguments:
+2025-03-22 04:40:07,287 - INFO - sh_degree: 3
+2025-03-22 04:40:07,287 - INFO - source_path: data/dynerf/cut_roasted_beef
+2025-03-22 04:40:07,287 - INFO - model_path: 
+2025-03-22 04:40:07,287 - INFO - images: images
+2025-03-22 04:40:07,287 - INFO - resolution: -1
+2025-03-22 04:40:07,287 - INFO - white_background: True
+2025-03-22 04:40:07,287 - INFO - data_device: cuda
+2025-03-22 04:40:07,287 - INFO - eval: True
+2025-03-22 04:40:07,287 - INFO - render_process: False
+2025-03-22 04:40:07,287 - INFO - add_points: False
+2025-03-22 04:40:07,288 - INFO - extension: .png
+2025-03-22 04:40:07,288 - INFO - llffhold: 8
+2025-03-22 04:40:07,288 - INFO - dataloader: True
+2025-03-22 04:40:07,288 - INFO - zerostamp_init: False
+2025-03-22 04:40:07,288 - INFO - custom_sampler: None
+2025-03-22 04:40:07,288 - INFO - iterations: 22000
+2025-03-22 04:40:07,288 - INFO - coarse_iterations: 0
+2025-03-22 04:40:07,288 - INFO - position_lr_init: 0.00016
+2025-03-22 04:40:07,288 - INFO - position_lr_final: 1.6e-06
+2025-03-22 04:40:07,288 - INFO - position_lr_delay_mult: 0.01
+2025-03-22 04:40:07,288 - INFO - position_lr_max_steps: 20000
+2025-03-22 04:40:07,288 - INFO - deformation_lr_init: 0.00016
+2025-03-22 04:40:07,289 - INFO - deformation_lr_final: 1.6e-05
+2025-03-22 04:40:07,289 - INFO - deformation_lr_delay_mult: 0.01
+2025-03-22 04:40:07,289 - INFO - grid_lr_init: 0.0016
+2025-03-22 04:40:07,289 - INFO - grid_lr_final: 0.00016
+2025-03-22 04:40:07,289 - INFO - feature_lr: 0.0025
+2025-03-22 04:40:07,289 - INFO - opacity_lr: 0.05
+2025-03-22 04:40:07,289 - INFO - scaling_lr: 0.005
+2025-03-22 04:40:07,289 - INFO - rotation_lr: 0.001
+2025-03-22 04:40:07,289 - INFO - percent_dense: 0.01
+2025-03-22 04:40:07,289 - INFO - lambda_dssim: 0
+2025-03-22 04:40:07,289 - INFO - lambda_lpips: 0
+2025-03-22 04:40:07,289 - INFO - weight_constraint_init: 1
+2025-03-22 04:40:07,289 - INFO - weight_constraint_after: 0.2
+2025-03-22 04:40:07,290 - INFO - weight_decay_iteration: 5000
+2025-03-22 04:40:07,290 - INFO - opacity_reset_interval: 60000
+2025-03-22 04:40:07,290 - INFO - densification_interval: 100
+2025-03-22 04:40:07,290 - INFO - densify_from_iter: 0
+2025-03-22 04:40:07,290 - INFO - densify_until_iter: 0
+2025-03-22 04:40:07,290 - INFO - densify_grad_threshold_coarse: 0.0002
+2025-03-22 04:40:07,290 - INFO - densify_grad_threshold_fine_init: 0.0002
+2025-03-22 04:40:07,290 - INFO - densify_grad_threshold_after: 0.0002
+2025-03-22 04:40:07,290 - INFO - pruning_from_iter: 500
+2025-03-22 04:40:07,290 - INFO - pruning_interval: 100
+2025-03-22 04:40:07,290 - INFO - opacity_threshold_coarse: 0.005
+2025-03-22 04:40:07,290 - INFO - opacity_threshold_fine_init: 0.005
+2025-03-22 04:40:07,290 - INFO - opacity_threshold_fine_after: 0.005
+2025-03-22 04:40:07,291 - INFO - batch_size: 2
+2025-03-22 04:40:07,291 - INFO - add_point: False
+2025-03-22 04:40:07,291 - INFO - admm_start_iter1: 14002
+2025-03-22 04:40:07,291 - INFO - admm_stop_iter1: 20000
+2025-03-22 04:40:07,291 - INFO - simp_iteration1: 14001
+2025-03-22 04:40:07,291 - INFO - simp_iteration2: 20001
+2025-03-22 04:40:07,291 - INFO - admm_interval: 50
+2025-03-22 04:40:07,291 - INFO - rho_lr: 0.0005
+2025-03-22 04:40:07,291 - INFO - opacity_admm_threshold1: 0.8
+2025-03-22 04:40:07,291 - INFO - opacity_admm_threshold2: 0.5
+2025-03-22 04:40:07,291 - INFO - outdoor: False
+2025-03-22 04:40:07,291 - INFO - admm: True
+2025-03-22 04:40:07,291 - INFO - prune_points: True
+2025-03-22 04:40:07,292 - INFO - related_gs_num: 1
+2025-03-22 04:40:07,292 - INFO - convert_SHs_python: False
+2025-03-22 04:40:07,292 - INFO - compute_cov3D_python: False
+2025-03-22 04:40:07,292 - INFO - debug: False
+2025-03-22 04:40:07,292 - INFO - net_width: 128
+2025-03-22 04:40:07,292 - INFO - timebase_pe: 4
+2025-03-22 04:40:07,292 - INFO - defor_depth: 0
+2025-03-22 04:40:07,292 - INFO - posebase_pe: 10
+2025-03-22 04:40:07,292 - INFO - scale_rotation_pe: 2
+2025-03-22 04:40:07,292 - INFO - opacity_pe: 2
+2025-03-22 04:40:07,292 - INFO - timenet_width: 64
+2025-03-22 04:40:07,292 - INFO - timenet_output: 32
+2025-03-22 04:40:07,292 - INFO - bounds: 1.6
+2025-03-22 04:40:07,293 - INFO - plane_tv_weight: 0.0002
+2025-03-22 04:40:07,293 - INFO - time_smoothness_weight: 0.001
+2025-03-22 04:40:07,293 - INFO - l1_time_planes: 0.0001
+2025-03-22 04:40:07,293 - INFO - kplanes_config: {'grid_dimensions': 2, 'input_coordinate_dim': 4, 'output_coordinate_dim': 16, 'resolution': [64, 64, 64, 150]}
+2025-03-22 04:40:07,293 - INFO - multires: [1, 2]
+2025-03-22 04:40:07,293 - INFO - no_dx: False
+2025-03-22 04:40:07,293 - INFO - no_grid: False
+2025-03-22 04:40:07,293 - INFO - no_ds: False
+2025-03-22 04:40:07,293 - INFO - no_dr: False
+2025-03-22 04:40:07,293 - INFO - no_do: False
+2025-03-22 04:40:07,293 - INFO - no_dshs: False
+2025-03-22 04:40:07,293 - INFO - empty_voxel: False
+2025-03-22 04:40:07,294 - INFO - grid_pe: 0
+2025-03-22 04:40:07,294 - INFO - static_mlp: False
+2025-03-22 04:40:07,294 - INFO - apply_rotation: False
+2025-03-22 04:40:07,294 - INFO - ip: 127.0.0.1
+2025-03-22 04:40:07,294 - INFO - port: 6018
+2025-03-22 04:40:07,294 - INFO - debug_from: -1
+2025-03-22 04:40:07,294 - INFO - detect_anomaly: False
+2025-03-22 04:40:07,294 - INFO - test_iterations: []
+2025-03-22 04:40:07,294 - INFO - save_iterations: [22000]
+2025-03-22 04:40:07,294 - INFO - quiet: False
+2025-03-22 04:40:07,294 - INFO - checkpoint_iterations: []
+2025-03-22 04:40:07,294 - INFO - start_checkpoint: output/dynerf/cut_roasted_beef/chkpnt_fine_14000.pth
+2025-03-22 04:40:07,295 - INFO - expname: admm/cut_roasted_beef
+2025-03-22 04:40:07,295 - INFO - configs: arguments/dynerf/cut_roasted_beef_admm_ckpt_spa.py
+2025-03-22 04:47:30,421 - INFO - Training started with the following arguments:
+2025-03-22 04:47:30,421 - INFO - sh_degree: 3
+2025-03-22 04:47:30,421 - INFO - source_path: data/dynerf/cut_roasted_beef
+2025-03-22 04:47:30,421 - INFO - model_path: 
+2025-03-22 04:47:30,421 - INFO - images: images
+2025-03-22 04:47:30,421 - INFO - resolution: -1
+2025-03-22 04:47:30,421 - INFO - white_background: True
+2025-03-22 04:47:30,421 - INFO - data_device: cuda
+2025-03-22 04:47:30,421 - INFO - eval: True
+2025-03-22 04:47:30,421 - INFO - render_process: False
+2025-03-22 04:47:30,421 - INFO - add_points: False
+2025-03-22 04:47:30,421 - INFO - extension: .png
+2025-03-22 04:47:30,421 - INFO - llffhold: 8
+2025-03-22 04:47:30,421 - INFO - dataloader: True
+2025-03-22 04:47:30,421 - INFO - zerostamp_init: False
+2025-03-22 04:47:30,421 - INFO - custom_sampler: None
+2025-03-22 04:47:30,421 - INFO - iterations: 22000
+2025-03-22 04:47:30,421 - INFO - coarse_iterations: 0
+2025-03-22 04:47:30,421 - INFO - position_lr_init: 0.00016
+2025-03-22 04:47:30,421 - INFO - position_lr_final: 1.6e-06
+2025-03-22 04:47:30,421 - INFO - position_lr_delay_mult: 0.01
+2025-03-22 04:47:30,421 - INFO - position_lr_max_steps: 20000
+2025-03-22 04:47:30,421 - INFO - deformation_lr_init: 0.00016
+2025-03-22 04:47:30,421 - INFO - deformation_lr_final: 1.6e-05
+2025-03-22 04:47:30,421 - INFO - deformation_lr_delay_mult: 0.01
+2025-03-22 04:47:30,421 - INFO - grid_lr_init: 0.0016
+2025-03-22 04:47:30,421 - INFO - grid_lr_final: 0.00016
+2025-03-22 04:47:30,421 - INFO - feature_lr: 0.0025
+2025-03-22 04:47:30,421 - INFO - opacity_lr: 0.05
+2025-03-22 04:47:30,421 - INFO - scaling_lr: 0.005
+2025-03-22 04:47:30,421 - INFO - rotation_lr: 0.001
+2025-03-22 04:47:30,421 - INFO - percent_dense: 0.01
+2025-03-22 04:47:30,421 - INFO - lambda_dssim: 0
+2025-03-22 04:47:30,421 - INFO - lambda_lpips: 0
+2025-03-22 04:47:30,421 - INFO - weight_constraint_init: 1
+2025-03-22 04:47:30,421 - INFO - weight_constraint_after: 0.2
+2025-03-22 04:47:30,421 - INFO - weight_decay_iteration: 5000
+2025-03-22 04:47:30,421 - INFO - opacity_reset_interval: 60000
+2025-03-22 04:47:30,421 - INFO - densification_interval: 100
+2025-03-22 04:47:30,421 - INFO - densify_from_iter: 0
+2025-03-22 04:47:30,421 - INFO - densify_until_iter: 0
+2025-03-22 04:47:30,421 - INFO - densify_grad_threshold_coarse: 0.0002
+2025-03-22 04:47:30,421 - INFO - densify_grad_threshold_fine_init: 0.0002
+2025-03-22 04:47:30,422 - INFO - densify_grad_threshold_after: 0.0002
+2025-03-22 04:47:30,422 - INFO - pruning_from_iter: 500
+2025-03-22 04:47:30,422 - INFO - pruning_interval: 100
+2025-03-22 04:47:30,422 - INFO - opacity_threshold_coarse: 0.005
+2025-03-22 04:47:30,422 - INFO - opacity_threshold_fine_init: 0.005
+2025-03-22 04:47:30,422 - INFO - opacity_threshold_fine_after: 0.005
+2025-03-22 04:47:30,422 - INFO - batch_size: 2
+2025-03-22 04:47:30,422 - INFO - add_point: False
+2025-03-22 04:47:30,422 - INFO - admm_start_iter1: 14002
+2025-03-22 04:47:30,422 - INFO - admm_stop_iter1: 20000
+2025-03-22 04:47:30,422 - INFO - simp_iteration1: 14001
+2025-03-22 04:47:30,422 - INFO - simp_iteration2: 20001
+2025-03-22 04:47:30,422 - INFO - admm_interval: 50
+2025-03-22 04:47:30,422 - INFO - rho_lr: 0.0005
+2025-03-22 04:47:30,422 - INFO - opacity_admm_threshold1: 0.8
+2025-03-22 04:47:30,422 - INFO - opacity_admm_threshold2: 0.5
+2025-03-22 04:47:30,422 - INFO - outdoor: False
+2025-03-22 04:47:30,422 - INFO - admm: True
+2025-03-22 04:47:30,422 - INFO - prune_points: True
+2025-03-22 04:47:30,422 - INFO - related_gs_num: 1
+2025-03-22 04:47:30,422 - INFO - convert_SHs_python: False
+2025-03-22 04:47:30,422 - INFO - compute_cov3D_python: False
+2025-03-22 04:47:30,422 - INFO - debug: False
+2025-03-22 04:47:30,422 - INFO - net_width: 128
+2025-03-22 04:47:30,422 - INFO - timebase_pe: 4
+2025-03-22 04:47:30,422 - INFO - defor_depth: 0
+2025-03-22 04:47:30,422 - INFO - posebase_pe: 10
+2025-03-22 04:47:30,422 - INFO - scale_rotation_pe: 2
+2025-03-22 04:47:30,422 - INFO - opacity_pe: 2
+2025-03-22 04:47:30,422 - INFO - timenet_width: 64
+2025-03-22 04:47:30,422 - INFO - timenet_output: 32
+2025-03-22 04:47:30,422 - INFO - bounds: 1.6
+2025-03-22 04:47:30,422 - INFO - plane_tv_weight: 0.0002
+2025-03-22 04:47:30,422 - INFO - time_smoothness_weight: 0.001
+2025-03-22 04:47:30,422 - INFO - l1_time_planes: 0.0001
+2025-03-22 04:47:30,422 - INFO - kplanes_config: {'grid_dimensions': 2, 'input_coordinate_dim': 4, 'output_coordinate_dim': 16, 'resolution': [64, 64, 64, 150]}
+2025-03-22 04:47:30,422 - INFO - multires: [1, 2]
+2025-03-22 04:47:30,422 - INFO - no_dx: False
+2025-03-22 04:47:30,422 - INFO - no_grid: False
+2025-03-22 04:47:30,422 - INFO - no_ds: False
+2025-03-22 04:47:30,422 - INFO - no_dr: False
+2025-03-22 04:47:30,422 - INFO - no_do: False
+2025-03-22 04:47:30,422 - INFO - no_dshs: False
+2025-03-22 04:47:30,422 - INFO - empty_voxel: False
+2025-03-22 04:47:30,422 - INFO - grid_pe: 0
+2025-03-22 04:47:30,422 - INFO - static_mlp: False
+2025-03-22 04:47:30,422 - INFO - apply_rotation: False
+2025-03-22 04:47:30,422 - INFO - ip: 127.0.0.1
+2025-03-22 04:47:30,422 - INFO - port: 6018
+2025-03-22 04:47:30,422 - INFO - debug_from: -1
+2025-03-22 04:47:30,422 - INFO - detect_anomaly: False
+2025-03-22 04:47:30,422 - INFO - test_iterations: []
+2025-03-22 04:47:30,422 - INFO - save_iterations: [22000]
+2025-03-22 04:47:30,422 - INFO - quiet: False
+2025-03-22 04:47:30,422 - INFO - checkpoint_iterations: []
+2025-03-22 04:47:30,422 - INFO - start_checkpoint: output/dynerf/cut_roasted_beef/chkpnt_fine_14000.pth
+2025-03-22 04:47:30,422 - INFO - expname: admm_p_50/cut_roasted_beef
+2025-03-22 04:47:30,422 - INFO - configs: arguments/dynerf/cut_roasted_beef_admm_ckpt_spa.py
+2025-03-22 04:50:26,057 - INFO - Training started with the following arguments:
+2025-03-22 04:50:26,057 - INFO - sh_degree: 3
+2025-03-22 04:50:26,057 - INFO - source_path: data/dynerf/cut_roasted_beef
+2025-03-22 04:50:26,057 - INFO - model_path: 
+2025-03-22 04:50:26,057 - INFO - images: images
+2025-03-22 04:50:26,057 - INFO - resolution: -1
+2025-03-22 04:50:26,057 - INFO - white_background: True
+2025-03-22 04:50:26,057 - INFO - data_device: cuda
+2025-03-22 04:50:26,057 - INFO - eval: True
+2025-03-22 04:50:26,057 - INFO - render_process: False
+2025-03-22 04:50:26,057 - INFO - add_points: False
+2025-03-22 04:50:26,057 - INFO - extension: .png
+2025-03-22 04:50:26,057 - INFO - llffhold: 8
+2025-03-22 04:50:26,057 - INFO - dataloader: True
+2025-03-22 04:50:26,057 - INFO - zerostamp_init: False
+2025-03-22 04:50:26,057 - INFO - custom_sampler: None
+2025-03-22 04:50:26,057 - INFO - iterations: 22000
+2025-03-22 04:50:26,057 - INFO - coarse_iterations: 0
+2025-03-22 04:50:26,057 - INFO - position_lr_init: 0.00016
+2025-03-22 04:50:26,057 - INFO - position_lr_final: 1.6e-06
+2025-03-22 04:50:26,057 - INFO - position_lr_delay_mult: 0.01
+2025-03-22 04:50:26,057 - INFO - position_lr_max_steps: 20000
+2025-03-22 04:50:26,057 - INFO - deformation_lr_init: 0.00016
+2025-03-22 04:50:26,057 - INFO - deformation_lr_final: 1.6e-05
+2025-03-22 04:50:26,057 - INFO - deformation_lr_delay_mult: 0.01
+2025-03-22 04:50:26,057 - INFO - grid_lr_init: 0.0016
+2025-03-22 04:50:26,057 - INFO - grid_lr_final: 0.00016
+2025-03-22 04:50:26,057 - INFO - feature_lr: 0.0025
+2025-03-22 04:50:26,057 - INFO - opacity_lr: 0.05
+2025-03-22 04:50:26,057 - INFO - scaling_lr: 0.005
+2025-03-22 04:50:26,057 - INFO - rotation_lr: 0.001
+2025-03-22 04:50:26,057 - INFO - percent_dense: 0.01
+2025-03-22 04:50:26,057 - INFO - lambda_dssim: 0
+2025-03-22 04:50:26,057 - INFO - lambda_lpips: 0
+2025-03-22 04:50:26,057 - INFO - weight_constraint_init: 1
+2025-03-22 04:50:26,057 - INFO - weight_constraint_after: 0.2
+2025-03-22 04:50:26,057 - INFO - weight_decay_iteration: 5000
+2025-03-22 04:50:26,058 - INFO - opacity_reset_interval: 60000
+2025-03-22 04:50:26,058 - INFO - densification_interval: 100
+2025-03-22 04:50:26,058 - INFO - densify_from_iter: 0
+2025-03-22 04:50:26,058 - INFO - densify_until_iter: 0
+2025-03-22 04:50:26,058 - INFO - densify_grad_threshold_coarse: 0.0002
+2025-03-22 04:50:26,058 - INFO - densify_grad_threshold_fine_init: 0.0002
+2025-03-22 04:50:26,058 - INFO - densify_grad_threshold_after: 0.0002
+2025-03-22 04:50:26,058 - INFO - pruning_from_iter: 500
+2025-03-22 04:50:26,058 - INFO - pruning_interval: 100
+2025-03-22 04:50:26,058 - INFO - opacity_threshold_coarse: 0.005
+2025-03-22 04:50:26,058 - INFO - opacity_threshold_fine_init: 0.005
+2025-03-22 04:50:26,058 - INFO - opacity_threshold_fine_after: 0.005
+2025-03-22 04:50:26,058 - INFO - batch_size: 2
+2025-03-22 04:50:26,058 - INFO - add_point: False
+2025-03-22 04:50:26,058 - INFO - admm_start_iter1: 14002
+2025-03-22 04:50:26,058 - INFO - admm_stop_iter1: 20000
+2025-03-22 04:50:26,058 - INFO - simp_iteration1: 14001
+2025-03-22 04:50:26,058 - INFO - simp_iteration2: 20001
+2025-03-22 04:50:26,058 - INFO - admm_interval: 50
+2025-03-22 04:50:26,058 - INFO - rho_lr: 0.0005
+2025-03-22 04:50:26,058 - INFO - opacity_admm_threshold1: 0.8
+2025-03-22 04:50:26,058 - INFO - opacity_admm_threshold2: 0.5
+2025-03-22 04:50:26,058 - INFO - outdoor: False
+2025-03-22 04:50:26,058 - INFO - admm: True
+2025-03-22 04:50:26,058 - INFO - prune_points: True
+2025-03-22 04:50:26,058 - INFO - related_gs_num: 1
+2025-03-22 04:50:26,058 - INFO - convert_SHs_python: False
+2025-03-22 04:50:26,058 - INFO - compute_cov3D_python: False
+2025-03-22 04:50:26,058 - INFO - debug: False
+2025-03-22 04:50:26,058 - INFO - net_width: 128
+2025-03-22 04:50:26,058 - INFO - timebase_pe: 4
+2025-03-22 04:50:26,058 - INFO - defor_depth: 0
+2025-03-22 04:50:26,058 - INFO - posebase_pe: 10
+2025-03-22 04:50:26,058 - INFO - scale_rotation_pe: 2
+2025-03-22 04:50:26,058 - INFO - opacity_pe: 2
+2025-03-22 04:50:26,058 - INFO - timenet_width: 64
+2025-03-22 04:50:26,058 - INFO - timenet_output: 32
+2025-03-22 04:50:26,058 - INFO - bounds: 1.6
+2025-03-22 04:50:26,058 - INFO - plane_tv_weight: 0.0002
+2025-03-22 04:50:26,058 - INFO - time_smoothness_weight: 0.001
+2025-03-22 04:50:26,058 - INFO - l1_time_planes: 0.0001
+2025-03-22 04:50:26,058 - INFO - kplanes_config: {'grid_dimensions': 2, 'input_coordinate_dim': 4, 'output_coordinate_dim': 16, 'resolution': [64, 64, 64, 150]}
+2025-03-22 04:50:26,058 - INFO - multires: [1, 2]
+2025-03-22 04:50:26,058 - INFO - no_dx: False
+2025-03-22 04:50:26,058 - INFO - no_grid: False
+2025-03-22 04:50:26,058 - INFO - no_ds: False
+2025-03-22 04:50:26,058 - INFO - no_dr: False
+2025-03-22 04:50:26,058 - INFO - no_do: False
+2025-03-22 04:50:26,058 - INFO - no_dshs: False
+2025-03-22 04:50:26,058 - INFO - empty_voxel: False
+2025-03-22 04:50:26,058 - INFO - grid_pe: 0
+2025-03-22 04:50:26,058 - INFO - static_mlp: False
+2025-03-22 04:50:26,058 - INFO - apply_rotation: False
+2025-03-22 04:50:26,058 - INFO - ip: 127.0.0.1
+2025-03-22 04:50:26,058 - INFO - port: 6018
+2025-03-22 04:50:26,058 - INFO - debug_from: -1
+2025-03-22 04:50:26,058 - INFO - detect_anomaly: False
+2025-03-22 04:50:26,058 - INFO - test_iterations: []
+2025-03-22 04:50:26,058 - INFO - save_iterations: [22000]
+2025-03-22 04:50:26,058 - INFO - quiet: False
+2025-03-22 04:50:26,058 - INFO - checkpoint_iterations: []
+2025-03-22 04:50:26,058 - INFO - start_checkpoint: output/dynerf/cut_roasted_beef/chkpnt_fine_14000.pth
+2025-03-22 04:50:26,058 - INFO - expname: admm_p_50/cut_roasted_beef
+2025-03-22 04:50:26,059 - INFO - configs: arguments/dynerf/cut_roasted_beef_admm_ckpt_spa.py
+2025-03-22 04:56:07,713 - INFO - {'Loss': '0.02149', 'admm_loss': '0.00000', 'psnr': '28.10', 'point': 26163}
+2025-03-22 04:56:08,287 - INFO - {'Loss': '0.01972', 'admm_loss': '0.00000', 'psnr': '28.79', 'point': 26163}
+2025-03-22 04:56:08,846 - INFO - {'Loss': '0.01592', 'admm_loss': '0.00000', 'psnr': '30.86', 'point': 26163}
+2025-03-22 04:56:09,378 - INFO - {'Loss': '0.01724', 'admm_loss': '0.00000', 'psnr': '28.62', 'point': 26163}
+2025-03-22 04:56:09,889 - INFO - {'Loss': '0.12107', 'admm_loss': '0.10496', 'psnr': '30.43', 'point': 26163}
+2025-03-22 04:56:10,560 - INFO - {'Loss': '0.01562', 'admm_loss': '0.26144', 'psnr': '31.81', 'point': 26163}
+2025-03-22 04:56:11,102 - INFO - {'Loss': '0.01428', 'admm_loss': '0.26238', 'psnr': '32.58', 'point': 26163}
+2025-03-22 04:56:11,650 - INFO - {'Loss': '0.01513', 'admm_loss': '0.26239', 'psnr': '30.88', 'point': 26163}
+2025-03-22 04:56:12,208 - INFO - {'Loss': '0.01443', 'admm_loss': '0.26239', 'psnr': '31.21', 'point': 26163}
+2025-03-22 04:56:12,759 - INFO - {'Loss': '0.37606', 'admm_loss': '0.51949', 'psnr': '30.98', 'point': 26163}
+2025-03-22 04:56:13,355 - INFO - {'Loss': '0.01634', 'admm_loss': '0.90281', 'psnr': '32.10', 'point': 26163}
+2025-03-22 04:56:14,045 - INFO - {'Loss': '0.01447', 'admm_loss': '0.90513', 'psnr': '31.40', 'point': 26163}
+2025-03-22 04:56:14,613 - INFO - {'Loss': '0.01436', 'admm_loss': '0.90514', 'psnr': '31.81', 'point': 26163}
+2025-03-22 04:56:15,188 - INFO - {'Loss': '0.01392', 'admm_loss': '0.90514', 'psnr': '31.94', 'point': 26163}
+2025-03-22 04:56:15,751 - INFO - {'Loss': '0.56023', 'admm_loss': '1.08948', 'psnr': '31.49', 'point': 26163}
+2025-03-22 04:56:16,356 - INFO - {'Loss': '0.01796', 'admm_loss': '1.36432', 'psnr': '31.07', 'point': 26163}
+2025-03-22 04:56:17,042 - INFO - {'Loss': '0.01450', 'admm_loss': '1.36598', 'psnr': '31.54', 'point': 26163}
+2025-03-22 04:56:17,622 - INFO - {'Loss': '0.01455', 'admm_loss': '1.36599', 'psnr': '32.30', 'point': 26163}
+2025-03-22 04:56:18,200 - INFO - {'Loss': '0.01478', 'admm_loss': '1.36599', 'psnr': '31.29', 'point': 26163}
+2025-03-22 04:56:18,768 - INFO - {'Loss': '0.69172', 'admm_loss': '1.49706', 'psnr': '31.55', 'point': 26163}
+2025-03-22 04:56:19,367 - INFO - {'Loss': '0.01913', 'admm_loss': '1.69247', 'psnr': '30.89', 'point': 26163}
+2025-03-22 04:56:19,954 - INFO - {'Loss': '0.01384', 'admm_loss': '1.69365', 'psnr': '31.72', 'point': 26163}
+2025-03-22 04:56:20,536 - INFO - {'Loss': '0.01613', 'admm_loss': '1.69366', 'psnr': '30.19', 'point': 26163}
+2025-03-22 04:56:21,110 - INFO - {'Loss': '0.01528', 'admm_loss': '1.69366', 'psnr': '30.29', 'point': 26163}
+2025-03-22 04:56:21,691 - INFO - {'Loss': '0.74311', 'admm_loss': '1.74598', 'psnr': '32.52', 'point': 26163}
+2025-03-22 04:56:22,415 - INFO - {'Loss': '0.01832', 'admm_loss': '1.82398', 'psnr': '31.74', 'point': 26163}
+2025-03-22 04:56:23,033 - INFO - {'Loss': '0.01390', 'admm_loss': '1.82445', 'psnr': '31.90', 'point': 26163}
+2025-03-22 04:56:23,640 - INFO - {'Loss': '0.01320', 'admm_loss': '1.82446', 'psnr': '33.06', 'point': 26163}
+2025-03-22 04:56:24,237 - INFO - {'Loss': '0.01312', 'admm_loss': '1.82446', 'psnr': '32.75', 'point': 26163}
+2025-03-22 04:56:24,821 - INFO - {'Loss': '0.72456', 'admm_loss': '1.80630', 'psnr': '32.15', 'point': 26163}
+2025-03-22 04:56:25,539 - INFO - {'Loss': '0.01765', 'admm_loss': '1.77924', 'psnr': '32.61', 'point': 26163}
+2025-03-22 04:56:26,138 - INFO - {'Loss': '0.01349', 'admm_loss': '1.77907', 'psnr': '31.81', 'point': 26163}
+2025-03-22 04:56:26,729 - INFO - {'Loss': '0.01410', 'admm_loss': '1.77907', 'psnr': '31.75', 'point': 26163}
+2025-03-22 04:56:27,330 - INFO - {'Loss': '0.01426', 'admm_loss': '1.77907', 'psnr': '31.96', 'point': 26163}
+2025-03-22 04:56:27,935 - INFO - {'Loss': '0.65599', 'admm_loss': '1.71002', 'psnr': '33.04', 'point': 26163}
+2025-03-22 04:56:28,652 - INFO - {'Loss': '0.01854', 'admm_loss': '1.60708', 'psnr': '31.92', 'point': 26163}
+2025-03-22 04:56:29,270 - INFO - {'Loss': '0.01427', 'admm_loss': '1.60646', 'psnr': '31.04', 'point': 26163}
+2025-03-22 04:56:29,886 - INFO - {'Loss': '0.01493', 'admm_loss': '1.60645', 'psnr': '30.36', 'point': 26163}
+2025-03-22 04:56:30,488 - INFO - {'Loss': '0.01583', 'admm_loss': '1.60645', 'psnr': '30.18', 'point': 26163}
+2025-03-22 04:56:31,095 - INFO - {'Loss': '0.68652', 'admm_loss': '1.63776', 'psnr': '32.63', 'point': 26163}
+2025-03-22 04:56:31,849 - INFO - {'Loss': '0.01769', 'admm_loss': '1.68444', 'psnr': '32.56', 'point': 26163}
+2025-03-22 04:56:32,465 - INFO - {'Loss': '0.01404', 'admm_loss': '1.68472', 'psnr': '30.82', 'point': 26163}
+2025-03-22 04:56:33,085 - INFO - {'Loss': '0.01347', 'admm_loss': '1.68472', 'psnr': '32.45', 'point': 26163}
+2025-03-22 04:56:33,694 - INFO - {'Loss': '0.01279', 'admm_loss': '1.68472', 'psnr': '33.40', 'point': 26163}
+2025-03-22 04:56:34,299 - INFO - {'Loss': '0.64350', 'admm_loss': '1.64021', 'psnr': '31.86', 'point': 26163}
+2025-03-22 04:56:35,057 - INFO - {'Loss': '0.01675', 'admm_loss': '1.57385', 'psnr': '32.52', 'point': 26163}
+2025-03-22 04:56:35,671 - INFO - {'Loss': '0.01362', 'admm_loss': '1.57345', 'psnr': '31.33', 'point': 26163}
+2025-03-22 04:56:36,276 - INFO - {'Loss': '0.01363', 'admm_loss': '1.57344', 'psnr': '31.44', 'point': 26163}
+2025-03-22 04:56:36,884 - INFO - {'Loss': '0.01281', 'admm_loss': '1.57344', 'psnr': '32.29', 'point': 26163}
+2025-03-22 04:56:37,493 - INFO - {'Loss': '0.62293', 'admm_loss': '1.55406', 'psnr': '32.88', 'point': 26163}
+2025-03-22 04:56:38,121 - INFO - {'Loss': '0.01853', 'admm_loss': '1.52517', 'psnr': '31.99', 'point': 26163}
+2025-03-22 04:56:38,855 - INFO - {'Loss': '0.01428', 'admm_loss': '1.52500', 'psnr': '31.87', 'point': 26163}
+2025-03-22 04:56:39,458 - INFO - {'Loss': '0.01453', 'admm_loss': '1.52499', 'psnr': '32.98', 'point': 26163}
+2025-03-22 04:56:40,068 - INFO - {'Loss': '0.01391', 'admm_loss': '1.52499', 'psnr': '32.16', 'point': 26163}
+2025-03-22 04:56:40,680 - INFO - {'Loss': '0.61616', 'admm_loss': '1.51674', 'psnr': '30.71', 'point': 26163}
+2025-03-22 04:56:41,317 - INFO - {'Loss': '0.01687', 'admm_loss': '1.50443', 'psnr': '32.73', 'point': 26163}
+2025-03-22 04:56:42,059 - INFO - {'Loss': '0.01380', 'admm_loss': '1.50436', 'psnr': '30.78', 'point': 26163}
+2025-03-22 04:56:42,665 - INFO - {'Loss': '0.01383', 'admm_loss': '1.50436', 'psnr': '32.37', 'point': 26163}
+2025-03-22 04:56:43,262 - INFO - {'Loss': '0.01362', 'admm_loss': '1.50436', 'psnr': '32.36', 'point': 26163}
+2025-03-22 04:56:43,854 - INFO - {'Loss': '0.56982', 'admm_loss': '1.45920', 'psnr': '32.36', 'point': 26163}
+2025-03-22 04:56:44,468 - INFO - {'Loss': '0.01767', 'admm_loss': '1.39188', 'psnr': '31.06', 'point': 26163}
+2025-03-22 04:56:45,097 - INFO - {'Loss': '0.01382', 'admm_loss': '1.39147', 'psnr': '31.83', 'point': 26163}
+2025-03-22 04:56:45,698 - INFO - {'Loss': '0.01420', 'admm_loss': '1.39147', 'psnr': '31.88', 'point': 26163}
+2025-03-22 04:56:46,301 - INFO - {'Loss': '0.01415', 'admm_loss': '1.39147', 'psnr': '31.77', 'point': 26163}
+2025-03-22 04:56:46,907 - INFO - {'Loss': '0.56435', 'admm_loss': '1.38385', 'psnr': '31.40', 'point': 26163}
+2025-03-22 04:56:47,673 - INFO - {'Loss': '0.01669', 'admm_loss': '1.37249', 'psnr': '32.46', 'point': 26163}
+2025-03-22 04:56:48,296 - INFO - {'Loss': '0.01338', 'admm_loss': '1.37242', 'psnr': '32.18', 'point': 26163}
+2025-03-22 04:56:48,917 - INFO - {'Loss': '0.01250', 'admm_loss': '1.37242', 'psnr': '32.45', 'point': 26163}
+2025-03-22 04:56:49,512 - INFO - {'Loss': '0.01352', 'admm_loss': '1.37242', 'psnr': '31.45', 'point': 26163}
+2025-03-22 04:56:50,109 - INFO - {'Loss': '0.56561', 'admm_loss': '1.37667', 'psnr': '33.02', 'point': 26163}
+2025-03-22 04:56:50,840 - INFO - {'Loss': '0.01683', 'admm_loss': '1.38301', 'psnr': '32.29', 'point': 26163}
+2025-03-22 04:56:51,446 - INFO - {'Loss': '0.01551', 'admm_loss': '1.38305', 'psnr': '31.49', 'point': 26163}
+2025-03-22 04:56:52,045 - INFO - {'Loss': '0.01303', 'admm_loss': '1.38305', 'psnr': '33.24', 'point': 26163}
+2025-03-22 04:56:52,650 - INFO - {'Loss': '0.01437', 'admm_loss': '1.38305', 'psnr': '30.76', 'point': 26163}
+2025-03-22 04:56:53,252 - INFO - {'Loss': '0.52018', 'admm_loss': '1.33693', 'psnr': '32.02', 'point': 26163}
+2025-03-22 04:56:53,993 - INFO - {'Loss': '0.01658', 'admm_loss': '1.26816', 'psnr': '32.81', 'point': 26163}
+2025-03-22 04:56:54,596 - INFO - {'Loss': '0.01291', 'admm_loss': '1.26774', 'psnr': '33.31', 'point': 26163}
+2025-03-22 04:56:55,224 - INFO - {'Loss': '0.01435', 'admm_loss': '1.26774', 'psnr': '31.37', 'point': 26163}
+2025-03-22 04:56:55,838 - INFO - {'Loss': '0.01286', 'admm_loss': '1.26774', 'psnr': '32.90', 'point': 26163}
+2025-03-22 04:56:56,458 - INFO - {'Loss': '0.52235', 'admm_loss': '1.27085', 'psnr': '33.70', 'point': 26163}
+2025-03-22 04:56:57,199 - INFO - {'Loss': '0.01598', 'admm_loss': '1.27550', 'psnr': '32.91', 'point': 26163}
+2025-03-22 04:56:57,818 - INFO - {'Loss': '0.01314', 'admm_loss': '1.27553', 'psnr': '32.72', 'point': 26163}
+2025-03-22 04:56:58,438 - INFO - {'Loss': '0.01422', 'admm_loss': '1.27553', 'psnr': '31.58', 'point': 26163}
+2025-03-22 04:56:59,059 - INFO - {'Loss': '0.01404', 'admm_loss': '1.27553', 'psnr': '31.67', 'point': 26163}
+2025-03-22 04:56:59,674 - INFO - {'Loss': '0.52408', 'admm_loss': '1.27697', 'psnr': '32.99', 'point': 26163}
+2025-03-22 04:57:00,418 - INFO - {'Loss': '0.01625', 'admm_loss': '1.27911', 'psnr': '33.26', 'point': 26163}
+2025-03-22 04:57:01,037 - INFO - {'Loss': '0.01391', 'admm_loss': '1.27913', 'psnr': '31.47', 'point': 26163}
+2025-03-22 04:57:01,657 - INFO - {'Loss': '0.01316', 'admm_loss': '1.27913', 'psnr': '33.04', 'point': 26163}
+2025-03-22 04:57:02,266 - INFO - {'Loss': '0.01292', 'admm_loss': '1.27913', 'psnr': '33.18', 'point': 26163}
+2025-03-22 04:57:02,892 - INFO - {'Loss': '0.48902', 'admm_loss': '1.24234', 'psnr': '32.20', 'point': 26163}
+2025-03-22 04:57:03,533 - INFO - {'Loss': '0.01677', 'admm_loss': '1.18751', 'psnr': '32.50', 'point': 26163}
+2025-03-22 04:57:04,273 - INFO - {'Loss': '0.01303', 'admm_loss': '1.18717', 'psnr': '32.98', 'point': 26163}
+2025-03-22 04:57:04,890 - INFO - {'Loss': '0.01302', 'admm_loss': '1.18717', 'psnr': '32.13', 'point': 26163}
+2025-03-22 04:57:05,503 - INFO - {'Loss': '0.01271', 'admm_loss': '1.18717', 'psnr': '33.22', 'point': 26163}
+2025-03-22 04:57:06,119 - INFO - {'Loss': '0.49237', 'admm_loss': '1.19098', 'psnr': '32.81', 'point': 26163}
+2025-03-22 04:57:06,767 - INFO - {'Loss': '0.01678', 'admm_loss': '1.19666', 'psnr': '31.67', 'point': 26163}
+2025-03-22 04:57:07,390 - INFO - {'Loss': '0.01296', 'admm_loss': '1.19670', 'psnr': '33.12', 'point': 26163}
+2025-03-22 04:57:08,017 - INFO - {'Loss': '0.01283', 'admm_loss': '1.19670', 'psnr': '32.16', 'point': 26163}
+2025-03-22 04:57:08,640 - INFO - {'Loss': '0.01417', 'admm_loss': '1.19670', 'psnr': '31.00', 'point': 26163}
+2025-03-22 04:57:09,263 - INFO - {'Loss': '0.48681', 'admm_loss': '1.19204', 'psnr': '32.26', 'point': 26163}
+2025-03-22 04:57:10,013 - INFO - {'Loss': '0.01712', 'admm_loss': '1.18509', 'psnr': '32.62', 'point': 26163}
+2025-03-22 04:57:10,642 - INFO - {'Loss': '0.01355', 'admm_loss': '1.18505', 'psnr': '31.90', 'point': 26163}
+2025-03-22 04:57:11,260 - INFO - {'Loss': '0.01391', 'admm_loss': '1.18505', 'psnr': '32.83', 'point': 26163}
+2025-03-22 04:57:11,881 - INFO - {'Loss': '0.01377', 'admm_loss': '1.18505', 'psnr': '30.94', 'point': 26163}
+2025-03-22 04:57:12,493 - INFO - {'Loss': '0.45463', 'admm_loss': '1.15176', 'psnr': '32.09', 'point': 26163}
+2025-03-22 04:57:13,237 - INFO - {'Loss': '0.01502', 'admm_loss': '1.10213', 'psnr': '33.20', 'point': 26163}
+2025-03-22 04:57:13,864 - INFO - {'Loss': '0.01376', 'admm_loss': '1.10183', 'psnr': '31.97', 'point': 26163}
+2025-03-22 04:57:14,485 - INFO - {'Loss': '0.01282', 'admm_loss': '1.10183', 'psnr': '33.56', 'point': 26163}
+2025-03-22 04:57:15,108 - INFO - {'Loss': '0.01477', 'admm_loss': '1.10183', 'psnr': '31.59', 'point': 26163}
+2025-03-22 04:57:15,737 - INFO - {'Loss': '0.45538', 'admm_loss': '1.10364', 'psnr': '33.27', 'point': 26163}
+2025-03-22 04:57:16,504 - INFO - {'Loss': '0.01575', 'admm_loss': '1.10634', 'psnr': '32.63', 'point': 26163}
+2025-03-22 04:57:17,131 - INFO - {'Loss': '0.01426', 'admm_loss': '1.10636', 'psnr': '32.56', 'point': 26163}
+2025-03-22 04:57:17,753 - INFO - {'Loss': '0.01368', 'admm_loss': '1.10636', 'psnr': '32.02', 'point': 26163}
+2025-03-22 04:57:18,378 - INFO - {'Loss': '0.01447', 'admm_loss': '1.10636', 'psnr': '30.67', 'point': 26163}
+2025-03-22 04:57:18,997 - INFO - {'Loss': '0.44961', 'admm_loss': '1.10094', 'psnr': '32.90', 'point': 26163}
+2025-03-22 04:57:19,747 - INFO - {'Loss': '0.01561', 'admm_loss': '1.09288', 'psnr': '32.45', 'point': 26163}
+2025-03-22 04:57:20,368 - INFO - {'Loss': '0.01431', 'admm_loss': '1.09283', 'psnr': '32.16', 'point': 26163}
+2025-03-22 04:57:21,010 - INFO - {'Loss': '0.01338', 'admm_loss': '1.09283', 'psnr': '31.87', 'point': 26163}
+2025-03-22 04:57:21,636 - INFO - {'Loss': '0.01306', 'admm_loss': '1.09283', 'psnr': '32.93', 'point': 26163}
+2025-03-22 04:57:22,260 - INFO - {'Loss': '0.42220', 'admm_loss': '1.06548', 'psnr': '32.84', 'point': 26163}
+2025-03-22 04:57:23,029 - INFO - {'Loss': '0.01533', 'admm_loss': '1.02472', 'psnr': '33.47', 'point': 26163}
+2025-03-22 04:57:23,654 - INFO - {'Loss': '0.01349', 'admm_loss': '1.02447', 'psnr': '32.85', 'point': 26163}
+2025-03-22 04:57:24,272 - INFO - {'Loss': '0.01255', 'admm_loss': '1.02447', 'psnr': '33.76', 'point': 26163}
+2025-03-22 04:57:24,898 - INFO - {'Loss': '0.01308', 'admm_loss': '1.02447', 'psnr': '32.61', 'point': 26163}
+2025-03-22 04:57:25,524 - INFO - {'Loss': '0.41977', 'admm_loss': '1.02041', 'psnr': '31.59', 'point': 26163}
+2025-03-22 04:57:26,177 - INFO - {'Loss': '0.01632', 'admm_loss': '1.01436', 'psnr': '30.93', 'point': 26163}
+2025-03-22 04:57:26,927 - INFO - {'Loss': '0.01362', 'admm_loss': '1.01432', 'psnr': '32.29', 'point': 26163}
+2025-03-22 04:57:27,548 - INFO - {'Loss': '0.01206', 'admm_loss': '1.01432', 'psnr': '33.10', 'point': 26163}
+2025-03-22 04:57:28,179 - INFO - {'Loss': '0.01266', 'admm_loss': '1.01432', 'psnr': '32.15', 'point': 26163}
+2025-03-22 04:57:28,812 - INFO - {'Loss': '0.41294', 'admm_loss': '1.00921', 'psnr': '33.26', 'point': 26163}
+2025-03-22 04:57:29,465 - INFO - {'Loss': '0.01560', 'admm_loss': '1.00159', 'psnr': '31.69', 'point': 26163}
+2025-03-22 04:57:30,216 - INFO - {'Loss': '0.01318', 'admm_loss': '1.00154', 'psnr': '32.22', 'point': 26163}
+2025-03-22 04:57:30,842 - INFO - {'Loss': '0.01271', 'admm_loss': '1.00154', 'psnr': '33.12', 'point': 26163}
+2025-03-22 04:57:31,479 - INFO - {'Loss': '0.01281', 'admm_loss': '1.00154', 'psnr': '31.84', 'point': 26163}
+2025-03-22 04:57:32,109 - INFO - {'Loss': '0.39148', 'admm_loss': '0.97893', 'psnr': '31.26', 'point': 26163}
+2025-03-22 04:57:32,757 - INFO - {'Loss': '0.01547', 'admm_loss': '0.94522', 'psnr': '32.62', 'point': 26163}
+2025-03-22 04:57:33,395 - INFO - {'Loss': '0.01317', 'admm_loss': '0.94502', 'psnr': '32.72', 'point': 26163}
+2025-03-22 04:57:34,018 - INFO - {'Loss': '0.01344', 'admm_loss': '0.94502', 'psnr': '30.96', 'point': 26163}
+2025-03-22 04:57:34,647 - INFO - {'Loss': '0.01363', 'admm_loss': '0.94502', 'psnr': '32.05', 'point': 26163}
+2025-03-22 04:57:35,271 - INFO - {'Loss': '0.38668', 'admm_loss': '0.94115', 'psnr': '32.84', 'point': 26163}
+2025-03-22 04:57:36,034 - INFO - {'Loss': '0.01474', 'admm_loss': '0.93539', 'psnr': '32.45', 'point': 26163}
+2025-03-22 04:57:36,670 - INFO - {'Loss': '0.01312', 'admm_loss': '0.93536', 'psnr': '32.82', 'point': 26163}
+2025-03-22 04:57:37,290 - INFO - {'Loss': '0.01246', 'admm_loss': '0.93536', 'psnr': '33.07', 'point': 26163}
+2025-03-22 04:57:37,922 - INFO - {'Loss': '0.01240', 'admm_loss': '0.93536', 'psnr': '33.26', 'point': 26163}
+2025-03-22 04:57:38,542 - INFO - {'Loss': '0.37997', 'admm_loss': '0.92825', 'psnr': '32.42', 'point': 26163}
+2025-03-22 04:57:39,308 - INFO - {'Loss': '0.01509', 'admm_loss': '0.91765', 'psnr': '32.34', 'point': 26163}
+2025-03-22 04:57:39,946 - INFO - {'Loss': '0.01299', 'admm_loss': '0.91759', 'psnr': '33.09', 'point': 26163}
+2025-03-22 04:57:40,571 - INFO - {'Loss': '0.01365', 'admm_loss': '0.91759', 'psnr': '31.08', 'point': 26163}
+2025-03-22 04:57:41,205 - INFO - {'Loss': '0.01263', 'admm_loss': '0.91759', 'psnr': '32.79', 'point': 26163}
+2025-03-22 04:57:41,839 - INFO - {'Loss': '0.36207', 'admm_loss': '0.90049', 'psnr': '33.84', 'point': 26163}
+2025-03-22 04:57:42,603 - INFO - {'Loss': '0.01447', 'admm_loss': '0.87500', 'psnr': '32.70', 'point': 26163}
+2025-03-22 04:57:43,242 - INFO - {'Loss': '0.01321', 'admm_loss': '0.87484', 'psnr': '31.80', 'point': 26163}
+2025-03-22 04:57:43,867 - INFO - {'Loss': '0.01349', 'admm_loss': '0.87484', 'psnr': '32.79', 'point': 26163}
+2025-03-22 04:57:44,493 - INFO - {'Loss': '0.01304', 'admm_loss': '0.87484', 'psnr': '32.46', 'point': 26163}
+2025-03-22 04:57:45,130 - INFO - {'Loss': '0.35827', 'admm_loss': '0.87053', 'psnr': '32.27', 'point': 26163}
+2025-03-22 04:57:45,896 - INFO - {'Loss': '0.01436', 'admm_loss': '0.86410', 'psnr': '33.41', 'point': 26163}
+2025-03-22 04:57:46,540 - INFO - {'Loss': '0.01287', 'admm_loss': '0.86406', 'psnr': '32.58', 'point': 26163}
+2025-03-22 04:57:47,191 - INFO - {'Loss': '0.01299', 'admm_loss': '0.86406', 'psnr': '33.53', 'point': 26163}
+2025-03-22 04:57:47,824 - INFO - {'Loss': '0.01269', 'admm_loss': '0.86406', 'psnr': '33.16', 'point': 26163}
+2025-03-22 04:57:48,464 - INFO - {'Loss': '0.35394', 'admm_loss': '0.85920', 'psnr': '33.19', 'point': 26163}
+2025-03-22 04:57:49,249 - INFO - {'Loss': '0.01472', 'admm_loss': '0.85196', 'psnr': '32.65', 'point': 26163}
+2025-03-22 04:57:49,880 - INFO - {'Loss': '0.01341', 'admm_loss': '0.85191', 'psnr': '32.56', 'point': 26163}
+2025-03-22 04:57:50,512 - INFO - {'Loss': '0.01387', 'admm_loss': '0.85191', 'psnr': '31.24', 'point': 26163}
+2025-03-22 04:57:51,128 - INFO - {'Loss': '0.01247', 'admm_loss': '0.85191', 'psnr': '32.85', 'point': 26163}
+2025-03-22 04:57:51,747 - INFO - {'Loss': '0.33742', 'admm_loss': '0.83598', 'psnr': '32.93', 'point': 26163}
+2025-03-22 04:57:52,398 - INFO - {'Loss': '0.01448', 'admm_loss': '0.81222', 'psnr': '33.03', 'point': 26163}
+2025-03-22 04:57:53,134 - INFO - {'Loss': '0.01219', 'admm_loss': '0.81208', 'psnr': '33.61', 'point': 26163}
+2025-03-22 04:57:53,759 - INFO - {'Loss': '0.01277', 'admm_loss': '0.81208', 'psnr': '33.02', 'point': 26163}
+2025-03-22 04:57:54,393 - INFO - {'Loss': '0.01379', 'admm_loss': '0.81208', 'psnr': '31.47', 'point': 26163}
+2025-03-22 04:57:55,027 - INFO - {'Loss': '0.33648', 'admm_loss': '0.80971', 'psnr': '31.76', 'point': 26163}
+2025-03-22 04:57:55,680 - INFO - {'Loss': '0.01504', 'admm_loss': '0.80618', 'psnr': '32.09', 'point': 26163}
+2025-03-22 04:57:56,314 - INFO - {'Loss': '0.01300', 'admm_loss': '0.80616', 'psnr': '32.77', 'point': 26163}
+2025-03-22 04:57:56,949 - INFO - {'Loss': '0.01236', 'admm_loss': '0.80616', 'psnr': '33.45', 'point': 26163}
+2025-03-22 04:57:57,578 - INFO - {'Loss': '0.01389', 'admm_loss': '0.80616', 'psnr': '30.79', 'point': 26163}
+2025-03-22 04:57:58,213 - INFO - {'Loss': '0.32954', 'admm_loss': '0.80119', 'psnr': '33.33', 'point': 26163}
+2025-03-22 04:57:58,989 - INFO - {'Loss': '0.01449', 'admm_loss': '0.79378', 'psnr': '32.27', 'point': 26163}
+2025-03-22 04:57:59,622 - INFO - {'Loss': '0.01219', 'admm_loss': '0.79374', 'psnr': '32.73', 'point': 26163}
+2025-03-22 04:58:00,257 - INFO - {'Loss': '0.01225', 'admm_loss': '0.79374', 'psnr': '33.08', 'point': 26163}
+2025-03-22 04:58:00,874 - INFO - {'Loss': '0.01169', 'admm_loss': '0.79374', 'psnr': '33.50', 'point': 26163}
+2025-03-22 04:58:01,513 - INFO - {'Loss': '0.31926', 'admm_loss': '0.78249', 'psnr': '32.97', 'point': 26163}
+2025-03-22 04:58:02,289 - INFO - {'Loss': '0.01564', 'admm_loss': '0.76574', 'psnr': '31.49', 'point': 26163}
+2025-03-22 04:58:02,930 - INFO - {'Loss': '0.01285', 'admm_loss': '0.76563', 'psnr': '32.69', 'point': 26163}
+2025-03-22 04:58:03,552 - INFO - {'Loss': '0.01353', 'admm_loss': '0.76563', 'psnr': '32.96', 'point': 26163}
+2025-03-22 04:58:04,174 - INFO - {'Loss': '0.01252', 'admm_loss': '0.76563', 'psnr': '32.49', 'point': 26163}
+2025-03-22 04:58:04,806 - INFO - {'Loss': '0.31626', 'admm_loss': '0.76194', 'psnr': '31.14', 'point': 26163}
+2025-03-22 04:58:05,576 - INFO - {'Loss': '0.01430', 'admm_loss': '0.75644', 'psnr': '32.90', 'point': 26163}
+2025-03-22 04:58:06,212 - INFO - {'Loss': '0.01233', 'admm_loss': '0.75641', 'psnr': '32.30', 'point': 26163}
+2025-03-22 04:58:06,844 - INFO - {'Loss': '0.01186', 'admm_loss': '0.75641', 'psnr': '33.68', 'point': 26163}
+2025-03-22 04:58:07,473 - INFO - {'Loss': '0.01286', 'admm_loss': '0.75641', 'psnr': '31.64', 'point': 26163}
+2025-03-22 04:58:08,100 - INFO - {'Loss': '0.31239', 'admm_loss': '0.75383', 'psnr': '31.13', 'point': 26163}
+2025-03-22 04:58:08,872 - INFO - {'Loss': '0.01379', 'admm_loss': '0.74998', 'psnr': '32.40', 'point': 26163}
+2025-03-22 04:58:09,516 - INFO - {'Loss': '0.01237', 'admm_loss': '0.74995', 'psnr': '32.80', 'point': 26163}
+2025-03-22 04:58:10,145 - INFO - {'Loss': '0.01283', 'admm_loss': '0.74995', 'psnr': '32.57', 'point': 26163}
+2025-03-22 04:58:10,782 - INFO - {'Loss': '0.01335', 'admm_loss': '0.74995', 'psnr': '32.00', 'point': 26163}
+2025-03-22 04:58:11,412 - INFO - {'Loss': '0.30215', 'admm_loss': '0.73979', 'psnr': '32.78', 'point': 26163}
+2025-03-22 04:58:12,199 - INFO - {'Loss': '0.01526', 'admm_loss': '0.72463', 'psnr': '32.19', 'point': 26163}
+2025-03-22 04:58:12,845 - INFO - {'Loss': '0.01246', 'admm_loss': '0.72454', 'psnr': '33.37', 'point': 26163}
+2025-03-22 04:58:13,490 - INFO - {'Loss': '0.01228', 'admm_loss': '0.72454', 'psnr': '32.77', 'point': 26163}
+2025-03-22 04:58:14,142 - INFO - {'Loss': '0.01318', 'admm_loss': '0.72454', 'psnr': '31.14', 'point': 26163}
+2025-03-22 04:58:14,800 - INFO - {'Loss': '0.30102', 'admm_loss': '0.72307', 'psnr': '33.10', 'point': 26163}
+2025-03-22 04:58:15,481 - INFO - {'Loss': '0.01559', 'admm_loss': '0.72089', 'psnr': '31.21', 'point': 26163}
+2025-03-22 04:58:16,256 - INFO - {'Loss': '0.01184', 'admm_loss': '0.72088', 'psnr': '33.10', 'point': 26163}
+2025-03-22 04:58:16,906 - INFO - {'Loss': '0.01197', 'admm_loss': '0.72088', 'psnr': '32.59', 'point': 26163}
+2025-03-22 04:58:17,548 - INFO - {'Loss': '0.01332', 'admm_loss': '0.72088', 'psnr': '32.41', 'point': 26163}
+2025-03-22 04:58:18,189 - INFO - {'Loss': '0.29707', 'admm_loss': '0.71691', 'psnr': '32.19', 'point': 26163}
+2025-03-22 04:58:18,865 - INFO - {'Loss': '0.01437', 'admm_loss': '0.71100', 'psnr': '32.49', 'point': 26163}
+2025-03-22 04:58:19,520 - INFO - {'Loss': '0.01179', 'admm_loss': '0.71096', 'psnr': '33.65', 'point': 26163}
+2025-03-22 04:58:20,163 - INFO - {'Loss': '0.01514', 'admm_loss': '0.71096', 'psnr': '29.93', 'point': 26163}
+2025-03-22 04:58:20,797 - INFO - {'Loss': '0.01320', 'admm_loss': '0.71096', 'psnr': '32.53', 'point': 26163}
+2025-03-22 04:58:21,443 - INFO - {'Loss': '0.29057', 'admm_loss': '0.70493', 'psnr': '32.74', 'point': 26163}
+2025-03-22 04:58:22,226 - INFO - {'Loss': '0.01561', 'admm_loss': '0.69593', 'psnr': '30.90', 'point': 26163}
+2025-03-22 04:58:22,886 - INFO - {'Loss': '0.01308', 'admm_loss': '0.69588', 'psnr': '32.21', 'point': 26163}
+2025-03-22 04:58:23,518 - INFO - {'Loss': '0.01252', 'admm_loss': '0.69588', 'psnr': '32.29', 'point': 26163}
+2025-03-22 04:58:24,155 - INFO - {'Loss': '0.01153', 'admm_loss': '0.69588', 'psnr': '33.66', 'point': 26163}
+2025-03-22 04:58:24,806 - INFO - {'Loss': '0.28789', 'admm_loss': '0.69320', 'psnr': '33.92', 'point': 26163}
+2025-03-22 04:58:25,682 - INFO - {'Loss': '0.01362', 'admm_loss': '0.68921', 'psnr': '32.40', 'point': 26163}
+2025-03-22 04:58:26,348 - INFO - {'Loss': '0.01243', 'admm_loss': '0.68918', 'psnr': '34.02', 'point': 26163}
+2025-03-22 04:58:26,987 - INFO - {'Loss': '0.01288', 'admm_loss': '0.68918', 'psnr': '31.94', 'point': 26163}
+2025-03-22 04:58:27,648 - INFO - {'Loss': '0.01241', 'admm_loss': '0.68918', 'psnr': '32.30', 'point': 26163}
+2025-03-22 04:58:28,283 - INFO - {'Loss': '0.28683', 'admm_loss': '0.68804', 'psnr': '33.52', 'point': 26163}
+2025-03-22 04:58:29,064 - INFO - {'Loss': '0.01478', 'admm_loss': '0.68632', 'psnr': '32.80', 'point': 26163}
+2025-03-22 04:58:29,723 - INFO - {'Loss': '0.01261', 'admm_loss': '0.68631', 'psnr': '32.49', 'point': 26163}
+2025-03-22 04:58:30,360 - INFO - {'Loss': '0.01280', 'admm_loss': '0.68631', 'psnr': '32.61', 'point': 26163}
+2025-03-22 04:58:31,003 - INFO - {'Loss': '0.01402', 'admm_loss': '0.68631', 'psnr': '32.24', 'point': 26163}
+2025-03-22 04:58:31,643 - INFO - {'Loss': '0.28007', 'admm_loss': '0.67955', 'psnr': '33.28', 'point': 26163}
+2025-03-22 04:58:32,427 - INFO - {'Loss': '0.01406', 'admm_loss': '0.66947', 'psnr': '32.46', 'point': 26163}
+2025-03-22 04:58:33,083 - INFO - {'Loss': '0.01217', 'admm_loss': '0.66941', 'psnr': '32.49', 'point': 26163}
+2025-03-22 04:58:33,730 - INFO - {'Loss': '0.01317', 'admm_loss': '0.66940', 'psnr': '33.33', 'point': 26163}
+2025-03-22 04:58:34,376 - INFO - {'Loss': '0.01221', 'admm_loss': '0.66940', 'psnr': '32.60', 'point': 26163}
+2025-03-22 04:58:35,028 - INFO - {'Loss': '0.28156', 'admm_loss': '0.66922', 'psnr': '31.86', 'point': 26163}
+2025-03-22 04:58:35,815 - INFO - {'Loss': '0.01545', 'admm_loss': '0.66895', 'psnr': '31.62', 'point': 26163}
+2025-03-22 04:58:36,458 - INFO - {'Loss': '0.01245', 'admm_loss': '0.66895', 'psnr': '32.75', 'point': 26163}
+2025-03-22 04:58:37,094 - INFO - {'Loss': '0.01305', 'admm_loss': '0.66895', 'psnr': '32.11', 'point': 26163}
+2025-03-22 04:58:37,723 - INFO - {'Loss': '0.01344', 'admm_loss': '0.66895', 'psnr': '32.42', 'point': 26163}
+2025-03-22 04:58:38,358 - INFO - {'Loss': '0.27717', 'admm_loss': '0.66603', 'psnr': '32.38', 'point': 26163}
+2025-03-22 04:58:39,024 - INFO - {'Loss': '0.01314', 'admm_loss': '0.66168', 'psnr': '33.75', 'point': 26163}
+2025-03-22 04:58:39,771 - INFO - {'Loss': '0.01340', 'admm_loss': '0.66165', 'psnr': '31.64', 'point': 26163}
+2025-03-22 04:58:40,407 - INFO - {'Loss': '0.01170', 'admm_loss': '0.66165', 'psnr': '33.61', 'point': 26163}
+2025-03-22 04:58:41,040 - INFO - {'Loss': '0.01305', 'admm_loss': '0.66165', 'psnr': '33.11', 'point': 26163}
+2025-03-22 04:58:41,688 - INFO - {'Loss': '0.27557', 'admm_loss': '0.65863', 'psnr': '32.91', 'point': 26163}
+2025-03-22 04:58:42,354 - INFO - {'Loss': '0.01601', 'admm_loss': '0.65411', 'psnr': '31.25', 'point': 26163}
+2025-03-22 04:58:43,121 - INFO - {'Loss': '0.01249', 'admm_loss': '0.65409', 'psnr': '32.14', 'point': 26163}
+2025-03-22 04:58:43,764 - INFO - {'Loss': '0.01297', 'admm_loss': '0.65409', 'psnr': '31.89', 'point': 26163}
+2025-03-22 04:58:44,414 - INFO - {'Loss': '0.01243', 'admm_loss': '0.65409', 'psnr': '32.41', 'point': 26163}
+2025-03-22 04:58:45,057 - INFO - {'Loss': '0.27224', 'admm_loss': '0.65209', 'psnr': '32.68', 'point': 26163}
+2025-03-22 04:58:45,728 - INFO - {'Loss': '0.01434', 'admm_loss': '0.64911', 'psnr': '32.27', 'point': 26163}
+2025-03-22 04:58:46,361 - INFO - {'Loss': '0.01248', 'admm_loss': '0.64909', 'psnr': '33.07', 'point': 26163}
+2025-03-22 04:58:47,000 - INFO - {'Loss': '0.01373', 'admm_loss': '0.64909', 'psnr': '31.72', 'point': 26163}
+2025-03-22 04:58:47,643 - INFO - {'Loss': '0.01272', 'admm_loss': '0.64909', 'psnr': '32.66', 'point': 26163}
+2025-03-22 04:58:48,296 - INFO - {'Loss': '0.27221', 'admm_loss': '0.64913', 'psnr': '31.50', 'point': 26163}
+2025-03-22 04:58:49,083 - INFO - {'Loss': '0.01425', 'admm_loss': '0.64919', 'psnr': '32.24', 'point': 26163}
+2025-03-22 04:58:49,730 - INFO - {'Loss': '0.01247', 'admm_loss': '0.64919', 'psnr': '32.41', 'point': 26163}
+2025-03-22 04:58:50,369 - INFO - {'Loss': '0.01214', 'admm_loss': '0.64919', 'psnr': '33.12', 'point': 26163}
+2025-03-22 04:58:51,008 - INFO - {'Loss': '0.01205', 'admm_loss': '0.64919', 'psnr': '33.13', 'point': 26163}
+2025-03-22 04:58:51,660 - INFO - {'Loss': '0.26619', 'admm_loss': '0.64434', 'psnr': '33.58', 'point': 26163}
+2025-03-22 04:58:52,447 - INFO - {'Loss': '0.01479', 'admm_loss': '0.63712', 'psnr': '31.56', 'point': 26163}
+2025-03-22 04:58:53,100 - INFO - {'Loss': '0.01192', 'admm_loss': '0.63708', 'psnr': '33.39', 'point': 26163}
+2025-03-22 04:58:53,755 - INFO - {'Loss': '0.01310', 'admm_loss': '0.63708', 'psnr': '32.05', 'point': 26163}
+2025-03-22 04:58:54,400 - INFO - {'Loss': '0.01244', 'admm_loss': '0.63708', 'psnr': '33.16', 'point': 26163}
+2025-03-22 04:58:55,042 - INFO - {'Loss': '0.26839', 'admm_loss': '0.63792', 'psnr': '33.67', 'point': 26163}
+2025-03-22 04:58:55,829 - INFO - {'Loss': '0.01407', 'admm_loss': '0.63918', 'psnr': '33.30', 'point': 26163}
+2025-03-22 04:58:56,483 - INFO - {'Loss': '0.01340', 'admm_loss': '0.63919', 'psnr': '31.84', 'point': 26163}
+2025-03-22 04:58:57,129 - INFO - {'Loss': '0.01288', 'admm_loss': '0.63919', 'psnr': '33.26', 'point': 26163}
+2025-03-22 04:58:57,770 - INFO - {'Loss': '0.01344', 'admm_loss': '0.63919', 'psnr': '31.38', 'point': 26163}
+2025-03-22 04:58:58,407 - INFO - {'Loss': '0.26527', 'admm_loss': '0.63674', 'psnr': '32.60', 'point': 26163}
+2025-03-22 04:58:59,196 - INFO - {'Loss': '0.01379', 'admm_loss': '0.63309', 'psnr': '32.34', 'point': 26163}
+2025-03-22 04:58:59,852 - INFO - {'Loss': '0.01318', 'admm_loss': '0.63306', 'psnr': '31.77', 'point': 26163}
+2025-03-22 04:59:00,484 - INFO - {'Loss': '0.01277', 'admm_loss': '0.63306', 'psnr': '32.46', 'point': 26163}
+2025-03-22 04:59:01,132 - INFO - {'Loss': '0.01204', 'admm_loss': '0.63306', 'psnr': '32.90', 'point': 26163}
+2025-03-22 04:59:01,778 - INFO - {'Loss': '0.26430', 'admm_loss': '0.63124', 'psnr': '32.29', 'point': 26163}
+2025-03-22 04:59:02,564 - INFO - {'Loss': '0.01355', 'admm_loss': '0.62853', 'psnr': '33.64', 'point': 26163}
+2025-03-22 04:59:03,229 - INFO - {'Loss': '0.01219', 'admm_loss': '0.62852', 'psnr': '33.59', 'point': 26163}
+2025-03-22 04:59:03,865 - INFO - {'Loss': '0.01275', 'admm_loss': '0.62851', 'psnr': '33.74', 'point': 26163}
+2025-03-22 04:59:04,509 - INFO - {'Loss': '0.01231', 'admm_loss': '0.62851', 'psnr': '34.12', 'point': 26163}
+2025-03-22 04:59:05,135 - INFO - {'Loss': '0.26216', 'admm_loss': '0.62697', 'psnr': '32.86', 'point': 26163}
+2025-03-22 04:59:05,806 - INFO - {'Loss': '0.01334', 'admm_loss': '0.62466', 'psnr': '33.95', 'point': 26163}
+2025-03-22 04:59:06,555 - INFO - {'Loss': '0.01286', 'admm_loss': '0.62465', 'psnr': '32.71', 'point': 26163}
+2025-03-22 04:59:07,200 - INFO - {'Loss': '0.01315', 'admm_loss': '0.62465', 'psnr': '32.23', 'point': 26163}
+2025-03-22 04:59:07,849 - INFO - {'Loss': '0.01249', 'admm_loss': '0.62465', 'psnr': '33.87', 'point': 26163}
+2025-03-22 04:59:08,497 - INFO - {'Loss': '0.25744', 'admm_loss': '0.61943', 'psnr': '32.55', 'point': 26163}
+2025-03-22 04:59:09,161 - INFO - {'Loss': '0.01411', 'admm_loss': '0.61166', 'psnr': '32.98', 'point': 26163}
+2025-03-22 04:59:09,832 - INFO - {'Loss': '0.01261', 'admm_loss': '0.61161', 'psnr': '33.39', 'point': 26163}
+2025-03-22 04:59:10,461 - INFO - {'Loss': '0.01197', 'admm_loss': '0.61161', 'psnr': '33.76', 'point': 26163}
+2025-03-22 04:59:11,076 - INFO - {'Loss': '0.01252', 'admm_loss': '0.61161', 'psnr': '32.52', 'point': 26163}
+2025-03-22 04:59:11,701 - INFO - {'Loss': '0.26874', 'admm_loss': '0.62325', 'psnr': '33.68', 'point': 26163}
+2025-03-22 04:59:13,479 - INFO - {'Loss': '0.01417', 'admm_loss': '0.64060', 'psnr': '31.61', 'point': 26163}
+2025-03-22 04:59:14,149 - INFO - {'Loss': '0.01174', 'admm_loss': '0.64070', 'psnr': '33.84', 'point': 26163}
+2025-03-22 04:59:14,794 - INFO - {'Loss': '0.01215', 'admm_loss': '0.64070', 'psnr': '33.45', 'point': 26163}
+2025-03-22 04:59:15,444 - INFO - {'Loss': '0.01326', 'admm_loss': '0.64070', 'psnr': '32.29', 'point': 26163}
+2025-03-22 04:59:16,116 - INFO - {'Loss': '0.25724', 'admm_loss': '0.62966', 'psnr': '33.28', 'point': 26163}
+2025-03-22 04:59:16,897 - INFO - {'Loss': '0.01350', 'admm_loss': '0.61320', 'psnr': '33.09', 'point': 26163}
+2025-03-22 04:59:17,556 - INFO - {'Loss': '0.01317', 'admm_loss': '0.61311', 'psnr': '32.14', 'point': 26163}
+2025-03-22 04:59:18,219 - INFO - {'Loss': '0.01208', 'admm_loss': '0.61310', 'psnr': '33.37', 'point': 26163}
+2025-03-22 04:59:18,869 - INFO - {'Loss': '0.01299', 'admm_loss': '0.61310', 'psnr': '33.20', 'point': 26163}
+2025-03-22 04:59:19,522 - INFO - {'Loss': '0.26959', 'admm_loss': '0.62548', 'psnr': '32.74', 'point': 26163}
+2025-03-22 04:59:20,325 - INFO - {'Loss': '0.01390', 'admm_loss': '0.64392', 'psnr': '32.07', 'point': 26163}
+2025-03-22 04:59:20,997 - INFO - {'Loss': '0.01189', 'admm_loss': '0.64403', 'psnr': '33.75', 'point': 26163}
+2025-03-22 04:59:21,657 - INFO - {'Loss': '0.01245', 'admm_loss': '0.64403', 'psnr': '32.88', 'point': 26163}
+2025-03-22 04:59:22,307 - INFO - {'Loss': '0.01196', 'admm_loss': '0.64403', 'psnr': '33.60', 'point': 26163}
+2025-03-22 04:59:22,963 - INFO - {'Loss': '0.25769', 'admm_loss': '0.63227', 'psnr': '33.15', 'point': 26163}
+2025-03-22 04:59:23,739 - INFO - {'Loss': '0.01543', 'admm_loss': '0.61474', 'psnr': '31.86', 'point': 26163}
+2025-03-22 04:59:24,402 - INFO - {'Loss': '0.01196', 'admm_loss': '0.61464', 'psnr': '34.13', 'point': 26163}
+2025-03-22 04:59:25,057 - INFO - {'Loss': '0.01245', 'admm_loss': '0.61464', 'psnr': '32.22', 'point': 26163}
+2025-03-22 04:59:25,711 - INFO - {'Loss': '0.01278', 'admm_loss': '0.61464', 'psnr': '32.25', 'point': 26163}
+2025-03-22 04:59:26,376 - INFO - {'Loss': '0.26949', 'admm_loss': '0.62623', 'psnr': '33.05', 'point': 26163}
+2025-03-22 04:59:27,180 - INFO - {'Loss': '0.01453', 'admm_loss': '0.64352', 'psnr': '32.14', 'point': 26163}
+2025-03-22 04:59:27,826 - INFO - {'Loss': '0.01318', 'admm_loss': '0.64363', 'psnr': '32.45', 'point': 26163}
+2025-03-22 04:59:28,477 - INFO - {'Loss': '0.01371', 'admm_loss': '0.64363', 'psnr': '32.03', 'point': 26163}
+2025-03-22 04:59:29,128 - INFO - {'Loss': '0.01168', 'admm_loss': '0.64363', 'psnr': '33.70', 'point': 26163}
+2025-03-22 04:59:29,781 - INFO - {'Loss': '0.25738', 'admm_loss': '0.63216', 'psnr': '33.42', 'point': 26163}
+2025-03-22 04:59:30,455 - INFO - {'Loss': '0.01326', 'admm_loss': '0.61507', 'psnr': '33.34', 'point': 26163}
+2025-03-22 04:59:31,227 - INFO - {'Loss': '0.01173', 'admm_loss': '0.61496', 'psnr': '33.60', 'point': 26163}
+2025-03-22 04:59:31,883 - INFO - {'Loss': '0.01147', 'admm_loss': '0.61496', 'psnr': '34.02', 'point': 26163}
+2025-03-22 04:59:32,525 - INFO - {'Loss': '0.01223', 'admm_loss': '0.61496', 'psnr': '32.24', 'point': 26163}
+2025-03-22 04:59:33,150 - INFO - {'Loss': '0.26757', 'admm_loss': '0.62460', 'psnr': '32.68', 'point': 26163}
+2025-03-22 04:59:33,809 - INFO - {'Loss': '0.01332', 'admm_loss': '0.63897', 'psnr': '33.50', 'point': 26163}
+2025-03-22 04:59:34,452 - INFO - {'Loss': '0.01202', 'admm_loss': '0.63906', 'psnr': '32.67', 'point': 26163}
+2025-03-22 04:59:35,104 - INFO - {'Loss': '0.01269', 'admm_loss': '0.63906', 'psnr': '32.56', 'point': 26163}
+2025-03-22 04:59:35,772 - INFO - {'Loss': '0.01207', 'admm_loss': '0.63906', 'psnr': '32.66', 'point': 26163}
+2025-03-22 04:59:36,384 - INFO - {'Loss': '0.25593', 'admm_loss': '0.62789', 'psnr': '34.18', 'point': 26163}
+2025-03-22 04:59:37,169 - INFO - {'Loss': '0.01422', 'admm_loss': '0.61123', 'psnr': '32.74', 'point': 26163}
+2025-03-22 04:59:37,827 - INFO - {'Loss': '0.01292', 'admm_loss': '0.61113', 'psnr': '33.45', 'point': 26163}
+2025-03-22 04:59:38,467 - INFO - {'Loss': '0.01334', 'admm_loss': '0.61113', 'psnr': '31.26', 'point': 26163}
+2025-03-22 04:59:39,116 - INFO - {'Loss': '0.01160', 'admm_loss': '0.61113', 'psnr': '34.34', 'point': 26163}
+2025-03-22 04:59:39,756 - INFO - {'Loss': '0.26864', 'admm_loss': '0.62229', 'psnr': '32.37', 'point': 26163}
+2025-03-22 04:59:40,539 - INFO - {'Loss': '0.01451', 'admm_loss': '0.63893', 'psnr': '32.49', 'point': 26163}
+2025-03-22 04:59:41,175 - INFO - {'Loss': '0.01268', 'admm_loss': '0.63903', 'psnr': '32.19', 'point': 26163}
+2025-03-22 04:59:41,824 - INFO - {'Loss': '0.01328', 'admm_loss': '0.63903', 'psnr': '32.76', 'point': 26163}
+2025-03-22 04:59:42,476 - INFO - {'Loss': '0.01286', 'admm_loss': '0.63903', 'psnr': '32.94', 'point': 26163}
+2025-03-22 04:59:43,133 - INFO - {'Loss': '0.25770', 'admm_loss': '0.62804', 'psnr': '31.66', 'point': 26163}
+2025-03-22 04:59:43,929 - INFO - {'Loss': '0.01454', 'admm_loss': '0.61166', 'psnr': '31.40', 'point': 26163}
+2025-03-22 04:59:44,590 - INFO - {'Loss': '0.01270', 'admm_loss': '0.61156', 'psnr': '32.30', 'point': 26163}
+2025-03-22 04:59:45,238 - INFO - {'Loss': '0.01159', 'admm_loss': '0.61156', 'psnr': '33.50', 'point': 26163}
+2025-03-22 04:59:45,890 - INFO - {'Loss': '0.01237', 'admm_loss': '0.61156', 'psnr': '32.53', 'point': 26163}
+2025-03-22 04:59:46,545 - INFO - {'Loss': '0.26741', 'admm_loss': '0.62233', 'psnr': '33.41', 'point': 26163}
+2025-03-22 04:59:47,334 - INFO - {'Loss': '0.01378', 'admm_loss': '0.63839', 'psnr': '32.61', 'point': 26163}
+2025-03-22 04:59:47,988 - INFO - {'Loss': '0.01318', 'admm_loss': '0.63849', 'psnr': '32.21', 'point': 26163}
+2025-03-22 04:59:48,630 - INFO - {'Loss': '0.01202', 'admm_loss': '0.63849', 'psnr': '32.42', 'point': 26163}
+2025-03-22 04:59:49,283 - INFO - {'Loss': '0.01248', 'admm_loss': '0.63849', 'psnr': '33.84', 'point': 26163}
+2025-03-22 04:59:49,934 - INFO - {'Loss': '0.25637', 'admm_loss': '0.62779', 'psnr': '33.22', 'point': 26163}
+2025-03-22 04:59:50,727 - INFO - {'Loss': '0.01477', 'admm_loss': '0.61185', 'psnr': '31.89', 'point': 26163}
+2025-03-22 04:59:51,383 - INFO - {'Loss': '0.01125', 'admm_loss': '0.61176', 'psnr': '34.03', 'point': 26163}
+2025-03-22 04:59:52,041 - INFO - {'Loss': '0.01227', 'admm_loss': '0.61176', 'psnr': '32.45', 'point': 26163}
+2025-03-22 04:59:52,712 - INFO - {'Loss': '0.01164', 'admm_loss': '0.61176', 'psnr': '33.83', 'point': 26163}
+2025-03-22 04:59:53,364 - INFO - {'Loss': '0.26595', 'admm_loss': '0.62021', 'psnr': '31.68', 'point': 26163}
+2025-03-22 04:59:54,057 - INFO - {'Loss': '0.01348', 'admm_loss': '0.63281', 'psnr': '33.43', 'point': 26163}
+2025-03-22 04:59:54,843 - INFO - {'Loss': '0.01243', 'admm_loss': '0.63289', 'psnr': '32.89', 'point': 26163}
+2025-03-22 04:59:55,506 - INFO - {'Loss': '0.01230', 'admm_loss': '0.63289', 'psnr': '33.84', 'point': 26163}
+2025-03-22 04:59:56,154 - INFO - {'Loss': '0.01158', 'admm_loss': '0.63289', 'psnr': '33.52', 'point': 26163}
+2025-03-22 04:59:56,817 - INFO - {'Loss': '0.25408', 'admm_loss': '0.62198', 'psnr': '32.63', 'point': 26163}
+2025-03-22 04:59:57,509 - INFO - {'Loss': '0.01333', 'admm_loss': '0.60573', 'psnr': '33.59', 'point': 26163}
+2025-03-22 04:59:58,170 - INFO - {'Loss': '0.01261', 'admm_loss': '0.60563', 'psnr': '32.01', 'point': 26163}
+2025-03-22 04:59:58,836 - INFO - {'Loss': '0.01198', 'admm_loss': '0.60563', 'psnr': '33.30', 'point': 26163}
+2025-03-22 04:59:59,497 - INFO - {'Loss': '0.01121', 'admm_loss': '0.60563', 'psnr': '34.27', 'point': 26163}
+2025-03-22 05:00:00,170 - INFO - {'Loss': '0.26602', 'admm_loss': '0.61795', 'psnr': '33.63', 'point': 26163}
+2025-03-22 05:00:00,991 - INFO - {'Loss': '0.01357', 'admm_loss': '0.63631', 'psnr': '33.21', 'point': 26163}
+2025-03-22 05:00:01,680 - INFO - {'Loss': '0.01338', 'admm_loss': '0.63642', 'psnr': '31.59', 'point': 26163}
+2025-03-22 05:00:02,335 - INFO - {'Loss': '0.01322', 'admm_loss': '0.63642', 'psnr': '31.37', 'point': 26163}
+2025-03-22 05:00:03,001 - INFO - {'Loss': '0.01206', 'admm_loss': '0.63642', 'psnr': '32.44', 'point': 26163}
+2025-03-22 05:00:03,687 - INFO - {'Loss': '0.25474', 'admm_loss': '0.62475', 'psnr': '33.83', 'point': 26163}
+2025-03-22 05:00:04,494 - INFO - {'Loss': '0.01348', 'admm_loss': '0.60734', 'psnr': '32.46', 'point': 26163}
+2025-03-22 05:00:05,147 - INFO - {'Loss': '0.01189', 'admm_loss': '0.60724', 'psnr': '33.90', 'point': 26163}
+2025-03-22 05:00:05,772 - INFO - {'Loss': '0.01217', 'admm_loss': '0.60724', 'psnr': '32.74', 'point': 26163}
+2025-03-22 05:00:06,426 - INFO - {'Loss': '0.01256', 'admm_loss': '0.60724', 'psnr': '33.64', 'point': 26163}
+2025-03-22 05:00:07,100 - INFO - {'Loss': '0.26545', 'admm_loss': '0.61816', 'psnr': '34.19', 'point': 26163}
+2025-03-22 05:00:08,047 - INFO - {'Loss': '0.01365', 'admm_loss': '0.63443', 'psnr': '34.38', 'point': 26163}
+2025-03-22 05:00:08,745 - INFO - {'Loss': '0.01308', 'admm_loss': '0.63453', 'psnr': '31.35', 'point': 26163}
+2025-03-22 05:00:09,420 - INFO - {'Loss': '0.01124', 'admm_loss': '0.63453', 'psnr': '34.01', 'point': 26163}
+2025-03-22 05:00:10,109 - INFO - {'Loss': '0.01216', 'admm_loss': '0.63453', 'psnr': '31.89', 'point': 26163}
+2025-03-22 05:00:10,770 - INFO - {'Loss': '0.25365', 'admm_loss': '0.62266', 'psnr': '33.17', 'point': 26163}
+2025-03-22 05:00:11,577 - INFO - {'Loss': '0.01323', 'admm_loss': '0.60496', 'psnr': '33.28', 'point': 26163}
+2025-03-22 05:00:12,254 - INFO - {'Loss': '0.01115', 'admm_loss': '0.60485', 'psnr': '34.69', 'point': 26163}
+2025-03-22 05:00:12,939 - INFO - {'Loss': '0.01145', 'admm_loss': '0.60485', 'psnr': '32.86', 'point': 26163}
+2025-03-22 05:00:13,620 - INFO - {'Loss': '0.01248', 'admm_loss': '0.60485', 'psnr': '32.71', 'point': 26163}
+2025-03-22 05:00:14,299 - INFO - {'Loss': '0.26319', 'admm_loss': '0.61433', 'psnr': '33.78', 'point': 26163}
+2025-03-22 05:00:15,205 - INFO - {'Loss': '0.01377', 'admm_loss': '0.62846', 'psnr': '32.13', 'point': 26163}
+2025-03-22 05:00:15,896 - INFO - {'Loss': '0.01270', 'admm_loss': '0.62855', 'psnr': '32.32', 'point': 26163}
+2025-03-22 05:00:16,566 - INFO - {'Loss': '0.01172', 'admm_loss': '0.62855', 'psnr': '33.18', 'point': 26163}
+2025-03-22 05:00:17,234 - INFO - {'Loss': '0.01224', 'admm_loss': '0.62855', 'psnr': '33.14', 'point': 26163}
+2025-03-22 05:00:17,898 - INFO - {'Loss': '0.24987', 'admm_loss': '0.61479', 'psnr': '33.03', 'point': 26163}
+2025-03-22 05:00:18,593 - INFO - {'Loss': '0.01377', 'admm_loss': '0.59427', 'psnr': '31.95', 'point': 26163}
+2025-03-22 05:00:19,386 - INFO - {'Loss': '0.01193', 'admm_loss': '0.59414', 'psnr': '33.01', 'point': 26163}
+2025-03-22 05:00:20,065 - INFO - {'Loss': '0.01271', 'admm_loss': '0.59414', 'psnr': '31.99', 'point': 26163}
+2025-03-22 05:00:20,739 - INFO - {'Loss': '0.01164', 'admm_loss': '0.59414', 'psnr': '33.86', 'point': 26163}
+2025-03-22 05:00:21,423 - INFO - {'Loss': '0.26776', 'admm_loss': '0.61154', 'psnr': '32.45', 'point': 26163}
+2025-03-22 05:00:22,154 - INFO - {'Loss': '0.01356', 'admm_loss': '0.63748', 'psnr': '33.58', 'point': 26163}
+2025-03-22 05:00:22,839 - INFO - {'Loss': '0.01174', 'admm_loss': '0.63764', 'psnr': '33.43', 'point': 26163}
+2025-03-22 05:00:23,519 - INFO - {'Loss': '0.01214', 'admm_loss': '0.63764', 'psnr': '31.87', 'point': 26163}
+2025-03-22 05:00:24,206 - INFO - {'Loss': '0.01236', 'admm_loss': '0.63764', 'psnr': '32.03', 'point': 26163}
+2025-03-22 05:00:24,890 - INFO - {'Loss': '0.25020', 'admm_loss': '0.62042', 'psnr': '32.61', 'point': 26163}
+2025-03-22 05:00:25,692 - INFO - {'Loss': '0.01352', 'admm_loss': '0.59474', 'psnr': '31.71', 'point': 26163}
+2025-03-22 05:00:26,360 - INFO - {'Loss': '0.01193', 'admm_loss': '0.59458', 'psnr': '33.02', 'point': 26163}
+2025-03-22 05:00:27,035 - INFO - {'Loss': '0.01303', 'admm_loss': '0.59458', 'psnr': '31.90', 'point': 26163}
+2025-03-22 05:00:27,712 - INFO - {'Loss': '0.01127', 'admm_loss': '0.59458', 'psnr': '33.70', 'point': 26163}
+2025-03-22 05:00:28,378 - INFO - {'Loss': '0.26679', 'admm_loss': '0.61020', 'psnr': '31.46', 'point': 26163}
+2025-03-22 05:00:29,218 - INFO - {'Loss': '0.01535', 'admm_loss': '0.63348', 'psnr': '31.61', 'point': 26163}
+2025-03-22 05:00:29,895 - INFO - {'Loss': '0.01200', 'admm_loss': '0.63362', 'psnr': '32.98', 'point': 26163}
+2025-03-22 05:00:30,562 - INFO - {'Loss': '0.01355', 'admm_loss': '0.63362', 'psnr': '31.88', 'point': 26163}
+2025-03-22 05:00:31,199 - INFO - {'Loss': '0.01273', 'admm_loss': '0.63362', 'psnr': '31.17', 'point': 26163}
+2025-03-22 05:00:31,884 - INFO - {'Loss': '0.24929', 'admm_loss': '0.61733', 'psnr': '33.38', 'point': 26163}
+2025-03-22 05:00:32,714 - INFO - {'Loss': '0.01365', 'admm_loss': '0.59303', 'psnr': '32.31', 'point': 26163}
+2025-03-22 05:00:33,410 - INFO - {'Loss': '0.01178', 'admm_loss': '0.59288', 'psnr': '33.03', 'point': 26163}
+2025-03-22 05:00:34,084 - INFO - {'Loss': '0.01268', 'admm_loss': '0.59288', 'psnr': '32.57', 'point': 26163}
+2025-03-22 05:00:34,774 - INFO - {'Loss': '0.01246', 'admm_loss': '0.59288', 'psnr': '32.43', 'point': 26163}
+2025-03-22 05:00:35,442 - INFO - {'Loss': '0.26379', 'admm_loss': '0.60729', 'psnr': '32.92', 'point': 26163}
+2025-03-22 05:00:36,289 - INFO - {'Loss': '0.01367', 'admm_loss': '0.62876', 'psnr': '32.19', 'point': 26163}
+2025-03-22 05:00:36,964 - INFO - {'Loss': '0.01188', 'admm_loss': '0.62889', 'psnr': '33.72', 'point': 26163}
+2025-03-22 05:00:37,645 - INFO - {'Loss': '0.01188', 'admm_loss': '0.62889', 'psnr': '33.19', 'point': 26163}
+2025-03-22 05:00:38,304 - INFO - {'Loss': '0.01193', 'admm_loss': '0.62889', 'psnr': '32.18', 'point': 26163}
+2025-03-22 05:00:38,987 - INFO - {'Loss': '0.24775', 'admm_loss': '0.61308', 'psnr': '33.54', 'point': 26163}
+2025-03-22 05:00:39,808 - INFO - {'Loss': '0.01390', 'admm_loss': '0.58949', 'psnr': '33.89', 'point': 26163}
+2025-03-22 05:00:40,486 - INFO - {'Loss': '0.01205', 'admm_loss': '0.58935', 'psnr': '32.57', 'point': 26163}
+2025-03-22 05:00:41,143 - INFO - {'Loss': '0.01213', 'admm_loss': '0.58935', 'psnr': '33.41', 'point': 26163}
+2025-03-22 05:00:41,808 - INFO - {'Loss': '0.01251', 'admm_loss': '0.58935', 'psnr': '32.19', 'point': 26163}
+2025-03-22 05:00:42,489 - INFO - {'Loss': '0.26198', 'admm_loss': '0.60425', 'psnr': '34.07', 'point': 26163}
+2025-03-22 05:00:43,179 - INFO - {'Loss': '0.01250', 'admm_loss': '0.62647', 'psnr': '34.12', 'point': 26163}
+2025-03-22 05:00:43,982 - INFO - {'Loss': '0.01275', 'admm_loss': '0.62661', 'psnr': '31.29', 'point': 26163}
+2025-03-22 05:00:44,666 - INFO - {'Loss': '0.01186', 'admm_loss': '0.62661', 'psnr': '33.72', 'point': 26163}
+2025-03-22 05:00:45,343 - INFO - {'Loss': '0.01234', 'admm_loss': '0.62661', 'psnr': '32.85', 'point': 26163}
+2025-03-22 05:00:46,033 - INFO - {'Loss': '0.24422', 'admm_loss': '0.60909', 'psnr': '34.05', 'point': 26163}
+2025-03-22 05:00:46,731 - INFO - {'Loss': '0.01355', 'admm_loss': '0.58298', 'psnr': '34.21', 'point': 26163}
+2025-03-22 05:00:47,576 - INFO - {'Loss': '0.01148', 'admm_loss': '0.58282', 'psnr': '32.67', 'point': 26163}
+2025-03-22 05:00:48,246 - INFO - {'Loss': '0.01236', 'admm_loss': '0.58282', 'psnr': '32.54', 'point': 26163}
+2025-03-22 05:00:48,927 - INFO - {'Loss': '0.01179', 'admm_loss': '0.58282', 'psnr': '32.48', 'point': 26163}
+2025-03-22 05:00:49,611 - INFO - {'Loss': '0.26187', 'admm_loss': '0.60027', 'psnr': '33.68', 'point': 26163}
+2025-03-22 05:00:50,303 - INFO - {'Loss': '0.01375', 'admm_loss': '0.62628', 'psnr': '32.84', 'point': 26163}
+2025-03-22 05:00:50,975 - INFO - {'Loss': '0.01207', 'admm_loss': '0.62643', 'psnr': '32.90', 'point': 26163}
+2025-03-22 05:00:51,663 - INFO - {'Loss': '0.01225', 'admm_loss': '0.62643', 'psnr': '33.44', 'point': 26163}
+2025-03-22 05:00:52,346 - INFO - {'Loss': '0.01181', 'admm_loss': '0.62643', 'psnr': '33.32', 'point': 26163}
+2025-03-22 05:00:53,021 - INFO - {'Loss': '0.24443', 'admm_loss': '0.60822', 'psnr': '32.64', 'point': 26163}
+2025-03-22 05:00:53,826 - INFO - {'Loss': '0.01290', 'admm_loss': '0.58105', 'psnr': '33.63', 'point': 26163}
+2025-03-22 05:00:54,493 - INFO - {'Loss': '0.01261', 'admm_loss': '0.58089', 'psnr': '32.38', 'point': 26163}
+2025-03-22 05:00:55,162 - INFO - {'Loss': '0.01147', 'admm_loss': '0.58089', 'psnr': '33.39', 'point': 26163}
+2025-03-22 05:00:55,842 - INFO - {'Loss': '0.01144', 'admm_loss': '0.58089', 'psnr': '33.85', 'point': 26163}
+2025-03-22 05:00:56,531 - INFO - {'Loss': '0.26259', 'admm_loss': '0.59959', 'psnr': '33.93', 'point': 26163}
+2025-03-22 05:00:57,338 - INFO - {'Loss': '0.01306', 'admm_loss': '0.62749', 'psnr': '33.91', 'point': 26163}
+2025-03-22 05:00:58,027 - INFO - {'Loss': '0.01236', 'admm_loss': '0.62765', 'psnr': '32.28', 'point': 26163}
+2025-03-22 05:00:58,696 - INFO - {'Loss': '0.01179', 'admm_loss': '0.62766', 'psnr': '32.50', 'point': 26163}
+2025-03-22 05:00:59,377 - INFO - {'Loss': '0.01227', 'admm_loss': '0.62766', 'psnr': '32.74', 'point': 26163}
+2025-03-22 05:01:00,058 - INFO - {'Loss': '0.24382', 'admm_loss': '0.60867', 'psnr': '32.46', 'point': 26163}
+2025-03-22 05:01:00,979 - INFO - {'Loss': '0.01279', 'admm_loss': '0.58036', 'psnr': '34.26', 'point': 26163}
+2025-03-22 05:01:01,680 - INFO - {'Loss': '0.01168', 'admm_loss': '0.58019', 'psnr': '33.76', 'point': 26163}
+2025-03-22 05:01:02,367 - INFO - {'Loss': '0.01185', 'admm_loss': '0.58019', 'psnr': '33.04', 'point': 26163}
+2025-03-22 05:01:03,046 - INFO - {'Loss': '0.01271', 'admm_loss': '0.58019', 'psnr': '31.45', 'point': 26163}
+2025-03-22 05:01:03,733 - INFO - {'Loss': '0.26280', 'admm_loss': '0.59911', 'psnr': '32.52', 'point': 26163}
+2025-03-22 05:01:04,556 - INFO - {'Loss': '0.01372', 'admm_loss': '0.62733', 'psnr': '32.19', 'point': 26163}
+2025-03-22 05:01:05,228 - INFO - {'Loss': '0.01198', 'admm_loss': '0.62750', 'psnr': '31.60', 'point': 26163}
+2025-03-22 05:01:05,885 - INFO - {'Loss': '0.01224', 'admm_loss': '0.62750', 'psnr': '33.48', 'point': 26163}
+2025-03-22 05:01:06,582 - INFO - {'Loss': '0.01157', 'admm_loss': '0.62750', 'psnr': '33.65', 'point': 26163}
+2025-03-22 05:01:07,260 - INFO - {'Loss': '0.24396', 'admm_loss': '0.60822', 'psnr': '32.55', 'point': 26163}
+2025-03-22 05:01:08,074 - INFO - {'Loss': '0.01398', 'admm_loss': '0.57947', 'psnr': '31.90', 'point': 26163}
+2025-03-22 05:01:08,757 - INFO - {'Loss': '0.01241', 'admm_loss': '0.57930', 'psnr': '33.09', 'point': 26163}
+2025-03-22 05:01:09,423 - INFO - {'Loss': '0.01247', 'admm_loss': '0.57930', 'psnr': '33.37', 'point': 26163}
+2025-03-22 05:01:10,091 - INFO - {'Loss': '0.01214', 'admm_loss': '0.57930', 'psnr': '32.82', 'point': 26163}
+2025-03-22 05:01:10,775 - INFO - {'Loss': '0.26246', 'admm_loss': '0.59757', 'psnr': '32.01', 'point': 26163}
+2025-03-22 05:01:11,468 - INFO - {'Loss': '0.01345', 'admm_loss': '0.62482', 'psnr': '33.85', 'point': 26163}
+2025-03-22 05:01:12,272 - INFO - {'Loss': '0.01214', 'admm_loss': '0.62498', 'psnr': '33.41', 'point': 26163}
+2025-03-22 05:01:12,954 - INFO - {'Loss': '0.01187', 'admm_loss': '0.62498', 'psnr': '33.40', 'point': 26163}
+2025-03-22 05:01:13,626 - INFO - {'Loss': '0.01205', 'admm_loss': '0.62498', 'psnr': '33.10', 'point': 26163}
+2025-03-22 05:01:14,302 - INFO - {'Loss': '0.24208', 'admm_loss': '0.60523', 'psnr': '31.97', 'point': 26163}
+2025-03-22 05:01:15,017 - INFO - {'Loss': '0.01303', 'admm_loss': '0.57579', 'psnr': '32.91', 'point': 26163}
+2025-03-22 05:01:15,698 - INFO - {'Loss': '0.01317', 'admm_loss': '0.57561', 'psnr': '31.48', 'point': 26163}
+2025-03-22 05:01:16,376 - INFO - {'Loss': '0.01267', 'admm_loss': '0.57561', 'psnr': '33.63', 'point': 26163}
+2025-03-22 05:01:17,052 - INFO - {'Loss': '0.01142', 'admm_loss': '0.57561', 'psnr': '33.76', 'point': 26163}
+2025-03-22 05:01:17,734 - INFO - {'Loss': '0.26202', 'admm_loss': '0.59554', 'psnr': '34.39', 'point': 26163}
+2025-03-22 05:01:18,536 - INFO - {'Loss': '0.01465', 'admm_loss': '0.62526', 'psnr': '31.40', 'point': 26163}
+2025-03-22 05:01:19,211 - INFO - {'Loss': '0.01172', 'admm_loss': '0.62544', 'psnr': '33.76', 'point': 26163}
+2025-03-22 05:01:19,908 - INFO - {'Loss': '0.01206', 'admm_loss': '0.62544', 'psnr': '33.03', 'point': 26163}
+2025-03-22 05:01:20,592 - INFO - {'Loss': '0.01187', 'admm_loss': '0.62544', 'psnr': '33.96', 'point': 26163}
+2025-03-22 05:01:21,255 - INFO - {'Loss': '0.24137', 'admm_loss': '0.60516', 'psnr': '33.83', 'point': 26163}
+2025-03-22 05:01:22,073 - INFO - {'Loss': '0.01416', 'admm_loss': '0.57493', 'psnr': '32.24', 'point': 26163}
+2025-03-22 05:01:22,774 - INFO - {'Loss': '0.01117', 'admm_loss': '0.57475', 'psnr': '33.57', 'point': 26163}
+2025-03-22 05:01:23,472 - INFO - {'Loss': '0.01206', 'admm_loss': '0.57475', 'psnr': '32.23', 'point': 26163}
+2025-03-22 05:01:24,165 - INFO - {'Loss': '0.01229', 'admm_loss': '0.57475', 'psnr': '32.46', 'point': 26163}
+2025-03-22 05:01:24,854 - INFO - {'Loss': '0.26081', 'admm_loss': '0.59462', 'psnr': '33.87', 'point': 26163}
+2025-03-22 05:01:25,745 - INFO - {'Loss': '0.01289', 'admm_loss': '0.62425', 'psnr': '33.91', 'point': 26163}
+2025-03-22 05:01:26,471 - INFO - {'Loss': '0.01182', 'admm_loss': '0.62443', 'psnr': '32.48', 'point': 26163}
+2025-03-22 05:01:27,149 - INFO - {'Loss': '0.01152', 'admm_loss': '0.62443', 'psnr': '34.36', 'point': 26163}
+2025-03-22 05:01:27,841 - INFO - {'Loss': '0.01086', 'admm_loss': '0.62443', 'psnr': '34.24', 'point': 26163}
+2025-03-22 05:01:28,523 - INFO - {'Loss': '0.24022', 'admm_loss': '0.60241', 'psnr': '32.80', 'point': 26163}
+2025-03-22 05:01:29,443 - INFO - {'Loss': '0.01284', 'admm_loss': '0.56957', 'psnr': '33.51', 'point': 26163}
+2025-03-22 05:01:30,152 - INFO - {'Loss': '0.01139', 'admm_loss': '0.56937', 'psnr': '33.15', 'point': 26163}
+2025-03-22 05:01:30,866 - INFO - {'Loss': '0.01279', 'admm_loss': '0.56937', 'psnr': '32.69', 'point': 26163}
+2025-03-22 05:01:31,564 - INFO - {'Loss': '0.01184', 'admm_loss': '0.56937', 'psnr': '33.86', 'point': 26163}
+2025-03-22 05:01:32,265 - INFO - {'Loss': '0.26124', 'admm_loss': '0.59120', 'psnr': '32.40', 'point': 26163}
+2025-03-22 05:01:33,153 - INFO - {'Loss': '0.01350', 'admm_loss': '0.62374', 'psnr': '32.97', 'point': 26163}
+2025-03-22 05:01:33,838 - INFO - {'Loss': '0.01199', 'admm_loss': '0.62394', 'psnr': '31.49', 'point': 26163}
+2025-03-22 05:01:34,517 - INFO - {'Loss': '0.01185', 'admm_loss': '0.62394', 'psnr': '33.78', 'point': 26163}
+2025-03-22 05:01:35,203 - INFO - {'Loss': '0.01207', 'admm_loss': '0.62394', 'psnr': '34.11', 'point': 26163}
+2025-03-22 05:01:35,893 - INFO - {'Loss': '0.24038', 'admm_loss': '0.60284', 'psnr': '33.88', 'point': 26163}
+2025-03-22 05:01:36,607 - INFO - {'Loss': '0.01339', 'admm_loss': '0.57138', 'psnr': '33.85', 'point': 26163}
+2025-03-22 05:01:37,435 - INFO - {'Loss': '0.01245', 'admm_loss': '0.57119', 'psnr': '31.85', 'point': 26163}
+2025-03-22 05:01:38,114 - INFO - {'Loss': '0.01228', 'admm_loss': '0.57118', 'psnr': '33.68', 'point': 26163}
+2025-03-22 05:01:38,769 - INFO - {'Loss': '0.01309', 'admm_loss': '0.57118', 'psnr': '31.74', 'point': 26163}
+2025-03-22 05:01:39,466 - INFO - {'Loss': '0.26062', 'admm_loss': '0.59127', 'psnr': '33.56', 'point': 26163}
+2025-03-22 05:01:40,181 - INFO - {'Loss': '0.01360', 'admm_loss': '0.62122', 'psnr': '32.79', 'point': 26163}
+2025-03-22 05:01:41,077 - INFO - {'Loss': '0.01120', 'admm_loss': '0.62140', 'psnr': '33.81', 'point': 26163}
+2025-03-22 05:01:41,764 - INFO - {'Loss': '0.01237', 'admm_loss': '0.62140', 'psnr': '31.96', 'point': 26163}
+2025-03-22 05:01:42,464 - INFO - {'Loss': '0.01233', 'admm_loss': '0.62140', 'psnr': '32.74', 'point': 26163}
+2025-03-22 05:01:43,144 - INFO - {'Loss': '0.23433', 'admm_loss': '0.59580', 'psnr': '33.89', 'point': 26163}
+2025-03-22 05:01:43,857 - INFO - {'Loss': '0.01386', 'admm_loss': '0.55763', 'psnr': '32.69', 'point': 26163}
+2025-03-22 05:01:44,574 - INFO - {'Loss': '0.01155', 'admm_loss': '0.55739', 'psnr': '33.61', 'point': 26163}
+2025-03-22 05:01:45,259 - INFO - {'Loss': '0.01216', 'admm_loss': '0.55739', 'psnr': '33.32', 'point': 26163}
+2025-03-22 05:01:45,935 - INFO - {'Loss': '0.01172', 'admm_loss': '0.55739', 'psnr': '32.56', 'point': 26163}
+2025-03-22 05:01:46,627 - INFO - {'Loss': '0.26422', 'admm_loss': '0.58582', 'psnr': '31.51', 'point': 26163}
+2025-03-22 05:01:47,497 - INFO - {'Loss': '0.01331', 'admm_loss': '0.62820', 'psnr': '34.19', 'point': 26163}
+2025-03-22 05:01:48,193 - INFO - {'Loss': '0.01139', 'admm_loss': '0.62846', 'psnr': '32.74', 'point': 26163}
+2025-03-22 05:01:48,863 - INFO - {'Loss': '0.01206', 'admm_loss': '0.62846', 'psnr': '33.03', 'point': 26163}
+2025-03-22 05:01:49,562 - INFO - {'Loss': '0.01208', 'admm_loss': '0.62846', 'psnr': '32.93', 'point': 26163}
+2025-03-22 05:01:50,247 - INFO - {'Loss': '0.23689', 'admm_loss': '0.60143', 'psnr': '32.78', 'point': 26163}
+2025-03-22 05:01:51,094 - INFO - {'Loss': '0.01245', 'admm_loss': '0.56113', 'psnr': '34.10', 'point': 26163}
+2025-03-22 05:01:51,798 - INFO - {'Loss': '0.01217', 'admm_loss': '0.56088', 'psnr': '33.12', 'point': 26163}
+2025-03-22 05:01:52,485 - INFO - {'Loss': '0.01153', 'admm_loss': '0.56088', 'psnr': '33.76', 'point': 26163}
+2025-03-22 05:01:53,162 - INFO - {'Loss': '0.01232', 'admm_loss': '0.56088', 'psnr': '31.95', 'point': 26163}
+2025-03-22 05:01:53,849 - INFO - {'Loss': '0.26388', 'admm_loss': '0.58744', 'psnr': '32.34', 'point': 26163}
+2025-03-22 05:01:54,723 - INFO - {'Loss': '0.01330', 'admm_loss': '0.62704', 'psnr': '32.56', 'point': 26163}
+2025-03-22 05:01:55,409 - INFO - {'Loss': '0.01157', 'admm_loss': '0.62728', 'psnr': '34.08', 'point': 26163}
+2025-03-22 05:01:56,077 - INFO - {'Loss': '0.01197', 'admm_loss': '0.62728', 'psnr': '33.78', 'point': 26163}
+2025-03-22 05:01:56,754 - INFO - {'Loss': '0.01217', 'admm_loss': '0.62728', 'psnr': '32.27', 'point': 26163}
+2025-03-22 05:01:57,428 - INFO - {'Loss': '0.23533', 'admm_loss': '0.60041', 'psnr': '33.21', 'point': 26163}
+2025-03-22 05:01:58,267 - INFO - {'Loss': '0.01352', 'admm_loss': '0.56035', 'psnr': '32.10', 'point': 26163}
+2025-03-22 05:01:58,964 - INFO - {'Loss': '0.01250', 'admm_loss': '0.56011', 'psnr': '31.97', 'point': 26163}
+2025-03-22 05:01:59,631 - INFO - {'Loss': '0.01200', 'admm_loss': '0.56011', 'psnr': '33.03', 'point': 26163}
+2025-03-22 05:02:00,306 - INFO - {'Loss': '0.01255', 'admm_loss': '0.56011', 'psnr': '33.10', 'point': 26163}
+2025-03-22 05:02:00,984 - INFO - {'Loss': '0.26178', 'admm_loss': '0.58550', 'psnr': '33.00', 'point': 26163}
+2025-03-22 05:02:01,819 - INFO - {'Loss': '0.01319', 'admm_loss': '0.62336', 'psnr': '33.65', 'point': 26163}
+2025-03-22 05:02:02,511 - INFO - {'Loss': '0.01142', 'admm_loss': '0.62359', 'psnr': '34.07', 'point': 26163}
+2025-03-22 05:02:03,182 - INFO - {'Loss': '0.01210', 'admm_loss': '0.62359', 'psnr': '33.28', 'point': 26163}
+2025-03-22 05:02:03,873 - INFO - {'Loss': '0.01184', 'admm_loss': '0.62359', 'psnr': '32.63', 'point': 26163}
+2025-03-22 05:02:04,544 - INFO - {'Loss': '0.23414', 'admm_loss': '0.59631', 'psnr': '33.61', 'point': 26163}
+2025-03-22 05:02:05,252 - INFO - {'Loss': '0.01347', 'admm_loss': '0.55563', 'psnr': '32.48', 'point': 26163}
+2025-03-22 05:02:06,066 - INFO - {'Loss': '0.01263', 'admm_loss': '0.55538', 'psnr': '32.73', 'point': 26163}
+2025-03-22 05:02:06,751 - INFO - {'Loss': '0.01210', 'admm_loss': '0.55538', 'psnr': '32.52', 'point': 26163}
+2025-03-22 05:02:07,424 - INFO - {'Loss': '0.01124', 'admm_loss': '0.55538', 'psnr': '34.28', 'point': 26163}
+2025-03-22 05:02:08,099 - INFO - {'Loss': '0.25985', 'admm_loss': '0.58117', 'psnr': '33.21', 'point': 26163}
+2025-03-22 05:02:08,796 - INFO - {'Loss': '0.01296', 'admm_loss': '0.61962', 'psnr': '33.71', 'point': 26163}
+2025-03-22 05:02:09,492 - INFO - {'Loss': '0.01166', 'admm_loss': '0.61985', 'psnr': '32.91', 'point': 26163}
+2025-03-22 05:02:10,170 - INFO - {'Loss': '0.01249', 'admm_loss': '0.61985', 'psnr': '31.58', 'point': 26163}
+2025-03-22 05:02:10,857 - INFO - {'Loss': '0.01208', 'admm_loss': '0.61985', 'psnr': '33.55', 'point': 26163}
+2025-03-22 05:02:11,548 - INFO - {'Loss': '0.23036', 'admm_loss': '0.59044', 'psnr': '33.41', 'point': 26163}
+2025-03-22 05:02:12,440 - INFO - {'Loss': '0.01255', 'admm_loss': '0.54659', 'psnr': '33.80', 'point': 26163}
+2025-03-22 05:02:13,124 - INFO - {'Loss': '0.01202', 'admm_loss': '0.54632', 'psnr': '33.34', 'point': 26163}
+2025-03-22 05:02:13,790 - INFO - {'Loss': '0.01109', 'admm_loss': '0.54632', 'psnr': '34.11', 'point': 26163}
+2025-03-22 05:02:14,490 - INFO - {'Loss': '0.01166', 'admm_loss': '0.54632', 'psnr': '33.16', 'point': 26163}
+2025-03-22 05:02:15,175 - INFO - {'Loss': '0.26145', 'admm_loss': '0.57777', 'psnr': '33.58', 'point': 26163}
+2025-03-22 05:02:16,030 - INFO - {'Loss': '0.01359', 'admm_loss': '0.62465', 'psnr': '33.79', 'point': 26163}
+2025-03-22 05:02:16,731 - INFO - {'Loss': '0.01172', 'admm_loss': '0.62493', 'psnr': '33.59', 'point': 26163}
+2025-03-22 05:02:17,440 - INFO - {'Loss': '0.01207', 'admm_loss': '0.62493', 'psnr': '32.35', 'point': 26163}
+2025-03-22 05:02:18,143 - INFO - {'Loss': '0.01092', 'admm_loss': '0.62493', 'psnr': '34.08', 'point': 26163}
+2025-03-22 05:02:18,833 - INFO - {'Loss': '0.23192', 'admm_loss': '0.59449', 'psnr': '32.71', 'point': 26163}
+2025-03-22 05:02:19,674 - INFO - {'Loss': '0.01386', 'admm_loss': '0.54911', 'psnr': '33.12', 'point': 26163}
+2025-03-22 05:02:20,358 - INFO - {'Loss': '0.01261', 'admm_loss': '0.54884', 'psnr': '32.37', 'point': 26163}
+2025-03-22 05:02:21,041 - INFO - {'Loss': '0.01170', 'admm_loss': '0.54883', 'psnr': '33.70', 'point': 26163}
+2025-03-22 05:02:21,728 - INFO - {'Loss': '0.01163', 'admm_loss': '0.54883', 'psnr': '33.08', 'point': 26163}
+2025-03-22 05:02:22,395 - INFO - {'Loss': '0.26153', 'admm_loss': '0.57903', 'psnr': '32.46', 'point': 26163}
+2025-03-22 05:02:23,175 - INFO - {'Loss': '0.01271', 'admm_loss': '0.62405', 'psnr': '34.09', 'point': 26163}
+2025-03-22 05:02:23,847 - INFO - {'Loss': '0.01183', 'admm_loss': '0.62433', 'psnr': '32.69', 'point': 26163}
+2025-03-22 05:02:24,521 - INFO - {'Loss': '0.01263', 'admm_loss': '0.62433', 'psnr': '32.33', 'point': 26163}
+2025-03-22 05:02:25,222 - INFO - {'Loss': '0.01145', 'admm_loss': '0.62433', 'psnr': '33.75', 'point': 26163}
+2025-03-22 05:02:25,911 - INFO - {'Loss': '0.22966', 'admm_loss': '0.59242', 'psnr': '33.55', 'point': 26163}
+2025-03-22 05:02:26,722 - INFO - {'Loss': '0.01339', 'admm_loss': '0.54486', 'psnr': '33.01', 'point': 26163}
+2025-03-22 05:02:27,415 - INFO - {'Loss': '0.01175', 'admm_loss': '0.54457', 'psnr': '33.23', 'point': 26163}
+2025-03-22 05:02:28,093 - INFO - {'Loss': '0.01144', 'admm_loss': '0.54457', 'psnr': '32.93', 'point': 26163}
+2025-03-22 05:02:28,772 - INFO - {'Loss': '0.01208', 'admm_loss': '0.54457', 'psnr': '32.75', 'point': 26163}
+2025-03-22 05:02:29,470 - INFO - {'Loss': '0.26241', 'admm_loss': '0.57695', 'psnr': '32.01', 'point': 26163}
+2025-03-22 05:02:30,175 - INFO - {'Loss': '0.01287', 'admm_loss': '0.62523', 'psnr': '33.17', 'point': 26163}
+2025-03-22 05:02:31,044 - INFO - {'Loss': '0.01335', 'admm_loss': '0.62552', 'psnr': '31.79', 'point': 26163}
+2025-03-22 05:02:31,707 - INFO - {'Loss': '0.01214', 'admm_loss': '0.62552', 'psnr': '33.55', 'point': 26163}
+2025-03-22 05:02:32,377 - INFO - {'Loss': '0.01123', 'admm_loss': '0.62552', 'psnr': '34.17', 'point': 26163}
+2025-03-22 05:02:33,058 - INFO - {'Loss': '0.22956', 'admm_loss': '0.59290', 'psnr': '32.35', 'point': 26163}
+2025-03-22 05:02:34,631 - INFO - {'Loss': '0.01302', 'admm_loss': '0.54427', 'psnr': '32.95', 'point': 26163}
+2025-03-22 05:02:35,313 - INFO - {'Loss': '0.01070', 'admm_loss': '0.54397', 'psnr': '34.02', 'point': 26163}
+2025-03-22 05:02:35,965 - INFO - {'Loss': '0.01104', 'admm_loss': '0.54397', 'psnr': '33.91', 'point': 26163}
+2025-03-22 05:02:36,627 - INFO - {'Loss': '0.01122', 'admm_loss': '0.54397', 'psnr': '34.00', 'point': 26163}
+2025-03-22 05:02:37,302 - INFO - {'Loss': '0.26089', 'admm_loss': '0.57544', 'psnr': '33.59', 'point': 26163}
+2025-03-22 05:02:38,135 - INFO - {'Loss': '0.01336', 'admm_loss': '0.62237', 'psnr': '33.56', 'point': 26163}
+2025-03-22 05:02:38,826 - INFO - {'Loss': '0.01203', 'admm_loss': '0.62265', 'psnr': '33.37', 'point': 26163}
+2025-03-22 05:02:39,509 - INFO - {'Loss': '0.01191', 'admm_loss': '0.62265', 'psnr': '32.58', 'point': 26163}
+2025-03-22 05:02:40,165 - INFO - {'Loss': '0.01206', 'admm_loss': '0.62265', 'psnr': '34.22', 'point': 26163}
+2025-03-22 05:02:40,836 - INFO - {'Loss': '0.22571', 'admm_loss': '0.58732', 'psnr': '32.45', 'point': 26163}
+2025-03-22 05:02:41,664 - INFO - {'Loss': '0.01442', 'admm_loss': '0.53464', 'psnr': '32.80', 'point': 26163}
+2025-03-22 05:02:42,354 - INFO - {'Loss': '0.01135', 'admm_loss': '0.53432', 'psnr': '34.42', 'point': 26163}
+2025-03-22 05:02:43,007 - INFO - {'Loss': '0.01163', 'admm_loss': '0.53431', 'psnr': '33.57', 'point': 26163}
+2025-03-22 05:02:43,705 - INFO - {'Loss': '0.01183', 'admm_loss': '0.53431', 'psnr': '32.80', 'point': 26163}
+2025-03-22 05:02:44,402 - INFO - {'Loss': '0.26185', 'admm_loss': '0.57052', 'psnr': '32.71', 'point': 26163}
+2025-03-22 05:02:45,197 - INFO - {'Loss': '0.01236', 'admm_loss': '0.62449', 'psnr': '34.85', 'point': 26163}
+2025-03-22 05:02:45,883 - INFO - {'Loss': '0.01297', 'admm_loss': '0.62482', 'psnr': '32.69', 'point': 26163}
+2025-03-22 05:02:46,536 - INFO - {'Loss': '0.01208', 'admm_loss': '0.62482', 'psnr': '33.31', 'point': 26163}
+2025-03-22 05:02:47,217 - INFO - {'Loss': '0.01206', 'admm_loss': '0.62482', 'psnr': '33.23', 'point': 26163}
+2025-03-22 05:02:47,908 - INFO - {'Loss': '0.22545', 'admm_loss': '0.58791', 'psnr': '33.29', 'point': 26163}
+2025-03-22 05:02:48,725 - INFO - {'Loss': '0.01407', 'admm_loss': '0.53287', 'psnr': '32.17', 'point': 26163}
+2025-03-22 05:02:49,406 - INFO - {'Loss': '0.01127', 'admm_loss': '0.53254', 'psnr': '34.56', 'point': 26163}
+2025-03-22 05:02:50,086 - INFO - {'Loss': '0.01152', 'admm_loss': '0.53254', 'psnr': '34.26', 'point': 26163}
+2025-03-22 05:02:50,745 - INFO - {'Loss': '0.01270', 'admm_loss': '0.53254', 'psnr': '32.15', 'point': 26163}
+2025-03-22 05:02:51,419 - INFO - {'Loss': '0.20929', 'admm_loss': '0.51661', 'psnr': '33.03', 'point': 26163}
+2025-03-22 05:02:52,235 - INFO - {'Loss': '0.01405', 'admm_loss': '0.49286', 'psnr': '31.67', 'point': 26163}
+2025-03-22 05:02:52,918 - INFO - {'Loss': '0.01147', 'admm_loss': '0.49272', 'psnr': '33.93', 'point': 26163}
+2025-03-22 05:02:53,596 - INFO - {'Loss': '0.01160', 'admm_loss': '0.49272', 'psnr': '33.38', 'point': 26163}
+2025-03-22 05:02:54,267 - INFO - {'Loss': '0.01243', 'admm_loss': '0.49272', 'psnr': '32.27', 'point': 26163}
+2025-03-22 05:02:54,954 - INFO - {'Loss': '0.21271', 'admm_loss': '0.49675', 'psnr': '32.72', 'point': 26163}
+2025-03-22 05:02:55,565 - INFO - {'Loss': '0.01569', 'admm_loss': '0.50277', 'psnr': '31.92', 'point': 13082}
+2025-03-22 05:02:56,148 - INFO - {'Loss': '0.01413', 'admm_loss': '0.50281', 'psnr': '32.37', 'point': 13082}
+2025-03-22 05:02:56,743 - INFO - {'Loss': '0.01333', 'admm_loss': '0.50281', 'psnr': '32.39', 'point': 13082}
+2025-03-22 05:02:57,326 - INFO - {'Loss': '0.01513', 'admm_loss': '0.50281', 'psnr': '31.86', 'point': 13082}
+2025-03-22 05:02:57,920 - INFO - {'Loss': '0.01285', 'admm_loss': '0.50281', 'psnr': '32.91', 'point': 13082}
+2025-03-22 05:02:58,645 - INFO - {'Loss': '0.01349', 'admm_loss': '0.50281', 'psnr': '32.27', 'point': 13082}
+2025-03-22 05:02:59,223 - INFO - {'Loss': '0.01409', 'admm_loss': '0.50281', 'psnr': '32.52', 'point': 13082}
+2025-03-22 05:02:59,800 - INFO - {'Loss': '0.01282', 'admm_loss': '0.50281', 'psnr': '34.16', 'point': 13082}
+2025-03-22 05:03:00,386 - INFO - {'Loss': '0.01366', 'admm_loss': '0.50281', 'psnr': '33.08', 'point': 13082}
+2025-03-22 05:03:00,976 - INFO - {'Loss': '0.01462', 'admm_loss': '0.50281', 'psnr': '31.13', 'point': 13082}
+2025-03-22 05:03:01,576 - INFO - {'Loss': '0.01466', 'admm_loss': '0.50281', 'psnr': '31.57', 'point': 13082}
+2025-03-22 05:03:02,168 - INFO - {'Loss': '0.01370', 'admm_loss': '0.50281', 'psnr': '32.20', 'point': 13082}
+2025-03-22 05:03:02,752 - INFO - {'Loss': '0.01328', 'admm_loss': '0.50281', 'psnr': '33.13', 'point': 13082}
+2025-03-22 05:03:03,336 - INFO - {'Loss': '0.01347', 'admm_loss': '0.50281', 'psnr': '31.89', 'point': 13082}
+2025-03-22 05:03:03,915 - INFO - {'Loss': '0.01226', 'admm_loss': '0.50281', 'psnr': '33.24', 'point': 13082}
+2025-03-22 05:03:04,529 - INFO - {'Loss': '0.01417', 'admm_loss': '0.50281', 'psnr': '32.26', 'point': 13082}
+2025-03-22 05:03:05,230 - INFO - {'Loss': '0.01274', 'admm_loss': '0.50281', 'psnr': '32.55', 'point': 13082}
+2025-03-22 05:03:05,825 - INFO - {'Loss': '0.01372', 'admm_loss': '0.50281', 'psnr': '33.34', 'point': 13082}
+2025-03-22 05:03:06,414 - INFO - {'Loss': '0.01391', 'admm_loss': '0.50281', 'psnr': '31.86', 'point': 13082}
+2025-03-22 05:03:07,003 - INFO - {'Loss': '0.01228', 'admm_loss': '0.50281', 'psnr': '33.98', 'point': 13082}
+2025-03-22 05:03:07,583 - INFO - {'Loss': '0.01332', 'admm_loss': '0.50281', 'psnr': '32.27', 'point': 13082}
+2025-03-22 05:03:08,201 - INFO - {'Loss': '0.01360', 'admm_loss': '0.50281', 'psnr': '32.83', 'point': 13082}
+2025-03-22 05:03:08,788 - INFO - {'Loss': '0.01408', 'admm_loss': '0.50281', 'psnr': '32.63', 'point': 13082}
+2025-03-22 05:03:09,396 - INFO - {'Loss': '0.01289', 'admm_loss': '0.50281', 'psnr': '32.64', 'point': 13082}
+2025-03-22 05:03:09,978 - INFO - {'Loss': '0.01430', 'admm_loss': '0.50281', 'psnr': '32.91', 'point': 13082}
+2025-03-22 05:03:10,555 - INFO - {'Loss': '0.01288', 'admm_loss': '0.50281', 'psnr': '33.53', 'point': 13082}
+2025-03-22 05:03:11,145 - INFO - {'Loss': '0.01280', 'admm_loss': '0.50281', 'psnr': '33.32', 'point': 13082}
+2025-03-22 05:03:11,751 - INFO - {'Loss': '0.01320', 'admm_loss': '0.50281', 'psnr': '32.37', 'point': 13082}
+2025-03-22 05:03:12,329 - INFO - {'Loss': '0.01369', 'admm_loss': '0.50281', 'psnr': '31.71', 'point': 13082}
+2025-03-22 05:03:12,955 - INFO - {'Loss': '0.01277', 'admm_loss': '0.50281', 'psnr': '32.39', 'point': 13082}
+2025-03-22 05:03:13,693 - INFO - {'Loss': '0.01296', 'admm_loss': '0.50281', 'psnr': '33.42', 'point': 13082}
+2025-03-22 05:03:14,324 - INFO - {'Loss': '0.01340', 'admm_loss': '0.50281', 'psnr': '31.75', 'point': 13082}
+2025-03-22 05:03:14,942 - INFO - {'Loss': '0.01223', 'admm_loss': '0.50281', 'psnr': '33.91', 'point': 13082}
+2025-03-22 05:03:15,546 - INFO - {'Loss': '0.01334', 'admm_loss': '0.50281', 'psnr': '32.99', 'point': 13082}
+2025-03-22 05:03:16,140 - INFO - {'Loss': '0.01327', 'admm_loss': '0.50281', 'psnr': '33.11', 'point': 13082}
+2025-03-22 05:03:16,793 - INFO - {'Loss': '0.01348', 'admm_loss': '0.50281', 'psnr': '32.31', 'point': 13082}
+2025-03-22 05:03:17,410 - INFO - {'Loss': '0.01377', 'admm_loss': '0.50281', 'psnr': '32.54', 'point': 13082}
+2025-03-22 05:03:18,001 - INFO - {'Loss': '0.01174', 'admm_loss': '0.50281', 'psnr': '34.22', 'point': 13082}
+2025-03-22 05:03:18,587 - INFO - {'Loss': '0.01267', 'admm_loss': '0.50281', 'psnr': '33.18', 'point': 13082}
+2025-03-22 05:03:19,208 - INFO - {'Loss': '0.01287', 'admm_loss': '0.50281', 'psnr': '32.68', 'point': 13082}
+2025-03-22 05:03:19,805 - INFO - {'Loss': '0.01237', 'admm_loss': '0.50281', 'psnr': '33.03', 'point': 13082}
+2025-03-22 05:03:20,505 - INFO - {'Loss': '0.01226', 'admm_loss': '0.50281', 'psnr': '33.90', 'point': 13082}
+2025-03-22 05:03:21,080 - INFO - {'Loss': '0.01230', 'admm_loss': '0.50281', 'psnr': '33.80', 'point': 13082}
+2025-03-22 05:03:21,663 - INFO - {'Loss': '0.01198', 'admm_loss': '0.50281', 'psnr': '33.75', 'point': 13082}
+2025-03-22 05:03:22,256 - INFO - {'Loss': '0.01271', 'admm_loss': '0.50281', 'psnr': '33.71', 'point': 13082}
+2025-03-22 05:03:22,894 - INFO - {'Loss': '0.01207', 'admm_loss': '0.50281', 'psnr': '33.30', 'point': 13082}
+2025-03-22 05:03:23,496 - INFO - {'Loss': '0.01261', 'admm_loss': '0.50281', 'psnr': '32.87', 'point': 13082}
+2025-03-22 05:03:24,093 - INFO - {'Loss': '0.01281', 'admm_loss': '0.50281', 'psnr': '31.65', 'point': 13082}
+2025-03-22 05:03:24,679 - INFO - {'Loss': '0.01275', 'admm_loss': '0.50281', 'psnr': '32.73', 'point': 13082}
+2025-03-22 05:03:25,282 - INFO - {'Loss': '0.01327', 'admm_loss': '0.50281', 'psnr': '32.88', 'point': 13082}
+2025-03-22 05:03:25,906 - INFO - {'Loss': '0.01320', 'admm_loss': '0.50281', 'psnr': '32.58', 'point': 13082}
+2025-03-22 05:03:26,511 - INFO - {'Loss': '0.01235', 'admm_loss': '0.50281', 'psnr': '33.16', 'point': 13082}
+2025-03-22 05:03:27,109 - INFO - {'Loss': '0.01236', 'admm_loss': '0.50281', 'psnr': '32.81', 'point': 13082}
+2025-03-22 05:03:27,713 - INFO - {'Loss': '0.01248', 'admm_loss': '0.50281', 'psnr': '33.13', 'point': 13082}
+2025-03-22 05:03:28,356 - INFO - {'Loss': '0.01166', 'admm_loss': '0.50281', 'psnr': '33.39', 'point': 13082}
+2025-03-22 05:03:28,998 - INFO - {'Loss': '0.01342', 'admm_loss': '0.50281', 'psnr': '32.16', 'point': 13082}
+2025-03-22 05:03:29,618 - INFO - {'Loss': '0.01297', 'admm_loss': '0.50281', 'psnr': '32.76', 'point': 13082}
+2025-03-22 05:03:30,219 - INFO - {'Loss': '0.01275', 'admm_loss': '0.50281', 'psnr': '32.78', 'point': 13082}
+2025-03-22 05:03:30,857 - INFO - {'Loss': '0.01222', 'admm_loss': '0.50281', 'psnr': '33.49', 'point': 13082}
+2025-03-22 05:03:31,447 - INFO - {'Loss': '0.01346', 'admm_loss': '0.50281', 'psnr': '32.65', 'point': 13082}
+2025-03-22 05:03:32,192 - INFO - {'Loss': '0.01263', 'admm_loss': '0.50281', 'psnr': '32.63', 'point': 13082}
+2025-03-22 05:03:32,795 - INFO - {'Loss': '0.01293', 'admm_loss': '0.50281', 'psnr': '31.96', 'point': 13082}
+2025-03-22 05:03:33,400 - INFO - {'Loss': '0.01208', 'admm_loss': '0.50281', 'psnr': '33.96', 'point': 13082}
+2025-03-22 05:03:34,003 - INFO - {'Loss': '0.01234', 'admm_loss': '0.50281', 'psnr': '32.45', 'point': 13082}
+2025-03-22 05:03:34,587 - INFO - {'Loss': '0.01256', 'admm_loss': '0.50281', 'psnr': '32.79', 'point': 13082}
+2025-03-22 05:03:35,192 - INFO - {'Loss': '0.01199', 'admm_loss': '0.50281', 'psnr': '32.81', 'point': 13082}
+2025-03-22 05:03:35,788 - INFO - {'Loss': '0.01254', 'admm_loss': '0.50281', 'psnr': '32.79', 'point': 13082}
+2025-03-22 05:03:36,372 - INFO - {'Loss': '0.01191', 'admm_loss': '0.50281', 'psnr': '34.06', 'point': 13082}
+2025-03-22 05:03:37,008 - INFO - {'Loss': '0.01306', 'admm_loss': '0.50281', 'psnr': '33.18', 'point': 13082}
+2025-03-22 05:03:37,613 - INFO - {'Loss': '0.01239', 'admm_loss': '0.50281', 'psnr': '33.68', 'point': 13082}
+2025-03-22 05:03:38,218 - INFO - {'Loss': '0.01390', 'admm_loss': '0.50281', 'psnr': '31.02', 'point': 13082}
+2025-03-22 05:03:38,815 - INFO - {'Loss': '0.01216', 'admm_loss': '0.50281', 'psnr': '34.15', 'point': 13082}
+2025-03-22 05:03:39,407 - INFO - {'Loss': '0.01292', 'admm_loss': '0.50281', 'psnr': '32.80', 'point': 13082}
+2025-03-22 05:03:39,982 - INFO - {'Loss': '0.01305', 'admm_loss': '0.50281', 'psnr': '33.58', 'point': 13082}
+2025-03-22 05:03:40,549 - INFO - {'Loss': '0.01229', 'admm_loss': '0.50281', 'psnr': '33.37', 'point': 13082}
+2025-03-22 05:03:41,264 - INFO - {'Loss': '0.01353', 'admm_loss': '0.50281', 'psnr': '32.76', 'point': 13082}
+2025-03-22 05:03:41,873 - INFO - {'Loss': '0.01175', 'admm_loss': '0.50281', 'psnr': '34.25', 'point': 13082}
+2025-03-22 05:03:42,448 - INFO - {'Loss': '0.01184', 'admm_loss': '0.50281', 'psnr': '33.74', 'point': 13082}
+2025-03-22 05:03:43,047 - INFO - {'Loss': '0.01276', 'admm_loss': '0.50281', 'psnr': '32.81', 'point': 13082}
+2025-03-22 05:03:43,653 - INFO - {'Loss': '0.01294', 'admm_loss': '0.50281', 'psnr': '33.14', 'point': 13082}
+2025-03-22 05:03:44,291 - INFO - {'Loss': '0.01307', 'admm_loss': '0.50281', 'psnr': '33.27', 'point': 13082}
+2025-03-22 05:03:44,882 - INFO - {'Loss': '0.01267', 'admm_loss': '0.50281', 'psnr': '33.06', 'point': 13082}
+2025-03-22 05:03:45,470 - INFO - {'Loss': '0.01330', 'admm_loss': '0.50281', 'psnr': '31.68', 'point': 13082}
+2025-03-22 05:03:46,061 - INFO - {'Loss': '0.01328', 'admm_loss': '0.50281', 'psnr': '31.71', 'point': 13082}
+2025-03-22 05:03:46,665 - INFO - {'Loss': '0.01208', 'admm_loss': '0.50281', 'psnr': '33.90', 'point': 13082}
+2025-03-22 05:03:47,278 - INFO - {'Loss': '0.01241', 'admm_loss': '0.50281', 'psnr': '33.19', 'point': 13082}
+2025-03-22 05:03:47,865 - INFO - {'Loss': '0.01222', 'admm_loss': '0.50281', 'psnr': '33.58', 'point': 13082}
+2025-03-22 05:03:48,464 - INFO - {'Loss': '0.01294', 'admm_loss': '0.50281', 'psnr': '32.61', 'point': 13082}
+2025-03-22 05:03:49,054 - INFO - {'Loss': '0.01231', 'admm_loss': '0.50281', 'psnr': '33.50', 'point': 13082}
+2025-03-22 05:03:49,648 - INFO - {'Loss': '0.01320', 'admm_loss': '0.50281', 'psnr': '31.79', 'point': 13082}
+2025-03-22 05:03:50,352 - INFO - {'Loss': '0.01231', 'admm_loss': '0.50281', 'psnr': '33.27', 'point': 13082}
+2025-03-22 05:03:50,928 - INFO - {'Loss': '0.01355', 'admm_loss': '0.50281', 'psnr': '31.81', 'point': 13082}
+2025-03-22 05:03:51,510 - INFO - {'Loss': '0.01303', 'admm_loss': '0.50281', 'psnr': '32.07', 'point': 13082}
+2025-03-22 05:03:52,094 - INFO - {'Loss': '0.01237', 'admm_loss': '0.50281', 'psnr': '32.94', 'point': 13082}
+2025-03-22 05:03:52,704 - INFO - {'Loss': '0.01232', 'admm_loss': '0.50281', 'psnr': '33.59', 'point': 13082}
+2025-03-22 05:03:53,310 - INFO - {'Loss': '0.01279', 'admm_loss': '0.50281', 'psnr': '32.58', 'point': 13082}
+2025-03-22 05:03:53,894 - INFO - {'Loss': '0.01275', 'admm_loss': '0.50281', 'psnr': '32.84', 'point': 13082}
+2025-03-22 05:03:54,512 - INFO - {'Loss': '0.01240', 'admm_loss': '0.50281', 'psnr': '33.86', 'point': 13082}
+2025-03-22 05:03:55,126 - INFO - {'Loss': '0.01288', 'admm_loss': '0.50281', 'psnr': '33.02', 'point': 13082}
+2025-03-22 05:03:55,725 - INFO - {'Loss': '0.01305', 'admm_loss': '0.50281', 'psnr': '32.72', 'point': 13082}
+2025-03-22 05:03:56,342 - INFO - {'Loss': '0.01229', 'admm_loss': '0.50281', 'psnr': '32.54', 'point': 13082}
+2025-03-22 05:03:56,956 - INFO - {'Loss': '0.01182', 'admm_loss': '0.50281', 'psnr': '32.51', 'point': 13082}
+2025-03-22 05:03:57,550 - INFO - {'Loss': '0.01178', 'admm_loss': '0.50281', 'psnr': '33.55', 'point': 13082}
+2025-03-22 05:03:58,124 - INFO - {'Loss': '0.01251', 'admm_loss': '0.50281', 'psnr': '32.39', 'point': 13082}
+2025-03-22 05:03:58,715 - INFO - {'Loss': '0.01265', 'admm_loss': '0.50281', 'psnr': '33.11', 'point': 13082}
+2025-03-22 05:03:59,442 - INFO - {'Loss': '0.01181', 'admm_loss': '0.50281', 'psnr': '33.42', 'point': 13082}
+2025-03-22 05:04:00,018 - INFO - {'Loss': '0.01197', 'admm_loss': '0.50281', 'psnr': '33.38', 'point': 13082}
+2025-03-22 05:04:00,610 - INFO - {'Loss': '0.01275', 'admm_loss': '0.50281', 'psnr': '32.99', 'point': 13082}
+2025-03-22 05:04:01,200 - INFO - {'Loss': '0.01247', 'admm_loss': '0.50281', 'psnr': '33.45', 'point': 13082}
+2025-03-22 05:04:01,796 - INFO - {'Loss': '0.01240', 'admm_loss': '0.50281', 'psnr': '34.05', 'point': 13082}
+2025-03-22 05:04:02,412 - INFO - {'Loss': '0.01197', 'admm_loss': '0.50281', 'psnr': '33.03', 'point': 13082}
+2025-03-22 05:04:03,006 - INFO - {'Loss': '0.01232', 'admm_loss': '0.50281', 'psnr': '33.05', 'point': 13082}
+2025-03-22 05:04:03,605 - INFO - {'Loss': '0.01196', 'admm_loss': '0.50281', 'psnr': '34.34', 'point': 13082}
+2025-03-22 05:04:04,202 - INFO - {'Loss': '0.01206', 'admm_loss': '0.50281', 'psnr': '33.48', 'point': 13082}
+2025-03-22 05:04:04,803 - INFO - {'Loss': '0.01249', 'admm_loss': '0.50281', 'psnr': '33.30', 'point': 13082}
+2025-03-22 05:04:05,408 - INFO - {'Loss': '0.01233', 'admm_loss': '0.50281', 'psnr': '34.08', 'point': 13082}
+2025-03-22 05:04:06,153 - INFO - {'Loss': '0.01251', 'admm_loss': '0.50281', 'psnr': '33.88', 'point': 13082}
+2025-03-22 05:04:06,763 - INFO - {'Loss': '0.01209', 'admm_loss': '0.50281', 'psnr': '32.88', 'point': 13082}
+2025-03-22 05:04:07,367 - INFO - {'Loss': '0.01238', 'admm_loss': '0.50281', 'psnr': '33.96', 'point': 13082}
+2025-03-22 05:04:07,984 - INFO - {'Loss': '0.01189', 'admm_loss': '0.50281', 'psnr': '34.59', 'point': 13082}
+2025-03-22 05:04:08,614 - INFO - {'Loss': '0.01166', 'admm_loss': '0.50281', 'psnr': '34.44', 'point': 13082}
+2025-03-22 05:04:09,250 - INFO - {'Loss': '0.01315', 'admm_loss': '0.50281', 'psnr': '32.31', 'point': 13082}
+2025-03-22 05:04:09,847 - INFO - {'Loss': '0.01280', 'admm_loss': '0.50281', 'psnr': '32.35', 'point': 13082}
+2025-03-22 05:04:10,429 - INFO - {'Loss': '0.01295', 'admm_loss': '0.50281', 'psnr': '32.59', 'point': 13082}
+2025-03-22 05:04:11,040 - INFO - {'Loss': '0.01226', 'admm_loss': '0.50281', 'psnr': '33.05', 'point': 13082}
+2025-03-22 05:04:11,666 - INFO - {'Loss': '0.01282', 'admm_loss': '0.50281', 'psnr': '31.51', 'point': 13082}
+2025-03-22 05:04:12,274 - INFO - {'Loss': '0.01277', 'admm_loss': '0.50281', 'psnr': '32.45', 'point': 13082}
+2025-03-22 05:04:12,849 - INFO - {'Loss': '0.01340', 'admm_loss': '0.50281', 'psnr': '31.64', 'point': 13082}
+2025-03-22 05:04:13,434 - INFO - {'Loss': '0.01294', 'admm_loss': '0.50281', 'psnr': '32.23', 'point': 13082}
+2025-03-22 05:04:14,024 - INFO - {'Loss': '0.01254', 'admm_loss': '0.50281', 'psnr': '33.43', 'point': 13082}
+2025-03-22 05:04:14,731 - INFO - {'Loss': '0.01235', 'admm_loss': '0.50281', 'psnr': '33.21', 'point': 13082}
+2025-03-22 05:04:15,316 - INFO - {'Loss': '0.01245', 'admm_loss': '0.50281', 'psnr': '32.75', 'point': 13082}
+2025-03-22 05:04:15,912 - INFO - {'Loss': '0.01235', 'admm_loss': '0.50281', 'psnr': '33.39', 'point': 13082}
+2025-03-22 05:04:16,538 - INFO - {'Loss': '0.01292', 'admm_loss': '0.50281', 'psnr': '32.38', 'point': 13082}
+2025-03-22 05:04:17,133 - INFO - {'Loss': '0.01126', 'admm_loss': '0.50281', 'psnr': '34.58', 'point': 13082}
+2025-03-22 05:04:17,761 - INFO - {'Loss': '0.01215', 'admm_loss': '0.50281', 'psnr': '34.33', 'point': 13082}
+2025-03-22 05:04:18,371 - INFO - {'Loss': '0.01204', 'admm_loss': '0.50281', 'psnr': '33.29', 'point': 13082}
+2025-03-22 05:04:18,961 - INFO - {'Loss': '0.01295', 'admm_loss': '0.50281', 'psnr': '32.38', 'point': 13082}
+2025-03-22 05:04:19,551 - INFO - {'Loss': '0.01163', 'admm_loss': '0.50281', 'psnr': '34.39', 'point': 13082}
+2025-03-22 05:04:20,138 - INFO - {'Loss': '0.01281', 'admm_loss': '0.50281', 'psnr': '31.68', 'point': 13082}
+2025-03-22 05:04:20,752 - INFO - {'Loss': '0.01166', 'admm_loss': '0.50281', 'psnr': '34.17', 'point': 13082}
+2025-03-22 05:04:21,452 - INFO - {'Loss': '0.01281', 'admm_loss': '0.50281', 'psnr': '33.03', 'point': 13082}
+2025-03-22 05:04:22,045 - INFO - {'Loss': '0.01226', 'admm_loss': '0.50281', 'psnr': '33.22', 'point': 13082}
+2025-03-22 05:04:22,660 - INFO - {'Loss': '0.01367', 'admm_loss': '0.50281', 'psnr': '31.69', 'point': 13082}
+2025-03-22 05:04:23,267 - INFO - {'Loss': '0.01262', 'admm_loss': '0.50281', 'psnr': '33.43', 'point': 13082}
+2025-03-22 05:04:23,871 - INFO - {'Loss': '0.01262', 'admm_loss': '0.50281', 'psnr': '33.09', 'point': 13082}
+2025-03-22 05:04:24,451 - INFO - {'Loss': '0.01252', 'admm_loss': '0.50281', 'psnr': '33.30', 'point': 13082}
+2025-03-22 05:04:25,044 - INFO - {'Loss': '0.01259', 'admm_loss': '0.50281', 'psnr': '32.74', 'point': 13082}
+2025-03-22 05:04:25,630 - INFO - {'Loss': '0.01181', 'admm_loss': '0.50281', 'psnr': '34.69', 'point': 13082}
+2025-03-22 05:04:26,202 - INFO - {'Loss': '0.01277', 'admm_loss': '0.50281', 'psnr': '32.54', 'point': 13082}
+2025-03-22 05:04:26,799 - INFO - {'Loss': '0.01194', 'admm_loss': '0.50281', 'psnr': '33.21', 'point': 13082}
+2025-03-22 05:04:27,384 - INFO - {'Loss': '0.01167', 'admm_loss': '0.50281', 'psnr': '33.62', 'point': 13082}
+2025-03-22 05:04:27,949 - INFO - {'Loss': '0.01316', 'admm_loss': '0.50281', 'psnr': '32.68', 'point': 13082}
+2025-03-22 05:04:28,536 - INFO - {'Loss': '0.01282', 'admm_loss': '0.50281', 'psnr': '32.39', 'point': 13082}
+2025-03-22 05:04:29,105 - INFO - {'Loss': '0.01254', 'admm_loss': '0.50281', 'psnr': '33.57', 'point': 13082}
+2025-03-22 05:04:29,819 - INFO - {'Loss': '0.01286', 'admm_loss': '0.50281', 'psnr': '32.81', 'point': 13082}
+2025-03-22 05:04:30,415 - INFO - {'Loss': '0.01244', 'admm_loss': '0.50281', 'psnr': '33.45', 'point': 13082}
+2025-03-22 05:04:30,996 - INFO - {'Loss': '0.01201', 'admm_loss': '0.50281', 'psnr': '33.45', 'point': 13082}
+2025-03-22 05:04:31,573 - INFO - {'Loss': '0.01199', 'admm_loss': '0.50281', 'psnr': '34.24', 'point': 13082}
+2025-03-22 05:04:32,156 - INFO - {'Loss': '0.01205', 'admm_loss': '0.50281', 'psnr': '32.48', 'point': 13082}
+2025-03-22 05:04:32,788 - INFO - {'Loss': '0.01245', 'admm_loss': '0.50281', 'psnr': '32.70', 'point': 13082}
+2025-03-22 05:04:33,370 - INFO - {'Loss': '0.01298', 'admm_loss': '0.50281', 'psnr': '32.91', 'point': 13082}
+2025-03-22 05:04:33,959 - INFO - {'Loss': '0.01295', 'admm_loss': '0.50281', 'psnr': '31.44', 'point': 13082}
+2025-03-22 05:04:34,544 - INFO - {'Loss': '0.01324', 'admm_loss': '0.50281', 'psnr': '32.09', 'point': 13082}
+2025-03-22 05:04:35,144 - INFO - {'Loss': '0.01305', 'admm_loss': '0.50281', 'psnr': '32.00', 'point': 13082}
+2025-03-22 05:04:35,729 - INFO - {'Loss': '0.01245', 'admm_loss': '0.50281', 'psnr': '33.02', 'point': 13082}
+2025-03-22 05:04:36,425 - INFO - {'Loss': '0.01286', 'admm_loss': '0.50281', 'psnr': '32.29', 'point': 13082}
+2025-03-22 05:04:37,002 - INFO - {'Loss': '0.01214', 'admm_loss': '0.50281', 'psnr': '33.61', 'point': 13082}
+2025-03-22 05:04:37,600 - INFO - {'Loss': '0.01287', 'admm_loss': '0.50281', 'psnr': '32.04', 'point': 13082}
+2025-03-22 05:04:38,206 - INFO - {'Loss': '0.01184', 'admm_loss': '0.50281', 'psnr': '33.47', 'point': 13082}
+2025-03-22 05:04:38,813 - INFO - {'Loss': '0.01170', 'admm_loss': '0.50281', 'psnr': '33.95', 'point': 13082}
+2025-03-22 05:04:39,402 - INFO - {'Loss': '0.01231', 'admm_loss': '0.50281', 'psnr': '33.20', 'point': 13082}
+2025-03-22 05:04:40,024 - INFO - {'Loss': '0.01270', 'admm_loss': '0.50281', 'psnr': '33.14', 'point': 13082}
+2025-03-22 05:04:40,614 - INFO - {'Loss': '0.01261', 'admm_loss': '0.50281', 'psnr': '32.68', 'point': 13082}
+2025-03-22 05:04:41,204 - INFO - {'Loss': '0.01244', 'admm_loss': '0.50281', 'psnr': '33.35', 'point': 13082}
+2025-03-22 05:04:41,811 - INFO - {'Loss': '0.01186', 'admm_loss': '0.50281', 'psnr': '32.99', 'point': 13082}
+2025-03-22 05:04:42,412 - INFO - {'Loss': '0.01165', 'admm_loss': '0.50281', 'psnr': '34.17', 'point': 13082}
+2025-03-22 05:04:43,039 - INFO - {'Loss': '0.01218', 'admm_loss': '0.50281', 'psnr': '32.71', 'point': 13082}
+2025-03-22 05:04:43,611 - INFO - {'Loss': '0.01223', 'admm_loss': '0.50281', 'psnr': '33.42', 'point': 13082}
+2025-03-22 05:04:44,205 - INFO - {'Loss': '0.01256', 'admm_loss': '0.50281', 'psnr': '32.98', 'point': 13082}
+2025-03-22 05:04:44,819 - INFO - {'Loss': '0.01200', 'admm_loss': '0.50281', 'psnr': '33.67', 'point': 13082}
+2025-03-22 05:04:45,535 - INFO - {'Loss': '0.01275', 'admm_loss': '0.50281', 'psnr': '32.24', 'point': 13082}
+2025-03-22 05:04:46,118 - INFO - {'Loss': '0.01301', 'admm_loss': '0.50281', 'psnr': '32.98', 'point': 13082}
+2025-03-22 05:04:46,732 - INFO - {'Loss': '0.01229', 'admm_loss': '0.50281', 'psnr': '33.82', 'point': 13082}
+2025-03-22 05:04:47,326 - INFO - {'Loss': '0.01211', 'admm_loss': '0.50281', 'psnr': '33.37', 'point': 13082}
+2025-03-22 05:04:47,938 - INFO - {'Loss': '0.01157', 'admm_loss': '0.50281', 'psnr': '34.16', 'point': 13082}
+2025-03-22 05:04:48,548 - INFO - {'Loss': '0.01166', 'admm_loss': '0.50281', 'psnr': '34.10', 'point': 13082}
+2025-03-22 05:04:49,140 - INFO - {'Loss': '0.01203', 'admm_loss': '0.50281', 'psnr': '32.71', 'point': 13082}
+2025-03-22 05:04:49,747 - INFO - {'Loss': '0.01223', 'admm_loss': '0.50281', 'psnr': '33.28', 'point': 13082}
+2025-03-22 05:04:50,331 - INFO - {'Loss': '0.01264', 'admm_loss': '0.50281', 'psnr': '33.24', 'point': 13082}
+2025-03-22 05:04:50,943 - INFO - {'Loss': '0.01146', 'admm_loss': '0.50281', 'psnr': '33.79', 'point': 13082}
+2025-03-22 05:04:51,555 - INFO - {'Loss': '0.01205', 'admm_loss': '0.50281', 'psnr': '33.72', 'point': 13082}
+2025-03-22 05:04:52,135 - INFO - {'Loss': '0.01152', 'admm_loss': '0.50281', 'psnr': '33.49', 'point': 13082}
+2025-03-22 05:04:52,721 - INFO - {'Loss': '0.01290', 'admm_loss': '0.50281', 'psnr': '32.56', 'point': 13082}
+2025-03-22 05:04:53,313 - INFO - {'Loss': '0.01230', 'admm_loss': '0.50281', 'psnr': '33.00', 'point': 13082}
+2025-03-22 05:04:53,923 - INFO - {'Loss': '0.01310', 'admm_loss': '0.50281', 'psnr': '31.61', 'point': 13082}
+2025-03-22 05:04:54,507 - INFO - {'Loss': '0.01168', 'admm_loss': '0.50281', 'psnr': '33.70', 'point': 13082}
+2025-03-22 05:04:55,086 - INFO - {'Loss': '0.01308', 'admm_loss': '0.50281', 'psnr': '31.79', 'point': 13082}
+2025-03-22 05:04:55,668 - INFO - {'Loss': '0.01137', 'admm_loss': '0.50281', 'psnr': '33.97', 'point': 13082}
+2025-03-22 05:04:56,255 - INFO - {'Loss': '0.01174', 'admm_loss': '0.50281', 'psnr': '33.83', 'point': 13082}
