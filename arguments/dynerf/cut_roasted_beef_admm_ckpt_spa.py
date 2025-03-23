@@ -8,7 +8,7 @@ OptimizationParams = dict(
     admm_stop_iter1=26000,  # admm迭代结束 19400
     simp_iteration2=26001,  # 删点执行 19401
     iterations=30000,  # 整体迭代
-    admm_interval=25,
+    admm_interval=50,
     rho_lr=0.0005,
     opacity_admm_threshold1=0.80,  # 0.8
     opacity_admm_threshold2=0.50,
@@ -17,5 +17,5 @@ OptimizationParams = dict(
     prune_points=True,  # 是否进行删点
     admm=True,
     related_gs_num=1,
-    simp_iteration1_score_type = 1
+    simp_iteration1_score_type = 2
 )

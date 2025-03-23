@@ -10,7 +10,7 @@
 #
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"  # 先设置 GPU 设备
+os.environ["CUDA_VISIBLE_DEVICES"] = "6"  # 先设置 GPU 设备
 
 import sys
 import numpy as np
