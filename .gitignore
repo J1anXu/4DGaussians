@@ -11,3 +11,4 @@ data
 log/
 wandb/
 tools/frameDiffRes/
+wandb*
