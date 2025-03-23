@@ -10,7 +10,8 @@
 #
 import os
 idx = 1
-os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
+#os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
+os.environ["CUDA_VISIBLE_DEVICES"] = f"6"  # 先设置 GPU 设备
 
 import sys
 import numpy as np
@@ -18,7 +19,7 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, render_topk, render_point_time, network_gui
+from gaussian_renderer import render, render_with_topk_mask, render_point_time, network_gui
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
 from tqdm import tqdm
@@ -131,7 +132,7 @@ def scene_reconstruction(
     # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
 
     scores = None
-    related_gs_mask = None
+    topk_mask = None
 
     for iteration in range(first_iter, final_iter + 1):
         if network_gui.conn == None:
@@ -430,14 +431,19 @@ def scene_reconstruction(
                 if args.simp_iteration1_score_type == 1:
                     scores = time_0_bleding_weight(gaussians, opt, args, scene, pipe, background)
                 elif args.simp_iteration1_score_type == 2:
-                    scores, related_gs_mask = run_tasks_in_parallel(
+                    scores, topk_mask = run_tasks_in_parallel(
                         (time_0_bleding_weight, gaussians, opt, args, scene, pipe, background),
-                        (topk_gs_of_pixels, gaussians, scene, pipe, args, background, args.related_gs_num)
+                        (get_topk_mask, gaussians, scene, pipe, args, background, args.related_gs_num)
                     )
-                    scores[related_gs_mask] += torch.max(scores)
+                    scores[topk_mask] += torch.max(scores)
                 elif args.simp_iteration1_score_type == 3:
                     scores = getOpacityScore(gaussians)
-
+                elif args.simp_iteration1_score_type == 4:
+                    scores, topk_score = run_tasks_in_parallel(
+                        (time_0_bleding_weight, gaussians, opt, args, scene, pipe, background),
+                        (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num)
+                    )
+                    scores = scores + topk_score
                 # related_gs_mask = topk_gs_of_pixels(gaussians, scene, pipe, background, args.related_gs_num)
 
                 scores_sorted, _ = torch.sort(scores, 0)

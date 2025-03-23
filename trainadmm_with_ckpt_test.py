@@ -18,7 +18,7 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, render_topk, render_point_time, network_gui
+from gaussian_renderer import render, render_with_topk_mask, render_point_time, network_gui
 import sys
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
@@ -178,7 +178,7 @@ def scene_reconstruction(
     plt.imsave(os.path.join(DIR, "gt_image.png"), original_image_numpy)
 
     with torch.no_grad():
-        renderTopk_pkg = render_topk(view, gaussians, pipe, background, topk=50)
+        renderTopk_pkg = render_with_topk_mask(view, gaussians, pipe, background, topk=50)
         topk_mask = renderTopk_pkg["topk_mask"]
         # 统计 True 的数量
         count = torch.sum(topk_mask).item()  # 使用 torch.sum() 计算 True 的数量
@@ -374,7 +374,7 @@ def get_topk_mask(gaussians, scene, pipe, background):
     for view in tqdm(viewpoint_stack, desc="top k"):
         # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
         #     continue
-        renderTopk_pkg = render_topk(view, gaussians, pipe, background, topk=20)
+        renderTopk_pkg = render_with_topk_mask(view, gaussians, pipe, background, topk=20)
         topk_mask = renderTopk_pkg["topk_mask"]
         valid_prune_mask = torch.logical_or(valid_prune_mask, topk_mask)
 

@@ -9,8 +9,8 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
-idx = 2
-os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4,5,6,7"
 
 import sys
 import numpy as np
@@ -18,9 +18,11 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, render_topk, render_point_time, network_gui
+from gaussian_renderer import render, render_with_topk_mask, render_point_time, network_gui
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
+from utils.loss_utils import ssim
+from lpipsPyTorch import lpips
 from tqdm import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser, Namespace
@@ -30,21 +32,71 @@ from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
 from utils.scene_utils import render_training_image
 from impScoreUtils import *
-import shutil
-
 import copy
 from admm import ADMM
 import wandb
 import logging
+import time
+from PIL import Image, ImageDraw
+from torchvision import transforms
+from torch.utils.data import Subset
+import concurrent.futures
+import torch.multiprocessing as mp
+from pathlib import Path
+import torchvision
+import torchvision.transforms.functional as tf
+import pprint
+from pathlib import Path
+import torch.multiprocessing as mp
+from PIL import Image
+import torch
+import torchvision.transforms.functional as tf
+from utils.loss_utils import ssim
+from lpipsPyTorch import lpips
+import json
+from tqdm import tqdm
+from utils.image_utils import psnr
+from argparse import ArgumentParser
+from pytorch_msssim import ms_ssim
+import torch
+import torch.multiprocessing as mp
+import imageio
+import numpy as np
+from scene import Scene
+import cv2
+from tqdm import tqdm
+from os import makedirs
+from gaussian_renderer import render
+import torchvision
+from utils.general_utils import safe_state
+from argparse import ArgumentParser
+from arguments import ModelParams, PipelineParams, get_combined_args, ModelHiddenParams
+from gaussian_renderer import GaussianModel
+import time
+from PIL import Image, ImageDraw
+from torchvision import transforms
+from torch.utils.data import Subset
+import concurrent.futures
+import torch.multiprocessing as mp
+import logging
+from os import makedirs
 from logger import initialize_logger
-WANDB = True
+
+current_time = initialize_logger()
+DRAW = True  # 是否画出高斯中心
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
+WANDB=True
 
 try:
     from torch.utils.tensorboard import SummaryWriter
+
     TENSORBOARD_FOUND = True
 except ImportError:
     TENSORBOARD_FOUND = False
+
+if WANDB:
+    wandb.login()
+
 
 def scene_reconstruction(
     dataset,
@@ -126,6 +178,22 @@ def scene_reconstruction(
     admm_loss = torch.tensor(0)
 
     count = 0
+    if WANDB:
+        wandb.init(
+            project="train_admm_with_ckpt",
+            name=f"{args.log_name}",
+            config={
+                "opt": vars(opt),
+                # "dataset": vars(dataset),
+                # "hyper": vars(hyper),
+                # "pipe": vars(pipe),
+                # "testing_iterations": testing_iterations,
+                "saving_iterations": saving_iterations,
+                "checkpoint": checkpoint,
+                "stage": stage,
+                "train_iter": train_iter,
+            },
+        )
 
     times = scene.train_camera.dataset.image_times[0 : scene.train_camera.dataset.time_number]
     # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
@@ -427,17 +495,16 @@ def scene_reconstruction(
                     gaussians.reset_opacity()
 
             elif args.prune_points and iteration == args.simp_iteration1:
-                if args.simp_iteration1_score_type == 1:
-                    scores = time_0_bleding_weight(gaussians, opt, args, scene, pipe, background)
-                elif args.simp_iteration1_score_type == 2:
-                    scores, related_gs_mask = run_tasks_in_parallel(
-                        (time_0_bleding_weight, gaussians, opt, args, scene, pipe, background),
-                        (topk_gs_of_pixels, gaussians, scene, pipe, args, background, args.related_gs_num)
-                    )
-                    scores[related_gs_mask] += torch.max(scores)
-                elif args.simp_iteration1_score_type == 3:
-                    scores = getOpacityScore(gaussians)
 
+                # scores, related_gs_mask = run_tasks_in_parallel(
+                #     (time_0_bleding_weight, gaussians, opt, scene, pipe, background),
+                #     (topk_gs_of_pixels, gaussians, scene, pipe, background, args.related_gs_num)
+                # )
+                # max_score = torch.max(scores)
+                # scores[related_gs_mask] += max_score
+                # print(f"Max score: {max_score}")
+
+                scores = time_0_bleding_weight(gaussians, opt, args, scene, pipe, background)
                 # related_gs_mask = topk_gs_of_pixels(gaussians, scene, pipe, background, args.related_gs_num)
 
                 scores_sorted, _ = torch.sort(scores, 0)
@@ -477,6 +544,9 @@ def scene_reconstruction(
                     (gaussians.capture(), iteration),
                     scene.model_path + "/chkpnt" + f"_{stage}_" + str(iteration) + ".pth",
                 )
+    if WANDB:
+        wandb.finish()
+
 
 def training(
     dataset,
@@ -661,6 +731,351 @@ def setup_seed(seed):
     torch.backends.cudnn.deterministic = True
 
 
+def multithread_write(image_list, path):
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=None)
+
+    def write_image(image, count, path):
+        try:
+            torchvision.utils.save_image(image, os.path.join(path, "{0:05d}".format(count) + ".png"))
+            return count, True
+        except:
+            return count, False
+
+    tasks = []
+    for index, image in enumerate(image_list):
+        tasks.append(executor.submit(write_image, image, index, path))
+    executor.shutdown()
+    for index, status in enumerate(tasks):
+        if status == False:
+            write_image(image_list[index], index, path)
+
+
+def ndc2Pix(v, S):
+    return ((v + 1.0) * S - 1.0) * 0.5
+
+
+def draw_points_on_image(points, colors, image, size=1):
+    image[image > 1] = 1
+    image[image < 0] = 0
+    image = Image.fromarray((image * 255).astype(np.uint8))
+    draw = ImageDraw.Draw(image)
+    for point, color in zip(points, colors):
+        x, y = point
+        r, g, b = color
+        draw.ellipse((x - size, y - size, x + size, y + size), fill=(int(r), int(g), int(b)))
+    return image
+
+
+def render_set(model_path, name, iteration, views, gaussians, pipeline, background, cam_type):
+    render_path = os.path.join(model_path, name, f"ours_{iteration}", "renders")
+    gts_path = os.path.join(model_path, name, f"ours_{iteration}", "gt")
+    draw_path = os.path.join(model_path, name, f"ours_{iteration}", "draw")
+    makedirs(render_path, exist_ok=True)
+    makedirs(gts_path, exist_ok=True)
+    if DRAW:
+        makedirs(draw_path, exist_ok=True)
+
+    render_images = []
+    gt_list = []
+    render_list = []
+    draw_list = []
+
+    print("Point count:", gaussians._xyz.shape[0])
+    count = 0
+
+    for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
+        rendering_res = render(view, gaussians, pipeline, background, cam_type=cam_type)
+        rendering = rendering_res["render"]
+
+        if DRAW:
+            means3D_final = rendering_res["means3D_final"]
+            xyz = means3D_final.clone()
+            device = xyz.device
+            full_proj_transform = view.full_proj_transform.to(device)
+            world_view_transform = view.world_view_transform.to(device)
+            rgb = gaussians._features_dc[:, 0]
+            p_hom = torch.matmul(xyz, full_proj_transform[:3]) + full_proj_transform[3:4]
+            p_w = 1.0 / (p_hom[:, 3] + 1e-7)
+            p_proj = p_hom[:, :3] * p_w[:, None]
+            p_view = torch.matmul(xyz, world_view_transform[:3, :3]) + world_view_transform[3:4, :3]
+            mask = p_view[:, 2].cpu().numpy() > 0.2
+            point_image = ndc2Pix(p_proj[:, 0], rendering.shape[2]), ndc2Pix(p_proj[:, 1], rendering.shape[1])
+            point_image = torch.cat((point_image[0][:, None], point_image[1][:, None]), -1)
+            points = point_image.detach().cpu().numpy()[mask]
+            colors = rgb.detach().cpu().numpy()[mask]
+
+            image_proj = draw_points_on_image(
+                points,
+                np.zeros(colors.shape) + [0, 0, 255],
+                rendering.permute(1, 2, 0).detach().cpu().numpy(),
+                size=0.3,
+            )
+            transform = transforms.ToTensor()
+            draw_image = transform(image_proj)
+            draw_list.append(draw_image)
+
+        render_images.append(to8b(rendering).transpose(1, 2, 0))
+        render_list.append(rendering.cpu())
+
+        if name in ["train", "test"]:
+            gt = view.original_image[0:3, :, :]
+            gt_list.append(gt)
+
+    return render_list, gt_list, draw_list
+    # return render_images
+
+
+def render_worker(gpu_id, dataset, hyperparam, iteration, pipeline, views, mode, result_dict):
+    """多进程渲染 Worker 进程"""
+    torch.cuda.set_device(gpu_id)
+    device = torch.device(f"cuda:{gpu_id}")
+
+    with torch.no_grad():
+        gaussians = GaussianModel(dataset.sh_degree, hyperparam)
+        scene = Scene(dataset, gaussians, load_iteration=iteration, shuffle=False)
+        cam_type = scene.dataset_type
+        bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
+        background = torch.tensor(bg_color, dtype=torch.float32, device=device)
+
+        render_list, gt_list, draw_list = render_set(
+            dataset.model_path, mode, scene.loaded_iter, views, gaussians, pipeline, background, cam_type
+        )
+
+    result_dict[gpu_id] = {
+        "renders": render_list,
+        "gts": gt_list,
+        "draws": draw_list,
+    }
+
+
+def ensure_directories_exist(*paths):
+    for path in paths:
+        os.makedirs(path, exist_ok=True)
+
+
+def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, skip_test, skip_video):
+    num_gpus = torch.cuda.device_count()
+    print(f"Detected {num_gpus} GPUs.")
+
+    with torch.no_grad():
+        gaussians = GaussianModel(dataset.sh_degree, hyperparam)
+        scene = Scene(dataset, gaussians, load_iteration=iteration, shuffle=False)
+
+    manager = mp.Manager()
+    result_dict = manager.dict()  # 共享字典存储 GPU 结果
+    processes = []
+
+    def split_and_render(mode, views):
+        """按 GPU 划分 views，并启动多进程渲染"""
+        if len(views) == 0:
+            return
+
+        num_views = len(views)
+        indices = torch.linspace(0, num_views, num_gpus + 1, dtype=torch.int).tolist()
+        split_views = [Subset(views, range(indices[i], indices[i + 1])) for i in range(num_gpus)]
+
+        for gpu_id in range(num_gpus):
+            p = mp.Process(
+                target=render_worker,
+                args=(gpu_id, dataset, hyperparam, scene.loaded_iter, pipeline, split_views[gpu_id], mode, result_dict),
+            )
+            p.start()
+            processes.append(p)
+
+        for p in processes:
+            p.join()
+
+        # **汇总所有 GPU 结果并按顺序写入**
+        sorted_gpu_ids = sorted(result_dict.keys())  # 确保按 GPU ID 顺序
+        final_renders, final_gts, final_draws = [], [], []
+
+        for gpu_id in sorted_gpu_ids:
+            final_renders.extend(result_dict[gpu_id]["renders"])
+            final_gts.extend(result_dict[gpu_id]["gts"])
+            final_draws.extend(result_dict[gpu_id]["draws"])
+
+        render_path = os.path.join(dataset.model_path, mode, f"ours_{scene.loaded_iter}", "renders")
+        gts_path = os.path.join(dataset.model_path, mode, f"ours_{scene.loaded_iter}", "gt")
+        draw_path = os.path.join(dataset.model_path, mode, f"ours_{scene.loaded_iter}", "draw")
+        ensure_directories_exist(render_path, gts_path, draw_path)
+
+        print(f"Writing images to {gts_path}... size = {len(final_gts)}")
+        multithread_write(final_gts, gts_path)
+        time.sleep(5)
+
+        print(f"Writing images to {render_path}... size = {len(final_renders)}")
+        multithread_write(final_renders, render_path)
+        time.sleep(5)
+
+        if DRAW:
+            print(f"Writing images to {draw_path}... size = {len(final_draws)}")
+            multithread_write(final_draws, draw_path)
+
+    # if not skip_train:
+    #     print("Starting train set rendering...")
+    #     split_and_render("train", scene.getTrainCameras())
+
+    if not skip_test:
+        print("Starting test set rendering...")
+        split_and_render("test", scene.getTestCameras())
+
+    # if not skip_video:
+    #     print("Starting video rendering...")
+    #     split_and_render("video", scene.getVideoCameras())
+
+    print("All rendering processes finished.")
+
+def readImages(renders_dir, gt_dir):
+    renders = []
+    gts = []
+    image_names = []
+    for fname in os.listdir(renders_dir):
+        render = Image.open(renders_dir / fname)
+        gt = Image.open(gt_dir / fname)
+        renders.append(tf.to_tensor(render).unsqueeze(0)[:, :3, :, :].cuda())
+        gts.append(tf.to_tensor(gt).unsqueeze(0)[:, :3, :, :].cuda())
+        image_names.append(fname)
+    return renders, gts, image_names
+
+
+def evaluate(model_paths):
+    full_dict = {}
+    per_view_dict = {}
+    full_dict_polytopeonly = {}
+    per_view_dict_polytopeonly = {}
+
+    for scene_dir in model_paths:
+        try:
+            print("Scene:", scene_dir)
+            full_dict[scene_dir] = {}
+            per_view_dict[scene_dir] = {}
+            full_dict_polytopeonly[scene_dir] = {}
+            per_view_dict_polytopeonly[scene_dir] = {}
+
+            test_dir = Path(scene_dir) / "test"
+
+            for method in os.listdir(test_dir):
+                print("Method:", method)
+
+                full_dict[scene_dir][method] = {}
+                per_view_dict[scene_dir][method] = {}
+                full_dict_polytopeonly[scene_dir][method] = {}
+                per_view_dict_polytopeonly[scene_dir][method] = {}
+
+                method_dir = test_dir / method
+                gt_dir = method_dir / "gt"
+                renders_dir = method_dir / "renders"
+                renders, gts, image_names = readImages(renders_dir, gt_dir)
+
+                # Parallelize the metric evaluation across multiple GPUs
+                results = parallel_evaluation(renders, gts, num_gpus=torch.cuda.device_count())
+
+                # Compute the final metrics
+                ssims = results["SSIM"]
+                psnrs = results["PSNR"]
+                lpipss = results["LPIPS-vgg"]
+                lpipsa = results["LPIPS-alex"]
+                ms_ssims = results["MS-SSIM"]
+                Dssims = results["D-SSIM"]
+
+                # Print the results
+                print(f"Metrics2 {method_dir}")
+                print("SSIM : {:>12.8f}".format(ssims))
+                print("PSNR : {:>12.8f}".format(psnrs))
+                print("LPIPS-vgg: {:>12.8f}".format(lpipss))
+                print("LPIPS-alex: {:>12.8f}".format(lpipsa))
+                print("MS-SSIM: {:>12.8f}".format(ms_ssims))
+                print("D-SSIM: {:>12.8f}".format(Dssims))
+
+                # Logging the results
+                logging.info(f"Mertics2 {method_dir}")
+                logging.info("Scene: %s", scene_dir)
+                logging.info("  SSIM: %.8f", ssims)
+                logging.info("  PSNR: %.8f", psnrs)
+                logging.info("  LPIPS-vgg: %.8f", lpipss)
+                logging.info("  LPIPS-alex: %.8f", lpipsa)
+                logging.info("  MS-SSIM: %.8f", ms_ssims)
+                logging.info("  D-SSIM: %.8f", Dssims)
+        except Exception as e:
+            print("Unable to compute metrics for model", scene_dir)
+            raise e
+
+
+def parallel_evaluation(renders, gts, num_gpus=8):
+    # Split renders and gts into N parts for N GPUs
+    splits = len(renders) // num_gpus
+    results = mp.Manager().dict()
+
+    # Create processes, one for each GPU
+    processes = []
+    for gpu_id in range(num_gpus):
+        start_idx = gpu_id * splits
+        end_idx = (gpu_id + 1) * splits if gpu_id < num_gpus - 1 else len(renders)
+
+        device = torch.device(f"cuda:{gpu_id}")
+        p = mp.Process(target=worker, args=(device, renders, gts, start_idx, end_idx, results))
+        processes.append(p)
+        p.start()
+
+    # Join processes
+    for p in processes:
+        p.join()
+
+    # Aggregate the results from all GPUs
+    aggregated_results = {"SSIM": [], "PSNR": [], "LPIPS-vgg": [], "LPIPS-alex": [], "MS-SSIM": [], "D-SSIM": []}
+    lock = mp.Lock()
+
+    # 将结果汇总并计算均值
+    for device_results in results.values():
+        with lock:  # 加锁，确保线程安全
+            for metric in aggregated_results:
+                aggregated_results[metric].extend(device_results[metric])
+
+    # 计算均值
+    mean_results = {
+        metric: sum(map(float, values)) / len(values) if len(values) > 0 else 0
+        for metric, values in aggregated_results.items()
+    }
+
+    return mean_results
+
+
+def worker(device, renders, gts, start_idx, end_idx, results):
+    ssims = []
+    psnrs = []
+    lpipss = []
+    lpipsa = []
+    ms_ssims = []
+    Dssims = []
+
+    # Move tensors to the corresponding device (GPU)
+    renders = [render.to(device) for render in renders[start_idx:end_idx]]
+    gts = [gt.to(device) for gt in gts[start_idx:end_idx]]
+
+    # Calculate metrics
+    for idx in tqdm(range(start_idx, end_idx), desc="Evaling", unit="item"):
+        ssims.append(ssim(renders[idx - start_idx], gts[idx - start_idx]).item())
+        psnrs.append(psnr(renders[idx - start_idx], gts[idx - start_idx]).item())
+        lpipss.append(lpips(renders[idx - start_idx], gts[idx - start_idx], net_type="vgg").item())
+        ms_ssims.append(ms_ssim(renders[idx - start_idx], gts[idx - start_idx], data_range=1, size_average=True).item())
+        lpipsa.append(lpips(renders[idx - start_idx], gts[idx - start_idx], net_type="alex").item())
+        Dssims.append((1 - ms_ssims[-1]) / 2)
+
+    # Ensure the results are on CPU and clone the tensors to avoid CUDA issues when passing between processes
+    results[device] = {
+        "SSIM": ssims,
+        "PSNR": psnrs,
+        "LPIPS-vgg": lpipss,
+        "LPIPS-alex": lpipsa,
+        "MS-SSIM": ms_ssims,
+        "D-SSIM": Dssims,
+    }
+
+    # Move results to CPU to avoid CUDA context sharing issues across processes
+    for key, value in results[device].items():
+        # Ensure that the values are not CUDA tensors
+        results[device][key] = [val.cpu() if isinstance(val, torch.Tensor) else val for val in value]
+
 if __name__ == "__main__":
     torch.cuda.empty_cache()
     parser = ArgumentParser(description="Training script parameters")
@@ -671,7 +1086,7 @@ if __name__ == "__main__":
     hp = ModelHiddenParams(parser)
     #
     parser.add_argument("--ip", type=str, default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=6009)
+    parser.add_argument("--port", type=int, default=6018)
     parser.add_argument("--debug_from", type=int, default=-1)
     parser.add_argument("--detect_anomaly", action="store_true", default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[])
@@ -682,6 +1097,8 @@ if __name__ == "__main__":
     parser.add_argument("--expname", type=str, default="")
     parser.add_argument("--configs", type=str, default="")
     parser.add_argument("--log_name", type=str, default="default")
+    mp.set_start_method("spawn", force=True)
+
     args = parser.parse_args(sys.argv[1:])
     if args.configs:
         import mmcv
@@ -700,29 +1117,11 @@ if __name__ == "__main__":
 
     args.save_iterations.append(args.iterations)
 
-    current_time = initialize_logger()
-
-    for arg, value in vars(op.extract(args)).items():
+    # 记录参数到日志
+    logging.info("Training started with the following arguments:")
+    for arg, value in vars(args).items():
         logging.info(f"{arg}: {value}")
-        
-    if WANDB:
-        wandb.login()
-        run = wandb.init(
-            project="admm",
-            name=f"idx_{idx}_{current_time}",  # 让不同脚本的数据归为一组
-            job_type="training",
-            config=vars(op.extract(args))
-        )
-        wandb.define_metric("iteration")  # 将 iteration 作为横坐标
 
-    # 保存 run_id 供后续使用
-    with open(f"wandb_run_id_{idx}.txt", "w") as f:
-        f.write(run.id)
-
-    output_path = "./output/"+args.expname
-    # 检查目录是否存在，存在则删除
-    if os.path.exists(output_path) and os.path.isdir(output_path):
-        shutil.rmtree(output_path)
     training(
         lp.extract(args),
         hp.extract(args),
@@ -735,7 +1134,32 @@ if __name__ == "__main__":
         args.debug_from,
         args.expname,
     )
-    
-    if WANDB:
-        wandb.finish()
+
+
+    parallel_render_sets(
+        lp.extract(args),
+        hp.extract(args),
+        args.iteration,
+        pp.extract(args),
+        args.skip_train,
+        args.skip_test,
+        args.skip_video,
+    )
+
+    args_path = Path(args.model_paths[0]) / "opt_params.pth"
+
+    # 检查文件是否存在
+    if args_path.exists():
+        # 如果文件存在，加载数据
+        hp_data = torch.load(args_path)
+        print("Hyperparameters loaded successfully.")
+        # 格式化输出
+        pretty_data = pprint.pformat(vars(hp_data), indent=2)
+        logging.info(f"Loaded data:\n{pretty_data}\n")
+    else:
+        # 如果文件不存在，打印错误并放弃
+        print(f"Error: The file {args_path} does not exist. Skipping...")
+
+    evaluate(args.model_paths)
+
 

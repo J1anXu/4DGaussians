@@ -396,15 +396,15 @@ __global__ void markingTopKScore(int L, int topk, uint64_t* point_list_keys, uin
 	uint32_t pix_id = key >> 32; // 代表pix一维坐标
 	uint32_t score = static_cast<uint32_t>(key & 0xFFFFFFFF);
 
-
 	if(score > 0 && score < 65535){
+		float original_score = (score / 65535.0f);
 		if (idx < topk){
-			scores[val] += score;
+			scores[val] += original_score;
 		}
 		else{
 			uint32_t prevtile = point_list_keys[idx - topk] >> 32;
 			if (pix_id != prevtile)
-				scores[val] += score;
+				scores[val] += original_score;
 
 		}
 

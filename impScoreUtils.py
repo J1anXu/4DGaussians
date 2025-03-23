@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from random import randint
-from gaussian_renderer import render, render_topk, render_point_time
+from gaussian_renderer import render, render_with_topk_mask, render_with_topk_score, render_point_time
 from tqdm import tqdm
 from utils.image_utils import psnr
 from arguments import ModelParams, PipelineParams, OptimizationParams, ModelHiddenParams
@@ -13,27 +13,44 @@ import threading
 import queue
 import os
 
-@torch.no_grad()
-def topk_gs_of_pixels(gaussians, scene, pipe, args, background, related_gs_num):
-    print("get topk_gs_of_pixels...")
-    tensor_path = args.start_checkpoint + f"_tok{related_gs_num}.pt"
+def get_topk_mask(gaussians, scene, pipe, args, background, related_gs_num):
+    tensor_path = args.start_checkpoint + f"_topk_mask_{related_gs_num}.pt"
     # 检查文件是否存在
     if os.path.exists(tensor_path):
+        print(f"get topk_mask from {tensor_path}")
         return torch.load(tensor_path)
     viewpoint_stack = scene.getTrainCameras()
     valid_prune_mask = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda", dtype=torch.bool)
-    for view in tqdm(viewpoint_stack, desc=f"CalTopKGSOfPixels, K={related_gs_num}"):
+    for view in tqdm(viewpoint_stack, desc=f"topk_mask, K={related_gs_num}"):
         # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
         #     continue
-        renderTopk_pkg = render_topk(view, gaussians, pipe, background, topk=related_gs_num)
-        topk_mask = renderTopk_pkg["topk_mask"]
-        valid_prune_mask = torch.logical_or(valid_prune_mask, topk_mask)
+        with torch.no_grad():
+            renderTopk_pkg = render_with_topk_mask(view, gaussians, pipe, background, topk=related_gs_num)
+            topk_mask = renderTopk_pkg["topk_mask"]
+            valid_prune_mask = torch.logical_or(valid_prune_mask, topk_mask)
     # 计算 valid_prune_mask 中 True 的数量
     num_true = torch.sum(valid_prune_mask).item()
-    print(f"Number of True values in valid_prune_mask: {num_true}")
     torch.save(valid_prune_mask, tensor_path)
-    print(f"topk_gs_of_pixels saved to {tensor_path}")
     return valid_prune_mask
+
+def get_topk_score(gaussians, scene, pipe, args, background, related_gs_num):
+    tensor_path = args.start_checkpoint + f"_tok_score_{related_gs_num}.pt"
+    # 检查文件是否存在
+    if os.path.exists(tensor_path):
+        print(f"get topk_score from {tensor_path}")
+        return torch.load(tensor_path)
+    viewpoint_stack = scene.getTrainCameras()
+    final_score = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda")
+    for view in tqdm(viewpoint_stack, desc=f"topk_score, K={related_gs_num}"):
+        # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
+        #     continue
+        with torch.no_grad():
+            renderTopk_pkg = render_with_topk_score(view, gaussians, pipe, background, topk=related_gs_num)
+            topk_score = renderTopk_pkg["topk_score"]
+            final_score += norm_tensor_01(topk_score)
+    # 计算 valid_prune_mask 中 True 的数量
+    torch.save(final_score, tensor_path)
+    return final_score
 
 
 def movingLength(gaussians, times):
@@ -75,10 +92,10 @@ def norm_tensor_01(tensor):
 
 
 def time_0_bleding_weight(gaussians, opt: OptimizationParams, args, scene, pipe, background, views=None):
-    print("get time_0_bleding_weight...")
     tensor_path = args.start_checkpoint + "_t0bw.pt"
     # 检查文件是否存在
     if os.path.exists(tensor_path):
+        print("get time_0_bleding_weight from cache")
         return torch.load(tensor_path)
 
     # 对于相同的ckpt, 结果总是一样的
