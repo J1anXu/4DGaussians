@@ -716,11 +716,13 @@ if __name__ == "__main__":
         wandb.define_metric("iteration")  # 将 iteration 作为横坐标
 
     # 保存 run_id 供后续使用
-    with open("wandb_run_id.txt", "w") as f:
+    with open("wandb_run_id_1.txt", "w") as f:
         f.write(run.id)
 
     output_path = "./output/"+args.expname
-    shutil.rmtree(output_path)
+    # 检查目录是否存在，存在则删除
+    if os.path.exists(output_path) and os.path.isdir(output_path):
+        shutil.rmtree(output_path)
     training(
         lp.extract(args),
         hp.extract(args),

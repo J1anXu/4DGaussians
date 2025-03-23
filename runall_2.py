@@ -9,21 +9,21 @@ current_time = datetime.now(timezone).strftime("%Y-%m-%d_%H-%M-%S")
 
 command1 = (
     f"python trainadmm_with_ckpt2.py "
-    "-s data/dynerf/cut_roasted_beef --port 6000 "
-    '--expname "admm_p_50/cut_roasted_beef" '
-    "--configs arguments/dynerf/cut_roasted_beef_admm_ckpt_spa.py "
+    "-s data/dynerf/cut_roasted_beef --port 6002 "
+    '--expname "admm_2/cut_roasted_beef" '
+    "--configs arguments/dynerf/cut_roasted_beef_admm_ckpt_2.py "
     '--start_checkpoint "output/dynerf/cut_roasted_beef/chkpnt_fine_14000.pth" '
 )
 
 command2 = (
     f"python render2.py "
-    '--model_path "output/admm_p_50/cut_roasted_beef" '
+    '--model_path "output/admm_2/cut_roasted_beef" '
     "--skip_train --skip_video "
     "--configs arguments/dynerf/cut_roasted_beef.py "
 )
 
 command3 = (
-    f'python metrics2.py --model_path "output/admm_p_50/cut_roasted_beef" '
+    f'python metrics2.py --model_path "output/admm_2/cut_roasted_beef" '
 )
 
 # 运行命令

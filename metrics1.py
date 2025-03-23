@@ -226,7 +226,7 @@ if __name__ == "__main__":
         print(f"Error: The file {args_path} does not exist. Skipping...")
         
     # 读取 run.id
-    with open("wandb_run_id_2.txt", "r") as f:
+    with open("wandb_run_id_1.txt", "r") as f:
         run_id = f.read().strip()
         
     wandb.init(
