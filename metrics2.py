@@ -10,7 +10,7 @@
 #
 import os
 from typing_extensions import Literal
-
+idx = 2
 os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
 
 import pprint
@@ -226,7 +226,7 @@ if __name__ == "__main__":
         print(f"Error: The file {args_path} does not exist. Skipping...")
         
     # 读取 run.id
-    with open("wandb_run_id_2.txt", "r") as f:
+    with open(f"wandb_run_id_{idx}.txt", "r") as f:
         run_id = f.read().strip()
         
     wandb.init(

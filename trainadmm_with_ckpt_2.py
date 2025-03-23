@@ -9,8 +9,9 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"  # 先设置 GPU 设备
+idx = 2
+# os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
+os.environ["CUDA_VISIBLE_DEVICES"] = f"1"  # 先设置 GPU 设备
 
 import sys
 import numpy as np
@@ -709,14 +710,14 @@ if __name__ == "__main__":
         wandb.login()
         run = wandb.init(
             project="admm",
-            name=f"{current_time}",  # 让不同脚本的数据归为一组
+            name=f"idx_{idx}_{current_time}",  # 让不同脚本的数据归为一组
             job_type="training",
             config=vars(op.extract(args))
         )
         wandb.define_metric("iteration")  # 将 iteration 作为横坐标
 
     # 保存 run_id 供后续使用
-    with open("wandb_run_id.txt", "w") as f:
+    with open(f"wandb_run_id_{idx}.txt", "w") as f:
         f.write(run.id)
 
     output_path = "./output/"+args.expname
