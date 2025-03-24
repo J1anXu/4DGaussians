@@ -35,6 +35,19 @@ class ADMM:
                 diff =  self.gsmodel.get_opacity - self.z
                 self.u += diff
  
+    # 注意,paper中的a就是这里的opacity
+    def update2(self, opt, coff, update_u = True):
+        # 先更新辅助变量
+        z = self.gsmodel.get_opacity * coff + self.u # z = a + λ (Update z via Eq. 16) 
+        # 裁剪z,实现h(z)的映射
+        self.z = torch.Tensor(self.prune_z(z, opt)).to(self.device) # z ← proxh(a + λ)
+        # 更新高斯乘子
+        if update_u: # λ ← λ + a − z.
+            with torch.no_grad():
+                diff =  self.gsmodel.get_opacity - self.z
+                self.u += diff
+
+
     #  该方法根据不同的策略（由 opt 参数控制）来更新 z：
     def prune_z(self, z, opt):
         z_update = self.metrics_sort(z, opt)  

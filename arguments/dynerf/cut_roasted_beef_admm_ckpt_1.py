@@ -3,7 +3,7 @@ OptimizationParams = dict(
     batch_size=2,
     densify_from_iter=0,  # 动态调整开始
     densify_until_iter=0,  # 动态调整结束
-    simp_iteration1=14002,  # 删点执行
+    simp_iteration1=0,  # 删点执行
     admm_start_iter1=14001,  # admm迭代开始
     admm_stop_iter1=16001,  # admm迭代结束 19400
     simp_iteration2=16002,  # 删点执行 19401
@@ -17,8 +17,8 @@ OptimizationParams = dict(
     prune_points=True,  # 是否进行删点
     admm=True,
     related_gs_num=1,
-    simp_iteration1_score_type = 4,
-    simp_iteration2_score_type = 0
+    simp_iteration1_score_type = 0,
+    simp_iteration2_score_type = 2
     )
 
 

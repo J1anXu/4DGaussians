@@ -9,7 +9,7 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
-idx = 2
+idx = 3
 os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
 
 import sys
@@ -29,7 +29,7 @@ from torch.utils.data import DataLoader
 from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
 from utils.scene_utils import render_training_image
-from imp_score_utils import get_pruning_iter1_mask,get_pruning_iter2_mask
+from imp_score_utils import get_unactivate_opacity, get_pruning_iter1_mask,get_pruning_iter2_mask,get_topk_score,norm_tensor_01
 import shutil
 
 import copy
@@ -132,7 +132,7 @@ def scene_reconstruction(
 
     scores = None
     topk_mask = None
-
+    coff = None
     for iteration in range(first_iter, final_iter + 1):
         if network_gui.conn == None:
             network_gui.try_connect()
@@ -432,13 +432,16 @@ def scene_reconstruction(
 
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
-                admm.update(opt, update_u=False)
+                topk_score = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, True)
+                normalized_score = norm_tensor_01(topk_score)
+                coff = (1 - normalized_score.view(-1, 1))
+                admm.update2(opt, coff = coff,update_u=False)
             elif (
                 iteration % opt.admm_interval == 0
                 and opt.admm == True
                 and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
             ):
-                admm.update(opt)
+                admm.update2(opt, coff = coff)
 
             if args.prune_points and iteration == args.simp_iteration2:
                 mask_2 = get_pruning_iter2_mask(gaussians, opt, args, scene, pipe, background)
