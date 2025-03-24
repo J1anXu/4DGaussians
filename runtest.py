@@ -31,7 +31,7 @@ from torch.utils.data import DataLoader
 from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
 from utils.scene_utils import render_training_image
-from impScoreUtils import *
+from imp_score_utils import *
 import copy
 from admm import ADMM
 import wandb
@@ -504,7 +504,7 @@ def scene_reconstruction(
                 # scores[related_gs_mask] += max_score
                 # print(f"Max score: {max_score}")
 
-                scores = time_0_bleding_weight(gaussians, opt, args, scene, pipe, background)
+                scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background)
                 # related_gs_mask = topk_gs_of_pixels(gaussians, scene, pipe, background, args.related_gs_num)
 
                 scores_sorted, _ = torch.sort(scores, 0)
@@ -526,7 +526,7 @@ def scene_reconstruction(
                 admm.update(opt)
 
             if args.prune_points and iteration == args.simp_iteration2:
-                scores_2 = getOpacityScore(gaussians)
+                scores_2 = get_unactivate_opacity(gaussians)
                 scores_sorted_2, _ = torch.sort(scores_2, 0)
                 threshold_idx = int(opt.opacity_admm_threshold2 * len(scores_sorted_2))
                 abs_threshold = scores_sorted_2[threshold_idx - 1]

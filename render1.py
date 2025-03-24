@@ -33,6 +33,7 @@ from torchvision import transforms
 from torch.utils.data import Subset
 import concurrent.futures
 import torch.multiprocessing as mp
+
 DRAW = True  # 是否画出高斯中心
 
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
@@ -90,7 +91,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     print("Point count:", gaussians._xyz.shape[0])
     count = 0
 
-    for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
+    for idx, view in enumerate(tqdm(views, desc="\033[34mRendering:\033")):
         rendering_res = render(view, gaussians, pipeline, background, cam_type=cam_type)
         rendering = rendering_res["render"]
 

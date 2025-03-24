@@ -305,6 +305,7 @@ TopKScoreGaussiansCUDA(
   
   // topk_score
   torch::Tensor topk_score = torch::full({P}, 0, float_opts);
+  torch::Tensor score_counts = torch::full({P}, 0, int_opts);
 
   int rendered = 0;
   if(P != 0)
@@ -351,6 +352,7 @@ TopKScoreGaussiansCUDA(
       c_dist_activation_coef,
 
       topk_score.contiguous().data<float>(),  // 数据载体
+      score_counts.contiguous().data<int>(),  // 数据载体
 
       radii.contiguous().data<int>(),
       debug

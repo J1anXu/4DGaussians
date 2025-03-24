@@ -126,7 +126,9 @@ namespace CudaRasterizer
 			const float* image_gt,
 			const float p_dist_activation_coef,
 			const float c_dist_activation_coef,
+
 			float* topk_score,
+			int* score_counts,
 
 			int* radii = nullptr,
 			bool debug = false);

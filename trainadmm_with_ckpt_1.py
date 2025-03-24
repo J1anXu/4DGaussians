@@ -10,8 +10,7 @@
 #
 import os
 idx = 1
-#os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
-os.environ["CUDA_VISIBLE_DEVICES"] = f"6"  # 先设置 GPU 设备
+os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
 
 import sys
 import numpy as np
@@ -30,7 +29,7 @@ from torch.utils.data import DataLoader
 from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
 from utils.scene_utils import render_training_image
-from impScoreUtils import *
+from imp_score_utils import get_unactivate_opacity, get_pruning_iter1_mask, get_pruning_iter2_mask
 import shutil
 
 import copy
@@ -428,30 +427,7 @@ def scene_reconstruction(
                     gaussians.reset_opacity()
 
             elif args.prune_points and iteration == args.simp_iteration1:
-                if args.simp_iteration1_score_type == 1:
-                    scores = time_0_bleding_weight(gaussians, opt, args, scene, pipe, background)
-                elif args.simp_iteration1_score_type == 2:
-                    scores, topk_mask = run_tasks_in_parallel(
-                        (time_0_bleding_weight, gaussians, opt, args, scene, pipe, background),
-                        (get_topk_mask, gaussians, scene, pipe, args, background, args.related_gs_num)
-                    )
-                    scores[topk_mask] += torch.max(scores)
-                elif args.simp_iteration1_score_type == 3:
-                    scores = getOpacityScore(gaussians)
-                elif args.simp_iteration1_score_type == 4:
-                    scores, topk_score = run_tasks_in_parallel(
-                        (time_0_bleding_weight, gaussians, opt, args, scene, pipe, background),
-                        (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num)
-                    )
-                    scores = scores + topk_score
-                # related_gs_mask = topk_gs_of_pixels(gaussians, scene, pipe, background, args.related_gs_num)
-
-                scores_sorted, _ = torch.sort(scores, 0)
-                threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
-                abs_threshold = scores_sorted[threshold_idx - 1]
-                mask = (scores <= abs_threshold).squeeze()
-
-                # 获取标记的pixels对应的gs的gs,相关的gs被标记为true
+                mask = get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background)
                 gaussians.prune_points(mask)
 
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
@@ -465,11 +441,7 @@ def scene_reconstruction(
                 admm.update(opt)
 
             if args.prune_points and iteration == args.simp_iteration2:
-                scores_2 = getOpacityScore(gaussians)
-                scores_sorted_2, _ = torch.sort(scores_2, 0)
-                threshold_idx = int(opt.opacity_admm_threshold2 * len(scores_sorted_2))
-                abs_threshold = scores_sorted_2[threshold_idx - 1]
-                mask_2 = (scores_2 <= abs_threshold).squeeze()
+                mask_2 = get_pruning_iter2_mask(gaussians, opt, args, scene, pipe, background)
                 gaussians.prune_points(mask_2)
 
             # Optimizer step
@@ -725,7 +697,7 @@ if __name__ == "__main__":
     with open(f"wandb_run_id_{idx}.txt", "w") as f:
         f.write(run.id)
 
-    output_path = "./output/"+args.expname
+    output_path = "./output/" + args.expname
     # 检查目录是否存在，存在则删除
     if os.path.exists(output_path) and os.path.isdir(output_path):
         shutil.rmtree(output_path)

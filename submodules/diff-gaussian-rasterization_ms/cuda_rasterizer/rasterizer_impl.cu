@@ -384,29 +384,44 @@ __global__ void markingTopKMasks(int L, int topk, uint64_t* point_list_keys, uin
 }
 
 
-__global__ void markingTopKScore(int L, int topk, uint64_t* point_list_keys, uint32_t* point_list, float* scores)
-{
-	auto idx = cg::this_grid().thread_rank();
-	if (idx >= L)
-		return;
-     
-	uint64_t key = point_list_keys[idx]; // 64位的
-	uint32_t val = point_list[idx]; // 代表gs坐标
+__global__ void markingTopKScore(
+    int L, int topk, 
+    uint64_t* point_list_keys, 
+    uint32_t* point_list, 
+    float* scores, 
+    int* score_counts // 记录每个 gs_id 的更新次数
+) {
+    auto idx = cg::this_grid().thread_rank();
+    if (idx >= L)
+        return;
 
-	uint32_t pix_id = key >> 32; // 代表pix一维坐标
-	uint32_t score = static_cast<uint32_t>(key & 0xFFFFFFFF);
+    uint64_t key = point_list_keys[idx]; // 64位 key
+    uint32_t val = point_list[idx];      // gs_id（代表高斯点坐标）
 
-	if(score > 0 && score < 65535){
-		float original_score = (score / 65535.0f);
-		if (idx < topk){
-			scores[val] += original_score;
-		}
-		else{
-			uint32_t prevtile = point_list_keys[idx - topk] >> 32;
-			if (pix_id != prevtile)
-				scores[val] += original_score;
+    uint32_t pix_id = key >> 32; // 提取 pix 一维坐标
+    uint32_t score = static_cast<uint32_t>(key & 0xFFFFFFFF);
 
-		}
+    if (score >= 0 && score <= 65535) {
+        float original_score = score / 65535.0f;
+
+        // 使用原子操作更新均值
+        if (idx < topk) {
+            atomicAdd(&score_counts[val], 1); // 计数增加
+            uint32_t count = score_counts[val];
+            float prev_mean = scores[val];
+            scores[val] = prev_mean + (original_score - prev_mean) / count;
+        } else {
+            uint32_t prevtile = point_list_keys[idx - topk] >> 32;
+            if (pix_id != prevtile) {
+                atomicAdd(&score_counts[val], 1); // 计数增加
+                uint32_t count = score_counts[val];
+                float prev_mean = scores[val];
+                scores[val] = prev_mean + (original_score - prev_mean) / count;
+            }
+        }
+    }
+}
+
 
 		// printf("key_left = %08X, key_right = %08X, pix_1d = %u, score = %u, gs_id=%u \n", 
 		// 	(uint32_t)(key >> 32),   // 打印高 32 位
@@ -415,11 +430,6 @@ __global__ void markingTopKScore(int L, int topk, uint64_t* point_list_keys, uin
 		// 	score,
 		// 	val
 		// 	); 
-	}
-}
-
-
-
 
 // Forward rendering procedure for differentiable rasterization
 // of Gaussians.
@@ -644,8 +654,10 @@ int CudaRasterizer::Rasterizer::forwardTopKScore(
 	const float* image_gt,
 	const float p_dist_activation_coef,
 	const float c_dist_activation_coef,
+	
 	float* topk_score,
-
+	int* score_counts,
+	
 	int* radii,
 	bool debug)
 {
@@ -755,7 +767,7 @@ int CudaRasterizer::Rasterizer::forwardTopKScore(
 	
 	// Let each tile blend its range of Gaussians independently in parallel
 	const float* feature_ptr = colors_precomp != nullptr ? colors_precomp : geomState.rgb;
-	CHECK_CUDA(FORWARD::topk_color_gaussian(
+	CHECK_CUDA(FORWARD::topk_score_gaussian(
 		tile_grid, block,
 		imgState.ranges,
 		binningState.point_list,
@@ -795,7 +807,7 @@ int CudaRasterizer::Rasterizer::forwardTopKScore(
 			topk,
 			binningState_for_opacity.point_list_keys,
 			binningState_for_opacity.point_list,
-			topk_score);
+			topk_score, score_counts);
 		CHECK_CUDA(, debug)
 	}
 
