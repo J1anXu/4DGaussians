@@ -224,7 +224,7 @@ def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
 
         norm_topk_score =norm_tensor_01(topk_score)
 
-        scores_bias =  scores * (1 - norm_topk_score ) 
+        scores_bias =  scores * (1 - norm_topk_score * 2 ) 
 
         analyze_tensor(scores,"time_0_bleding_weight")
         analyze_tensor(topk_score,"topk_score")

@@ -25,61 +25,20 @@ class ADMM:
 
     # 注意,paper中的a就是这里的opacity
     def update(self, opt, update_u = True):
-        # 先更新辅助变量
-        z = self.gsmodel.get_opacity + self.u # z = a + λ (Update z via Eq. 16) 
-        # 裁剪z,实现h(z)的映射
-        self.z = torch.Tensor(self.prune_z(z, opt)).to(self.device) # z ← proxh(a + λ)
-        # 更新高斯乘子
-        if update_u: # λ ← λ + a − z.
-            with torch.no_grad():
-                diff =  self.gsmodel.get_opacity - self.z
-                self.u += diff
- 
-    # 注意,paper中的a就是这里的opacity
-    def update1(self, opt, coff, update_u = True):
-        # 先更新辅助变量
-        z = self.gsmodel.get_opacity * coff + self.u # z = a + λ (Update z via Eq. 16) 
-        # 裁剪z,实现h(z)的映射
-        self.z = torch.Tensor(self.prune_z(z, opt)).to(self.device) # z ← proxh(a + λ)
-        # 更新高斯乘子
-        if update_u: # λ ← λ + a − z.
-            with torch.no_grad():
-                diff =  self.gsmodel.get_opacity - self.z
-                self.u += diff
-                
-    def update2(self, opt, coff, update_u = True):
-        # 先更新辅助变量
-        z = (self.gsmodel.get_opacity + self.u)* coff  # z = a + λ (Update z via Eq. 16) 
-        # 裁剪z,实现h(z)的映射
-        self.z = torch.Tensor(self.prune_z(z, opt)).to(self.device) # z ← proxh(a + λ)
-        # 更新高斯乘子
-        if update_u: # λ ← λ + a − z.
-            with torch.no_grad():
-                diff =  self.gsmodel.get_opacity - self.z
-                self.u += diff
+        # z ← proxh(a + λ)  直接裁剪辅助变量z
+        z = self.gsmodel.get_opacity + self.u
 
-    def update3(self, opt, coff, update_u = True):
-        # 先更新辅助变量
-        z = self.gsmodel.get_opacity  + self.u # z = a + λ (Update z via Eq. 16) 
-        # 裁剪z,实现h(z)的映射
-        self.z = torch.Tensor(self.prune_z(z, opt)).to(self.device) # z ← proxh(a + λ)
-        # 更新高斯乘子
-        if update_u: # λ ← λ + a − z.
+        if opt.admm_update_type == 1:
+            coff = (1 - opt.normalized_score.view(-1, 1))
+            z = self.gsmodel.get_opacity * coff + self.u 
+        
+        self.z = torch.Tensor(self.prune_z(z, opt)).to(self.device)
+
+        # 更新高斯乘子 # λ' = λ + a − z.
+        if update_u: 
             with torch.no_grad():
                 diff =  self.gsmodel.get_opacity - self.z
                 self.u += diff
-
-    def update4(self, opt, coff, update_u = True):
-        # 先更新辅助变量
-        z = self.gsmodel.get_opacity + self.u # z = a + λ (Update z via Eq. 16) 
-        # 裁剪z,实现h(z)的映射
-        self.z = torch.Tensor(self.prune_z(z, opt, score = self.gsmodel.get_opacity*coff)).to(self.device) # z ← proxh(a + λ)
-        # 更新高斯乘子
-        if update_u: # λ ← λ + a − z.
-            with torch.no_grad():
-                diff =  self.gsmodel.get_opacity - self.z
-                self.u += diff
-
 
     #  该方法根据不同的策略（由 opt 参数控制）来更新 z：
     def prune_z(self, z, opt, score = None):
