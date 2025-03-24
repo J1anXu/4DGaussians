@@ -10,14 +10,14 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 import concurrent.futures
 from utils.parallel_utils import run_tasks_in_parallel
-from utils.tensor_analysis_utils import analyze_tensor
+from utils.tensor_analysis_utils import analyze_tensor, plot_2_sum_tensors
 
 import os
 
-def get_topk_mask(gaussians, scene, pipe, args, background, related_gs_num):
+def get_topk_mask(gaussians, scene, pipe, args, background, related_gs_num, cache = False):
     tensor_path = args.start_checkpoint + f"_topk_mask_{related_gs_num}.pt"
     # 检查文件是否存在
-    if os.path.exists(tensor_path):
+    if cache and os.path.exists(tensor_path):
         print(f"get topk_mask from {tensor_path}")
         return torch.load(tensor_path)
     viewpoint_stack = scene.getTrainCameras()
@@ -159,10 +159,10 @@ def get_01_opacity(gaussians):
     scores = opacity
     return scores
 
-def time_all_blending_weight(gaussians, opt: OptimizationParams, args, scene, pipe, background):
+def time_all_blending_weight(gaussians, opt: OptimizationParams, args, scene, pipe, background, cache = False):
     tensor_path = args.start_checkpoint + "_tallbw.pt"
     # 检查文件是否存在
-    if os.path.exists(tensor_path):
+    if cache and os.path.exists(tensor_path):
         print("get time_all_blending_weight from cache")
         return torch.load(tensor_path)
     
@@ -211,6 +211,7 @@ def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
         # scores[topk_mask] += torch.max(scores)
         # 将 scores[topk_mask] 的值翻倍
         scores[topk_mask] *= 2
+        
     elif args.simp_iteration1_score_type == 3:
         scores = get_unactivate_opacity(gaussians)
         
@@ -219,19 +220,31 @@ def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
             (time_0_blending_weight, gaussians, opt, args, scene, pipe, background, True),
             (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num, True)
         )
-        scores = norm_tensor_with_clipping(scores)
-        scores_bias = scores + topk_score
-        opacity1 = get_unactivate_opacity(gaussians)
-        opacity2 = gaussians.get_opacity
+        # scores = norm_tensor_with_clipping(scores)
+
         norm_topk_score =norm_tensor_01(topk_score)
+
+        scores_bias =  scores * (1 - norm_topk_score ) 
+
         analyze_tensor(scores,"time_0_bleding_weight")
         analyze_tensor(topk_score,"topk_score")
         analyze_tensor(scores_bias,"scores_bias")
-        analyze_tensor(opacity1,"opacity1")
-        analyze_tensor(opacity2,"01_opacity")
         analyze_tensor(norm_topk_score,"norm_topk_score")
         scores = scores_bias
     
+    elif args.simp_iteration1_score_type == 5:
+        scores = get_unactivate_opacity(gaussians)
+        topk_score = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, True)
+        norm_topk_score =norm_tensor_01(topk_score)
+        # scores_bias = scores + norm_topk_score
+        scores_bias = scores * (1 - norm_topk_score*5) 
+        analyze_tensor(scores,"unactivate_opacity")
+        analyze_tensor(topk_score,"topk_score")
+        analyze_tensor(scores_bias,"scores_bias")
+        analyze_tensor(norm_topk_score,"norm_topk_score")
+        scores = scores_bias
+    
+
 
 
     scores_sorted, _ = torch.sort(scores, 0)
