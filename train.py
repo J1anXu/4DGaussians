@@ -10,7 +10,13 @@
 #
 import os, sys
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+# 设置命令行参数
+parser = ArgumentParser(description="Training script parameters")
+parser.add_argument("--gpu", type=str, default="3", help="Specify GPU(s) to use, e.g., '0' or '0,1,2'")  
+args, unknown = parser.parse_known_args()
+# 在 import torch 之前设置 CUDA 设备
+os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+
 import numpy as np
 import random
 import torch

@@ -258,7 +258,7 @@ def scene_reconstruction(
             and iteration % opt.admm_interval == 0
             and iteration <= opt.admm_stop_iter1
         ):
-            admm_loss = 0.1 * admm.get_admm_loss(loss)
+            admm_loss = 0.1 * admm.get_admm_loss()
             loss += admm_loss
 
         if stage == "fine" and hyper.time_smoothness_weight != 0:
@@ -283,10 +283,12 @@ def scene_reconstruction(
         iter_end.record()
 
         with torch.no_grad():
-            ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
-            ema_psnr_for_log = 0.4 * psnr_ + 0.6 * ema_psnr_for_log
-            ema_admm_loss_for_log = 0.4 * admm_loss.item() + 0.6 * ema_admm_loss_for_log
-
+            # ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
+            # ema_psnr_for_log = 0.4 * psnr_ + 0.6 * ema_psnr_for_log
+            # ema_admm_loss_for_log = 0.4 * admm_loss.item() + 0.6 * ema_admm_loss_for_log
+            ema_loss_for_log = loss.item()
+            ema_psnr_for_log = psnr_
+            ema_admm_loss_for_log = admm_loss.item()
             total_point = gaussians._xyz.shape[0]
             if iteration % 10 == 0:
                 progress_bar.set_postfix(
@@ -433,7 +435,7 @@ def scene_reconstruction(
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
                 if args.admm_update_type != 0:
-                    topk_score = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, False)
+                    topk_score = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, True)
                     normalized_score = norm_tensor_01(topk_score)
                     opt.normalized_score = normalized_score
 
@@ -445,9 +447,8 @@ def scene_reconstruction(
                 and opt.admm == True
                 and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
             ):
-                
                 admm.update(opt)
-                    
+                
             if args.prune_points and iteration == args.simp_iteration2:
                 mask_2 = get_pruning_iter2_mask(gaussians, opt, args, scene, pipe, background)
                 gaussians.prune_points(mask_2)
@@ -695,7 +696,7 @@ if __name__ == "__main__":
         wandb.login()
         run = wandb.init(
             project="admm",
-            name=f"idx_{idx}_{current_time}",  # 让不同脚本的数据归为一组
+            name=f"id_{idx}",  # 让不同脚本的数据归为一组
             job_type="training",
             config=vars(op.extract(args))
         )

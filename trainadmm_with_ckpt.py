@@ -278,7 +278,7 @@ def scene_reconstruction(
             and iteration % opt.admm_interval == 0
             and iteration <= opt.admm_stop_iter1
         ):
-            admm_loss = 0.1 * admm.get_admm_loss(loss)
+            admm_loss = 0.1 * admm.get_admm_loss()
             loss += admm_loss
 
         if stage == "fine" and hyper.time_smoothness_weight != 0:

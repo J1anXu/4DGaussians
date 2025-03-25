@@ -48,11 +48,11 @@ class ADMM:
             z_update = self.metrics_sort(score, opt)  
         return z_update
 
-    def get_admm_loss(self, loss): # 该方法将 ADMM 的惩罚项添加到损失函数中
+    def get_admm_loss(self): # 该方法将 ADMM 的惩罚项添加到损失函数中
         return 0.5 * self.rho * (torch.norm(self.gsmodel.get_opacity - self.z + self.u, p=2)) ** 2
 
-    def adjust_rho(self, epoch, epochs, factor=5): # 根据训练的当前进度（epoch 和 epochs）调整 rho 值。通常，rho 会随着训练的进展而增大，从而增加对约束的惩罚
-        if epoch > int(0.85 * epochs):
+    def adjust_rho(self, epoch, epochs, factor=0.85): # 根据训练的当前进度（epoch 和 epochs）调整 rho 值。通常，rho 会随着训练的进展而增大，从而增加对约束的惩罚
+        if epoch > int(0.65 * epochs):
             self.rho = factor * self.init_rho
     
     def metrics_sort(self, z,opt): # 根据透明度的排序值来更新 z。它通过将透明度按升序排序并应用一个阈值来选择透明度值

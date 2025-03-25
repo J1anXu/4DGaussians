@@ -258,7 +258,7 @@ def scene_reconstruction(
             and iteration % opt.admm_interval == 0
             and iteration <= opt.admm_stop_iter1
         ):
-            admm_loss = 0.1 * admm.get_admm_loss(loss)
+            admm_loss = 0.1 * admm.get_admm_loss()
             loss += admm_loss
 
         if stage == "fine" and hyper.time_smoothness_weight != 0:
@@ -283,9 +283,12 @@ def scene_reconstruction(
         iter_end.record()
 
         with torch.no_grad():
-            ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
-            ema_psnr_for_log = 0.4 * psnr_ + 0.6 * ema_psnr_for_log
-            ema_admm_loss_for_log = 0.4 * admm_loss.item() + 0.6 * ema_admm_loss_for_log
+            # ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
+            # ema_psnr_for_log = 0.4 * psnr_ + 0.6 * ema_psnr_for_log
+            # ema_admm_loss_for_log = 0.4 * admm_loss.item() + 0.6 * ema_admm_loss_for_log
+            ema_loss_for_log = loss.item()
+            ema_psnr_for_log = psnr_
+            ema_admm_loss_for_log = admm_loss.item()
 
             total_point = gaussians._xyz.shape[0]
             if iteration % 10 == 0:
@@ -695,7 +698,7 @@ if __name__ == "__main__":
         wandb.login()
         run = wandb.init(
             project="admm",
-            name=f"idx_{idx}_{current_time}",  # 让不同脚本的数据归为一组
+            name=f"id_{idx}",  # 让不同脚本的数据归为一组
             job_type="training",
             config=vars(op.extract(args))
         )

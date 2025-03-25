@@ -9,7 +9,7 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "7"  
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"  
 
 import imageio
 import numpy as np
@@ -161,14 +161,14 @@ def render_sets(dataset : ModelParams, hyperparam, iteration : int, pipeline : P
         bg_color = [1,1,1] if dataset.white_background else [0, 0, 0]
         background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 
-        if not skip_train:
-            render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, background,cam_type)
+        # if not skip_train:
+        #     render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, background,cam_type)
 
         if not skip_test:
             render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, background,cam_type)
             
-        if not skip_video:
-            render_set(dataset.model_path,"video",scene.loaded_iter,scene.getVideoCameras(),gaussians,pipeline,background,cam_type)
+        # if not skip_video:
+        #     render_set(dataset.model_path,"video",scene.loaded_iter,scene.getVideoCameras(),gaussians,pipeline,background,cam_type)
         
         print(f"current model point size : {gaussians.get_xyz.shape[0]}")
 
