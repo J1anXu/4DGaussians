@@ -147,16 +147,17 @@ def time_0_blending_weight(gaussians, opt: OptimizationParams, args, scene, pipe
     print("imp_score return success")
     return scores
 
-
+    
 def get_unactivate_opacity(gaussians):
     opacity = gaussians._opacity[:, 0]
     scores = opacity
     return scores
 
+# 新家的
 def get_01_opacity(gaussians):
     # activation了的
     opacity = gaussians.get_opacity
-    scores = opacity
+    scores = opacity[:, 0]
     return scores
 
 def time_all_blending_weight(gaussians, opt: OptimizationParams, args, scene, pipe, background, cache = False):

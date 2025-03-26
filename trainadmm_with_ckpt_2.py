@@ -33,7 +33,7 @@ from imp_score_utils import get_unactivate_opacity, get_pruning_iter1_mask,get_p
 import shutil
 
 import copy
-from admm import ADMM
+from admm2 import ADMM
 import wandb
 import logging
 from logger import initialize_logger
@@ -194,10 +194,10 @@ def scene_reconstruction(
             try:
                 viewpoint_cams = next(loader)
             except StopIteration:
-                print("reset dataloader into random dataloader.")
+                print(f"reset dataloader into random dataloader. iter=[{iteration}]")
                 if not random_loader:
                     viewpoint_stack_loader = DataLoader(
-                        viewpoint_stack, batch_size=opt.batch_size, shuffle=True, num_workers=32, collate_fn=list
+                        viewpoint_stack, batch_size=opt.batch_size, shuffle=False, num_workers=32, collate_fn=list
                     )
                     random_loader = True
                 loader = iter(viewpoint_stack_loader)
@@ -258,7 +258,7 @@ def scene_reconstruction(
             and iteration % opt.admm_interval == 0
             and iteration <= opt.admm_stop_iter1
         ):
-            admm_loss = 0.1 * admm.get_admm_loss()
+            admm_loss = 0.0001 * admm.get_admm_loss()
             loss += admm_loss
 
         if stage == "fine" and hyper.time_smoothness_weight != 0:
@@ -289,8 +289,9 @@ def scene_reconstruction(
             ema_loss_for_log = loss.item()
             ema_psnr_for_log = psnr_
             ema_admm_loss_for_log = admm_loss.item()
+
             total_point = gaussians._xyz.shape[0]
-            if iteration % 10 == 0:
+            if iteration % opt.admm_interval == 0:
                 progress_bar.set_postfix(
                     {
                         "Loss": f"{ema_loss_for_log:.{7}f}",
@@ -299,7 +300,7 @@ def scene_reconstruction(
                         "point": f"{total_point}",
                     }
                 )
-                progress_bar.update(10)
+                progress_bar.update(opt.admm_interval)
                 logging.info(
                     {
                         "Loss": f"{ema_loss_for_log:.5f}",
@@ -447,8 +448,9 @@ def scene_reconstruction(
                 and opt.admm == True
                 and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
             ):
-                admm.update(opt)
                 
+                admm.update(opt)
+                    
             if args.prune_points and iteration == args.simp_iteration2:
                 mask_2 = get_pruning_iter2_mask(gaussians, opt, args, scene, pipe, background)
                 gaussians.prune_points(mask_2)

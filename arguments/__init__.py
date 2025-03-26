@@ -176,6 +176,7 @@ class OptimizationParams(ParamGroup):
         self.simp_iteration1_score_type = 0
         self.simp_iteration2_score_type = 0
         self.admm_update_type = 0
+        self.admm_coff = 0.01
 
         super().__init__(parser, "Optimization Parameters")
 

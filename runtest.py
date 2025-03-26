@@ -783,7 +783,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     print("Point count:", gaussians._xyz.shape[0])
     count = 0
 
-    for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
+    for idx, view in enumerate(tqdm(views, desc="Rendering")):
         rendering_res = render(view, gaussians, pipeline, background, cam_type=cam_type)
         rendering = rendering_res["render"]
 

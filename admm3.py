@@ -27,12 +27,12 @@ class ADMM:
     def update(self, opt, update_u = True):
         # z ← proxh(a + λ)  直接裁剪辅助变量z
         z = self.gsmodel.get_opacity + self.u
+        coff = (1 - opt.normalized_score.view(-1, 1))
+        #imp_score = coff*0.01 + self.gsmodel.get_opacity
+        imp_score =  z * coff
 
-        if opt.admm_update_type == 1:
-            coff = (1 - opt.normalized_score.view(-1, 1))
-            z = self.gsmodel.get_opacity * coff + self.u 
-        
-        self.z = torch.Tensor(self.prune_z(z, opt)).to(self.device)
+        self.z = torch.Tensor(self.prune_z(z, opt, imp_score)).to(self.device)
+
 
         # 更新高斯乘子 # λ' = λ + a − z.
         if update_u: 
@@ -41,11 +41,8 @@ class ADMM:
                 self.u += diff
 
     #  该方法根据不同的策略（由 opt 参数控制）来更新 z：
-    def prune_z(self, z, opt, score = None):
-        if score is None:
-            z_update = self.metrics_sort(z, opt) 
-        else : 
-            z_update = self.metrics_sort(score, opt)  
+    def prune_z(self, z, opt, imp_score = None):
+        z_update = self.metrics_imp_score(z, imp_score, opt) 
         return z_update
 
     def get_admm_loss(self): # 该方法将 ADMM 的惩罚项添加到损失函数中
@@ -60,7 +57,6 @@ class ADMM:
         z_sort = {}
         z_update = torch.zeros(z.shape)
         z_sort, _ = torch.sort(z, 0)
-        
         z_threshold = z_sort[index-1]
         z_update= ((z > z_threshold) * z)  
         return z_update
@@ -79,10 +75,11 @@ class ADMM:
     def metrics_imp_score(self, z, imp_score, opt): # 该方法基于重要性分数（imp_score）更新 z。重要性分数低于某个阈值的透明度值会被置为 0，从而对重要性较低的部分进行稀疏化。
         index = int(opt.opacity_admm_threshold2 * len(z))
         imp_score_sort = {}
+        z_update = torch.zeros(z.shape)
         imp_score_sort, _ = torch.sort(imp_score, 0)
+
         imp_score_threshold = imp_score_sort[index-1]
-        indices = imp_score < imp_score_threshold 
-        z[indices == 1] = 0  
-        return z        
+        z_update= ((imp_score > imp_score_threshold) * z)  
+        return z_update        
 
 

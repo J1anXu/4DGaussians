@@ -129,7 +129,7 @@ def scene_reconstruction(
         try:
             viewpoint_cams = next(loader)
         except StopIteration:
-            print("reset dataloader into random dataloader.")
+            print(f"reset dataloader into random dataloader. iter=[{iteration}]")
             if not random_loader:
                 viewpoint_stack_loader = DataLoader(
                     viewpoint_stack, batch_size=opt.batch_size, shuffle=True, num_workers=32, collate_fn=list

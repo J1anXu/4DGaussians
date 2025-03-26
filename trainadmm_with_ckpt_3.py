@@ -8,17 +8,17 @@
 #
 # For inquiries contact  george.drettakis@inria.fr
 #
-import os, sys
+import os
+idx = 3
+os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
-
+import sys
 import numpy as np
 import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, network_gui, render_point_time
-import sys
+from gaussian_renderer import render, render_with_topk_mask, render_point_time, network_gui
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
 from tqdm import tqdm
@@ -28,32 +28,23 @@ from arguments import ModelParams, PipelineParams, OptimizationParams, ModelHidd
 from torch.utils.data import DataLoader
 from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
-
 from utils.scene_utils import render_training_image
+from imp_score_utils import get_unactivate_opacity, get_pruning_iter1_mask,get_pruning_iter2_mask,get_topk_score,norm_tensor_01
+import shutil
 
 import copy
-from admm import ADMM
+from admm3 import ADMM
 import wandb
-from logger import initialize_logger
 import logging
-
-
+from logger import initialize_logger
 WANDB = True
-
-
-current_time = initialize_logger()
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
 
 try:
     from torch.utils.tensorboard import SummaryWriter
-
     TENSORBOARD_FOUND = True
 except ImportError:
     TENSORBOARD_FOUND = False
-
-if WANDB:
-    wandb.login()
-
 
 def scene_reconstruction(
     dataset,
@@ -135,26 +126,13 @@ def scene_reconstruction(
     admm_loss = torch.tensor(0)
 
     count = 0
-    if WANDB:
-        wandb.init(
-            project="trainadmm_with_ckpt",
-            name=f"{current_time}",
-            config={
-                "opt": vars(opt),
-                "dataset": vars(dataset),
-                "hyper": vars(hyper),
-                "pipe": vars(pipe),
-                "testing_iterations": testing_iterations,
-                "saving_iterations": saving_iterations,
-                "checkpoint": checkpoint,
-                "stage": stage,
-                "train_iter": train_iter,
-            },
-        )
 
     times = scene.train_camera.dataset.image_times[0 : scene.train_camera.dataset.time_number]
     # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
 
+    scores = None
+    topk_mask = None
+    coff = None
     for iteration in range(first_iter, final_iter + 1):
         if network_gui.conn == None:
             network_gui.try_connect()
@@ -219,7 +197,7 @@ def scene_reconstruction(
                 print(f"reset dataloader into random dataloader. iter=[{iteration}]")
                 if not random_loader:
                     viewpoint_stack_loader = DataLoader(
-                        viewpoint_stack, batch_size=opt.batch_size, shuffle=True, num_workers=32, collate_fn=list
+                        viewpoint_stack, batch_size=opt.batch_size, shuffle=False, num_workers=32, collate_fn=list
                     )
                     random_loader = True
                 loader = iter(viewpoint_stack_loader)
@@ -246,11 +224,13 @@ def scene_reconstruction(
         viewspace_point_tensor_list = []
         for viewpoint_cam in viewpoint_cams:
             render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
-            image, viewspace_point_tensor, visibility_filter, radii = (
+            image, viewspace_point_tensor, visibility_filter, radii, p_diff, time = (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
                 render_pkg["visibility_filter"],
                 render_pkg["radii"],
+                render_pkg["p_diff"],
+                render_pkg["time"],
             )
             images.append(image.unsqueeze(0))
             if scene.dataset_type != "PanopticSports":
@@ -278,7 +258,7 @@ def scene_reconstruction(
             and iteration % opt.admm_interval == 0
             and iteration <= opt.admm_stop_iter1
         ):
-            admm_loss = 0.1 * admm.get_admm_loss()
+            admm_loss = 0.0001 * admm.get_admm_loss()
             loss += admm_loss
 
         if stage == "fine" and hyper.time_smoothness_weight != 0:
@@ -303,12 +283,15 @@ def scene_reconstruction(
         iter_end.record()
 
         with torch.no_grad():
-            ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
-            ema_psnr_for_log = 0.4 * psnr_ + 0.6 * ema_psnr_for_log
-            ema_admm_loss_for_log = 0.4 * admm_loss.item() + 0.6 * ema_admm_loss_for_log
+            # ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
+            # ema_psnr_for_log = 0.4 * psnr_ + 0.6 * ema_psnr_for_log
+            # ema_admm_loss_for_log = 0.4 * admm_loss.item() + 0.6 * ema_admm_loss_for_log
+            ema_loss_for_log = loss.item()
+            ema_psnr_for_log = psnr_
+            ema_admm_loss_for_log = admm_loss.item()
 
             total_point = gaussians._xyz.shape[0]
-            if iteration % 10 == 0:
+            if iteration % opt.admm_interval == 0:
                 progress_bar.set_postfix(
                     {
                         "Loss": f"{ema_loss_for_log:.{7}f}",
@@ -317,7 +300,7 @@ def scene_reconstruction(
                         "point": f"{total_point}",
                     }
                 )
-                progress_bar.update(10)
+                progress_bar.update(opt.admm_interval)
                 logging.info(
                     {
                         "Loss": f"{ema_loss_for_log:.5f}",
@@ -328,7 +311,7 @@ def scene_reconstruction(
                 )
                 if WANDB:
                     wandb.log(
-                        {
+                        {   "iteration":iteration,
                             "loss": round(ema_loss_for_log, 7),
                             "admm_loss": round(ema_admm_loss_for_log, 7),
                             "psnr": round(psnr_.item(), 7),
@@ -447,30 +430,30 @@ def scene_reconstruction(
                     gaussians.reset_opacity()
 
             elif args.prune_points and iteration == args.simp_iteration1:
-                scores = zeroTimeBledWeight(gaussians, opt, scene, pipe, background)
-                scores_sorted, _ = torch.sort(scores, 0)
-                threshold_idx = int(opt.opacity_admm_threshold1 * len(scores_sorted))
-                abs_threshold = scores_sorted[threshold_idx - 1]
-                mask = (scores <= abs_threshold).squeeze()
+                mask = get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background)
                 gaussians.prune_points(mask)
 
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
+                if args.admm_update_type != 0:
+                    topk_score = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, True)
+                    normalized_score = norm_tensor_01(topk_score)
+                    opt.normalized_score = normalized_score
+
+                opt.admm_update_type = args.admm_update_type
                 admm.update(opt, update_u=False)
+
             elif (
                 iteration % opt.admm_interval == 0
                 and opt.admm == True
                 and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
             ):
+                
                 admm.update(opt)
-
+                    
             if args.prune_points and iteration == args.simp_iteration2:
-                scores = getOpacityScore(gaussians)
-                scores_sorted, _ = torch.sort(scores, 0)
-                threshold_idx = int(opt.opacity_admm_threshold2 * len(scores_sorted))
-                abs_threshold = scores_sorted[threshold_idx - 1]
-                mask = (scores <= abs_threshold).squeeze()
-                gaussians.prune_points(mask)
+                mask_2 = get_pruning_iter2_mask(gaussians, opt, args, scene, pipe, background)
+                gaussians.prune_points(mask_2)
 
             # Optimizer step
             if iteration < opt.iterations:
@@ -483,120 +466,6 @@ def scene_reconstruction(
                     (gaussians.capture(), iteration),
                     scene.model_path + "/chkpnt" + f"_{stage}_" + str(iteration) + ".pth",
                 )
-    if WANDB:
-        wandb.finish()
-
-
-def getOpacityScore(gaussians):
-    opacity = gaussians._opacity[:, 0]
-    scores = opacity
-    return scores
-
-
-def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, background):
-    # render 输入数据的所有时间和相机视角,累计高斯点的权重
-    # 根据重要性评分（Importance Score）对 3D Gaussians 进行稀疏化（Pruning），以减少不重要的点，提高渲染效率
-    imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 存储每个高斯点的重要性评分，初始为 0
-    accum_area_max = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 累积每个点在不同视角下的最大投影面积
-    views = scene.getTrainCameras()  # 获取所有训练视角（相机位置）
-    total_views = len(views)  # 获取视角总数
-
-    for view in tqdm(views, total=total_views, desc="allTimeBledWeight"):
-        render_pkg = render(view, gaussians, pipe, background)
-        accum_weights = render_pkg["accum_weights"]
-        area_proj = render_pkg["area_proj"]
-        area_max = render_pkg["area_max"]
-        accum_area_max = accum_area_max + area_max
-        if opt.outdoor == True:
-            mask_t = area_max != 0
-            temp = imp_score + accum_weights / area_proj
-            imp_score[mask_t] = temp[mask_t]
-        else:
-            imp_score += accum_weights
-
-    imp_score[accum_area_max == 0] = 0  # 对于从未在任何视角中被看到的点，重要性设为 0 ，确保不可见点的 imp_score = 0
-    # scores = imp_score / imp_score.sum()  # 归一化 imp_score 作为采样概率 prob
-    scores = norm_tensor_01(imp_score)
-
-    non_zero_count = torch.count_nonzero(scores)  # 统计非零元素个数
-    print(f"Non-zero count: {non_zero_count}")
-    print("imp_score return success")
-    return scores
-
-
-def zeroTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, background):
-    # render 输入数据的所有时间和相机视角,累计高斯点的权重
-    # 根据重要性评分（Importance Score）对 3D Gaussians 进行稀疏化（Pruning），以减少不重要的点，提高渲染效率
-    imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 存储每个高斯点的重要性评分，初始为 0
-    accum_area_max = torch.zeros(gaussians._xyz.shape[0]).cuda()  # 累积每个点在不同视角下的最大投影面积
-    views = scene.getTrainCameras()  # 获取所有训练视角（相机位置）
-    total_views = len(views)  # 获取视角总数
-    # 从第一个数开始，每隔important_score_4_time_interval个取一个
-    # time_samples = views.dataset.image_times[:: opt.important_score_4_time_interval]  #
-    # print(f"Time samples: {time_samples}")
-    for view in tqdm(views, total=total_views, desc="init_blending_weight"):
-        # if view.time not in time_samples:  # 相较于ImportantScore3 唯一的区别
-        if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
-            continue
-        render_pkg = render(view, gaussians, pipe, background)
-        accum_weights = render_pkg["accum_weights"]
-        area_proj = render_pkg["area_proj"]
-        area_max = render_pkg["area_max"]
-        accum_area_max = accum_area_max + area_max
-        if opt.outdoor == True:
-            mask_t = area_max != 0
-            temp = imp_score + accum_weights / area_proj
-            imp_score[mask_t] = temp[mask_t]
-        else:
-            imp_score += accum_weights
-
-    imp_score[accum_area_max == 0] = 0  # 对于从未在任何视角中被看到的点，重要性设为 0 ，确保不可见点的 imp_score = 0
-    # scores = imp_score / imp_score.sum()  # 归一化 imp_score 作为采样概率 prob
-    scores = norm_tensor_01(imp_score)
-
-    non_zero_count = torch.count_nonzero(scores)  # 统计非零元素个数
-    print(f"Non-zero count: {non_zero_count}")
-    print("imp_score return success")
-    return scores
-
-
-def movingLength(gaussians, times):
-    # 获取高斯点数量和时间步数量
-    num_gaussians = gaussians.get_xyz.shape[0]
-
-    # 初始化累计移动距离张量 (num_gaussians,)
-    moving_length_table = torch.zeros(num_gaussians, device="cuda" if gaussians.get_xyz.is_cuda else "cpu")
-
-    # 记录上一时间步的坐标
-    prev_means3D = None
-
-    for time in times:
-        # 获取当前时间步的高斯点位置
-        render_point_time_res = render_point_time(time, gaussians, cam_type=None)
-        means3D_at_time_tensor = render_point_time_res["means3D_final"]  # 形状 (num_gaussians, 3)
-
-        if prev_means3D is not None:
-            # 计算欧几里得距离 ||x_t - x_{t-1}||
-            distance = torch.norm(means3D_at_time_tensor - prev_means3D, dim=1)  # 形状 (num_gaussians,)
-
-            # 累加到移动长度表
-            moving_length_table += distance
-
-        # 更新上一时刻的位置
-        prev_means3D = means3D_at_time_tensor.clone()
-
-    normalized_moving_length = norm_tensor_01(moving_length_table)
-    return normalized_moving_length
-
-
-def norm_tensor_01(tensor):
-    # [0,1]
-    min_val = tensor.min()
-    max_val = tensor.max()
-    eps = 1e-8  # 避免除以零
-    normalized_tensor = (tensor - min_val) / (max_val - min_val + eps)
-    return normalized_tensor
-
 
 def training(
     dataset,
@@ -801,7 +670,7 @@ if __name__ == "__main__":
     parser.add_argument("--start_checkpoint", type=str, default="None")
     parser.add_argument("--expname", type=str, default="")
     parser.add_argument("--configs", type=str, default="")
-
+    parser.add_argument("--log_name", type=str, default="default")
     args = parser.parse_args(sys.argv[1:])
     if args.configs:
         import mmcv
@@ -820,11 +689,29 @@ if __name__ == "__main__":
 
     args.save_iterations.append(args.iterations)
 
-    # 记录参数到日志
-    logging.info("Training started with the following arguments:")
-    for arg, value in vars(args).items():
-        logging.info(f"{arg}: {value}")
+    current_time = initialize_logger()
 
+    for arg, value in vars(op.extract(args)).items():
+        logging.info(f"{arg}: {value}")
+        
+    if WANDB:
+        wandb.login()
+        run = wandb.init(
+            project="admm",
+            name=f"id_{idx}",  # 让不同脚本的数据归为一组
+            job_type="training",
+            config=vars(op.extract(args))
+        )
+        wandb.define_metric("iteration")  # 将 iteration 作为横坐标
+
+    # 保存 run_id 供后续使用
+    with open(f"wandb_run_id_{idx}.txt", "w") as f:
+        f.write(run.id)
+
+    output_path = "./output/" + args.expname
+    # 检查目录是否存在，存在则删除
+    if os.path.exists(output_path) and os.path.isdir(output_path):
+        shutil.rmtree(output_path)
     training(
         lp.extract(args),
         hp.extract(args),
@@ -837,6 +724,7 @@ if __name__ == "__main__":
         args.debug_from,
         args.expname,
     )
+    
+    if WANDB:
+        wandb.finish()
 
-    # All done
-    print("\nTraining complete.")

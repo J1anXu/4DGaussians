@@ -89,7 +89,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     draw_list = []
     print("point nums:",gaussians._xyz.shape[0])
     count = 0
-    for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
+    for idx, view in enumerate(tqdm(views, desc="Rendering")):
         if idx == 0:time1 = time()
 
         rendering_res = render(view, gaussians, pipeline, background, cam_type=cam_type)
