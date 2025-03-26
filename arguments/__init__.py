@@ -174,7 +174,6 @@ class OptimizationParams(ParamGroup):
         self.prune_points = False  # 是否进行删点
         self.related_gs_num = 1
         self.simp_iteration1_score_type = 0
-        self.simp_iteration2_score_type = 0
         self.admm_update_type = 0
 
         super().__init__(parser, "Optimization Parameters")

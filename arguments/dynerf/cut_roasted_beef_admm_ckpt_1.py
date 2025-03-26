@@ -18,7 +18,6 @@ OptimizationParams = dict(
     admm=True,
     related_gs_num=1,
     simp_iteration1_score_type = 0, # 不用改
-    simp_iteration2_score_type = 0,
     admm_update_type = 0
     )
 
@@ -43,5 +42,4 @@ OptimizationParams = dict(
 #     admm=True,
 #     related_gs_num=1,
 #     simp_iteration1_score_type = 0,
-#     simp_iteration2_score_type = 0
 #     )

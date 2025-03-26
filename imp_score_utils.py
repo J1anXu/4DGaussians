@@ -256,39 +256,7 @@ def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
 
 def get_pruning_iter2_mask(gaussians, opt, args, scene, pipe, background):
     with torch.no_grad():
-        if args.simp_iteration2_score_type == 0:
-            scores = get_unactivate_opacity(gaussians)
-
-        elif args.simp_iteration2_score_type == 1:
-            scores = get_01_opacity(gaussians)
-
-        elif args.simp_iteration2_score_type == 2:
-            topk_score = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, True)
-            opacity = get_01_opacity(gaussians)
-            normalized_score = norm_tensor_01(topk_score)
-            adjusted_opacity = opacity * (1 - normalized_score.view(-1, 1))
-            scores = adjusted_opacity
-
-        elif args.simp_iteration2_score_type == 3:
-            topk_score = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, True)
-            normalized_score = norm_tensor_01(topk_score)
-            opacity = get_01_opacity(gaussians)
-            alpha = 2
-            adjusted_opacity = opacity * (1 - normalized_score.view(-1, 1) * alpha)
-            scores = adjusted_opacity
-
-
-        elif args.simp_iteration2_score_type == 100:
-            # 这里不能吃cache 因为每次删点都不一样
-            scores, topk_score = run_tasks_in_parallel(
-                (time_0_blending_weight, gaussians, opt, args, scene, pipe, background),
-                (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num)
-            )
-            scores_bias = scores + topk_score
-            analyze_tensor(scores,"time_0_bleding_weight")
-            analyze_tensor(topk_score,"topk_score")
-            analyze_tensor(scores_bias,"scores_bias")
-
+        scores = get_unactivate_opacity(gaussians)
     scores_sorted, _ = torch.sort(scores, 0)
     threshold_idx = int(opt.opacity_admm_threshold2 * len(scores_sorted))
     abs_threshold = scores_sorted[threshold_idx - 1]
