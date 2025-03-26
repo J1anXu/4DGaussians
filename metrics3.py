@@ -112,12 +112,12 @@ def evaluate(model_paths):
                     "D-SSIM": Dssims
                 })
 
-                wandb.summary["SSIM"] = ssims
-                wandb.summary["PSNR"] = psnrs
-                wandb.summary["LPIPS-vgg"] = lpipss
-                wandb.summary["LPIPS-alex"] = lpipsa
-                wandb.summary["MS-SSIM"] = ms_ssims
-                wandb.summary["D-SSIM"] = Dssims
+                # wandb.summary["SSIM"] = ssims
+                # wandb.summary["PSNR"] = psnrs
+                # wandb.summary["LPIPS-vgg"] = lpipss
+                # wandb.summary["LPIPS-alex"] = lpipsa
+                # wandb.summary["MS-SSIM"] = ms_ssims
+                # wandb.summary["D-SSIM"] = Dssims
 
         except Exception as e:
             print("Unable to compute metrics for model", scene_dir)

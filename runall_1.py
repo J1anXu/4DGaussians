@@ -28,6 +28,7 @@ command3 = (
 )
 
 # 运行命令
+
 subprocess.run(command1, shell=True, check=True)
 subprocess.run(command2, shell=True, check=True)
 subprocess.run(command3, shell=True, check=True)

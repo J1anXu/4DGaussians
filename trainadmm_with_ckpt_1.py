@@ -291,7 +291,7 @@ def scene_reconstruction(
             ema_admm_loss_for_log = admm_loss.item()
 
             total_point = gaussians._xyz.shape[0]
-            if iteration % opt.admm_interval == 0:
+            if iteration % 10 == 0:
                 progress_bar.set_postfix(
                     {
                         "Loss": f"{ema_loss_for_log:.{7}f}",
@@ -300,7 +300,7 @@ def scene_reconstruction(
                         "point": f"{total_point}",
                     }
                 )
-                progress_bar.update(opt.admm_interval)
+                progress_bar.update(10)
                 logging.info(
                     {
                         "Loss": f"{ema_loss_for_log:.5f}",

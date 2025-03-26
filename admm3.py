@@ -26,12 +26,14 @@ class ADMM:
     # 注意,paper中的a就是这里的opacity
     def update(self, opt, update_u = True):
         # z ← proxh(a + λ)  直接裁剪辅助变量z
-        z = self.gsmodel.get_opacity + self.u
-        coff = (1 - opt.normalized_score.view(-1, 1))
+        opacity = self.gsmodel.get_opacity
+        adjusted_opacity = opacity * (1 - opt.normalized_score.view(-1, 1) * 2)
+        z = adjusted_opacity + self.u
+        #coff = (1 - opt.normalized_score.view(-1, 1))
         #imp_score = coff*0.01 + self.gsmodel.get_opacity
-        imp_score =  z * coff
+        #imp_score =  z * coff
 
-        self.z = torch.Tensor(self.prune_z(z, opt, imp_score)).to(self.device)
+        self.z = torch.Tensor(self.prune_z(z, opt)).to(self.device)
 
 
         # 更新高斯乘子 # λ' = λ + a − z.
@@ -42,7 +44,8 @@ class ADMM:
 
     #  该方法根据不同的策略（由 opt 参数控制）来更新 z：
     def prune_z(self, z, opt, imp_score = None):
-        z_update = self.metrics_imp_score(z, imp_score, opt) 
+        #z_update = self.metrics_imp_score(z, imp_score, opt) 
+        z_update  =self.metrics_sort(z ,opt)
         return z_update
 
     def get_admm_loss(self): # 该方法将 ADMM 的惩罚项添加到损失函数中
