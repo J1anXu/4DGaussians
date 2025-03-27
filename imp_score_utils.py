@@ -46,7 +46,7 @@ def get_topk_score(gaussians, scene, pipe, args, background, related_gs_num, cac
         # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
         #     continue
         with torch.no_grad():
-            renderTopk_pkg = render_with_topk_score(view, gaussians, pipe, background, topk=related_gs_num)
+            renderTopk_pkg = render_with_topk_score(view, gaussians, pipe, background, topk=related_gs_num, score_function = args.score_function)
             topk_score = renderTopk_pkg["topk_score"]
             final_score += topk_score
     # 计算 valid_prune_mask 中 True 的数量
@@ -122,20 +122,21 @@ def time_0_blending_weight(gaussians, opt: OptimizationParams, args, scene, pipe
     views = scene.getTrainCameras()  
 
     total_views = len(views)  
-    for view in tqdm(views, total=total_views, desc="time0BlendingWeight"):
-        if view.time != 0.0:  
-            continue
-        render_pkg = render(view, gaussians, pipe, background)
-        accum_weights = render_pkg["accum_weights"]
-        area_proj = render_pkg["area_proj"]
-        area_max = render_pkg["area_max"]
-        accum_area_max = accum_area_max + area_max
-        if opt.outdoor == True:
-            mask_t = area_max != 0
-            temp = imp_score + accum_weights / area_proj
-            imp_score[mask_t] = temp[mask_t]
-        else:
-            imp_score += accum_weights
+    with torch.no_grad():
+        for view in tqdm(views, total=total_views, desc="time0BlendingWeight"):
+            if view.time != 0.0:  
+                continue
+            render_pkg = render(view, gaussians, pipe, background)
+            accum_weights = render_pkg["accum_weights"]
+            area_proj = render_pkg["area_proj"]
+            area_max = render_pkg["area_max"]
+            accum_area_max = accum_area_max + area_max
+            if opt.outdoor == True:
+                mask_t = area_max != 0
+                temp = imp_score + accum_weights / area_proj
+                imp_score[mask_t] = temp[mask_t]
+            else:
+                imp_score += accum_weights
 
     imp_score[accum_area_max == 0] = 0  # 对于从未在任何视角中被看到的点，重要性设为 0 ，确保不可见点的 imp_score = 0
     # scores = imp_score / imp_score.sum()  # 归一化 imp_score 作为采样概率 prob
@@ -197,6 +198,10 @@ def time_all_blending_weight(gaussians, opt: OptimizationParams, args, scene, pi
 
 
 def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
+
+    topk_score = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, True)
+    bias = norm_tensor_01(topk_score)
+
     if args.simp_iteration1_score_type == 0:
         scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, True)
 
@@ -204,47 +209,99 @@ def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
         scores = time_all_blending_weight(gaussians, opt, args, scene, pipe, background, True)
 
     elif args.simp_iteration1_score_type == 2:
-        scores, topk_mask = run_tasks_in_parallel(
-            (time_0_blending_weight, gaussians, opt, args, scene, pipe, background, True),
-            (get_topk_mask, gaussians, scene, pipe, args, background, args.related_gs_num, True)
-        )
-        # scores[topk_mask] += torch.max(scores)
-        # 将 scores[topk_mask] 的值翻倍
-        scores[topk_mask] *= 2
-        
-    elif args.simp_iteration1_score_type == 3:
         scores = get_unactivate_opacity(gaussians)
-        
-    elif args.simp_iteration1_score_type == 4:
+
+    elif args.simp_iteration1_score_type == 3:
+        scores = get_01_opacity(gaussians).squeeze(1)
+
+
+    if args.simp_iteration1_score_type == 10: # time_0_blending_weight + bias
+        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, True)
+        scores = scores + bias
+
+    elif args.simp_iteration1_score_type == 11: # time_all_blending_weight + bias
+        scores = time_all_blending_weight(gaussians, opt, args, scene, pipe, background, True)
+        scores = scores + bias
+
+    elif args.simp_iteration1_score_type == 12: # unactivate_opacity + bias
+        scores = get_unactivate_opacity(gaussians)
+        scores = scores + bias
+
+    elif args.simp_iteration1_score_type == 13:  # 01_opacity + bias
+        scores = get_01_opacity(gaussians).squeeze(1)
+        scores = scores + bias
+
+
+
+
+    if args.simp_iteration1_score_type == 20: # time_0_blending_weight + (1-bias)
+        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, True)
+        scores = scores + (1-bias)
+
+    elif args.simp_iteration1_score_type == 21: # time_all_blending_weight + (1-bias)
+        scores = time_all_blending_weight(gaussians, opt, args, scene, pipe, background, True)
+        scores = scores + (1-bias)
+
+    elif args.simp_iteration1_score_type == 22: # unactivate_opacity + (1-bias)
+        scores = get_unactivate_opacity(gaussians)
+        scores = scores + (1-bias)
+
+    elif args.simp_iteration1_score_type == 23:  # 01_opacity + (1-bias)
+        scores = get_01_opacity(gaussians).squeeze(1)
+        scores = scores + (1-bias)
+
+
+
+
+    elif args.simp_iteration1_score_type == -1:
+        scores = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, True)
+
+
+
+    elif args.simp_iteration1_score_type == 4: # time_0_blending_weight * bias
         scores, topk_score = run_tasks_in_parallel(
             (time_0_blending_weight, gaussians, opt, args, scene, pipe, background, True),
             (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num, True)
         )
-        # scores = norm_tensor_with_clipping(scores)
-
-        norm_topk_score =norm_tensor_01(topk_score)
-
-        scores_bias =  scores * (1 - norm_topk_score * 2 ) 
-
-        analyze_tensor(scores,"time_0_bleding_weight")
-        analyze_tensor(topk_score,"topk_score")
-        analyze_tensor(scores_bias,"scores_bias")
-        analyze_tensor(norm_topk_score,"norm_topk_score")
-        scores = scores_bias
+        scores =  scores * bias
     
-    elif args.simp_iteration1_score_type == 5:
-        scores = get_unactivate_opacity(gaussians)
-        topk_score = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, True)
-        norm_topk_score =norm_tensor_01(topk_score)
-        # scores_bias = scores + norm_topk_score
-        scores_bias = scores * (1 - norm_topk_score*5) 
-        analyze_tensor(scores,"unactivate_opacity")
-        analyze_tensor(topk_score,"topk_score")
-        analyze_tensor(scores_bias,"scores_bias")
-        analyze_tensor(norm_topk_score,"norm_topk_score")
-        scores = scores_bias
+    elif args.simp_iteration1_score_type == 5: # unactivate_opacity * bias
+        scores, topk_score = run_tasks_in_parallel(
+            (get_unactivate_opacity, gaussians),
+            (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num, True)
+        )
+        scores = scores * bias
     
 
+
+    elif args.simp_iteration1_score_type == 41: # time_0_blending_weight * (1+bias)
+        scores, topk_score = run_tasks_in_parallel(
+            (time_0_blending_weight, gaussians, opt, args, scene, pipe, background, True),
+            (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num, True)
+        )
+        scores =  scores * (1+bias)
+    
+    elif args.simp_iteration1_score_type == 51: # unactivate_opacity * (1+bias)
+        scores, topk_score = run_tasks_in_parallel(
+            (get_unactivate_opacity, gaussians),
+            (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num, True)
+        )
+        scores = scores * (1+bias)
+
+
+    elif args.simp_iteration1_score_type == 42: # time_0_blending_weight * bias**2
+        scores, topk_score = run_tasks_in_parallel(
+            (time_0_blending_weight, gaussians, opt, args, scene, pipe, background, True),
+            (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num, True)
+        )
+        scores =  scores * bias**2
+    
+    elif args.simp_iteration1_score_type == 52: # unactivate_opacity * bias**2
+        scores, topk_score = run_tasks_in_parallel(
+            (get_unactivate_opacity, gaussians),
+            (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num, True)
+        )
+        scores = scores * bias**2
 
 
     scores_sorted, _ = torch.sort(scores, 0)

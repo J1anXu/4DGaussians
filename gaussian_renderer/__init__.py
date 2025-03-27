@@ -343,6 +343,7 @@ def render_with_topk_score(
     stage="fine",
     cam_type=None,
     topk=1,
+    score_function = 36
 ):
     """
     Render the scene.
@@ -377,7 +378,7 @@ def render_with_topk_score(
             prefiltered=False,
             debug=pipe.debug,
             topk_color=topk,
-            score_function=36,
+            score_function=score_function,
             image_gt=viewpoint_camera.original_image.cuda(),  # 这个变量名要改为mark_pixels_image
             p_dist_activation_coef=1.0,
             c_dist_activation_coef=1.0,
