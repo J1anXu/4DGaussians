@@ -28,10 +28,6 @@ class ADMM:
 
         #  a + λ
         z = self.gsmodel.get_opacity + self.u
-
-        if opt.admm_update_type == 1:
-            coff = (1 - opt.normalized_score.view(-1, 1))
-            z = self.gsmodel.get_opacity * coff + self.u 
         
         # z ← proxh(a + λ)  裁剪辅助变量z  Update z via Eq. 16;  
         # 这里相当于是h 
@@ -42,6 +38,20 @@ class ADMM:
             with torch.no_grad():
                 diff =  self.gsmodel.get_opacity - self.z
                 self.u += diff
+
+    def update_w(self, opt, w):
+
+        #  a + λ
+        z = self.gsmodel.get_opacity + self.u + w.view(-1, 1)
+        
+        # z ← proxh(a + λ)  裁剪辅助变量z  Update z via Eq. 16;  
+        # 这里相当于是h 
+        self.z = torch.Tensor(self.prune_z(z, opt)).to(self.device)
+
+        # λ = λ + a − z.  Update λ via Eq. 17
+        with torch.no_grad():
+            diff =  self.gsmodel.get_opacity - self.z
+            self.u += diff
 
 
 

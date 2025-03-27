@@ -29,11 +29,12 @@ from torch.utils.data import DataLoader
 from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
 from utils.scene_utils import render_training_image
-from imp_score_utils import get_unactivate_opacity, get_pruning_iter1_mask,get_pruning_iter2_mask,get_topk_score,norm_tensor_01
+from imp_score_utils import time_0_blending_weight,get_unactivate_opacity, get_pruning_iter1_mask,get_pruning_iter2_mask,get_topk_score,norm_tensor_01,blending_weight_for_each_img
 import shutil
 
 import copy
 from admm import ADMM
+from bw import BW
 import wandb
 import logging
 from logger import initialize_logger
@@ -63,8 +64,8 @@ def scene_reconstruction(
     train_iter,
     timer,
 ):
+    bw = None
     first_iter = 0
-
     gaussians.training_setup(opt)
     if checkpoint:
         if stage == "coarse" and stage not in checkpoint:
@@ -130,9 +131,7 @@ def scene_reconstruction(
     times = scene.train_camera.dataset.image_times[0 : scene.train_camera.dataset.time_number]
     # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
 
-    scores = None
-    topk_mask = None
-    coff = None
+    
     for iteration in range(first_iter, final_iter + 1):
         if network_gui.conn == None:
             network_gui.try_connect()
@@ -201,6 +200,8 @@ def scene_reconstruction(
                     )
                     random_loader = True
                 loader = iter(viewpoint_stack_loader)
+               # bw = BW(gaussians, opt, args, scene, pipe, background)
+
 
         else:
             idx = 0
@@ -222,16 +223,22 @@ def scene_reconstruction(
         radii_list = []
         visibility_filter_list = []
         viewspace_point_tensor_list = []
+
+
         for viewpoint_cam in viewpoint_cams:
+
             render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
-            image, viewspace_point_tensor, visibility_filter, radii, p_diff, time = (
+
+            image, viewspace_point_tensor, visibility_filter, radii, accum_weights = (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
                 render_pkg["visibility_filter"],
                 render_pkg["radii"],
-                render_pkg["p_diff"],
-                render_pkg["time"],
+                render_pkg["accum_weights"]
             )
+            if bw is not None and iteration < args.simp_iteration2 and iteration > opt.admm_start_iter1 :#and viewpoint_cam.time== 0.0
+                bw.update(viewpoint_cam.uid, accum_weights)
+
             images.append(image.unsqueeze(0))
             if scene.dataset_type != "PanopticSports":
                 gt_image = viewpoint_cam.original_image.cuda()
@@ -431,25 +438,19 @@ def scene_reconstruction(
                 gaussians.prune_points(mask)
 
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
-                admm = ADMM(gaussians, opt.rho_lr, device="cuda")
-                if args.admm_update_type != 0:
-                    topk_score = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, False)
-                    normalized_score = norm_tensor_01(topk_score)
-                    opt.normalized_score = normalized_score
-
-                opt.admm_update_type = args.admm_update_type
+                bw = BW(gaussians, opt, args, scene, pipe, background)
+                admm = ADMM(gaussians, opt.rho_lr, device="cuda",w =  bw.get_curr_acc_w())
                 admm.update(opt, update_u=False)
-
             elif (
                 iteration % opt.admm_interval == 0
                 and opt.admm == True
                 and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
             ):
-                
-                admm.update(opt)
+
+                admm.update_w(opt, bw.get_curr_acc_w())
                     
             if args.prune_points and iteration == args.simp_iteration2:
-                mask_2 = get_pruning_iter2_mask(gaussians, opt, args, scene, pipe, background)
+                mask_2 = get_pruning_iter2_mask(gaussians, opt)
                 gaussians.prune_points(mask_2)
 
             # Optimizer step

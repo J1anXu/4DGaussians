@@ -137,16 +137,46 @@ def time_0_blending_weight(gaussians, opt: OptimizationParams, args, scene, pipe
                 imp_score[mask_t] = temp[mask_t]
             else:
                 imp_score += accum_weights
-
     imp_score[accum_area_max == 0] = 0  # 对于从未在任何视角中被看到的点，重要性设为 0 ，确保不可见点的 imp_score = 0
     # scores = imp_score / imp_score.sum()  # 归一化 imp_score 作为采样概率 prob
     scores = norm_tensor_01(imp_score)
     torch.save(scores, tensor_path)
-    print(f"time_0_bleding_weight saved to {tensor_path}")
+    print(f"time_0_blending_weight saved to {tensor_path}")
     non_zero_count = torch.count_nonzero(scores)  # 统计非零元素个数
     print(f"Non-zero count: {non_zero_count}")
     print("imp_score return success")
     return scores
+
+def blending_weight_for_each_img(gaussians, opt: OptimizationParams, args, scene, pipe, background):
+    res = {}
+    accum_area_max = torch.zeros(gaussians._xyz.shape[0]).cuda()  
+    views = scene.getTrainCameras()  
+    total_views = len(views)  
+    acc_imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda() 
+
+    with torch.no_grad():
+        for view in tqdm(views, total=total_views, desc="blending_weight_for_each_img"):
+            imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda()   
+            # if view.time != 0.0:  
+            #     continue
+            render_pkg = render(view, gaussians, pipe, background)
+            accum_weights = render_pkg["accum_weights"]
+            area_proj = render_pkg["area_proj"]
+            area_max = render_pkg["area_max"]
+            accum_area_max = accum_area_max + area_max
+            if opt.outdoor == True:
+                mask_t = area_max != 0
+                temp = imp_score + accum_weights / area_proj
+                imp_score[mask_t] = temp[mask_t]
+                acc_imp_score+=imp_score
+            else:
+                imp_score += accum_weights
+                acc_imp_score+=imp_score
+
+            # 对于从未在任何视角中被看到的点，重要性设为 0 ，确保不可见点的 imp_score = 0
+            imp_score[accum_area_max == 0] = 0  
+            res[view.uid] = imp_score
+    return res,acc_imp_score
 
 
 def get_unactivate_opacity(gaussians):
@@ -189,7 +219,7 @@ def time_all_blending_weight(gaussians, opt: OptimizationParams, args, scene, pi
     # scores = imp_score / imp_score.sum()  # 归一化 imp_score 作为采样概率 prob
     scores = norm_tensor_01(imp_score)
     torch.save(scores, tensor_path)
-    print(f"allTimeBledWeight saved to {tensor_path}")
+    print(f"time_all_blending_weight saved to {tensor_path}")
     non_zero_count = torch.count_nonzero(scores)  # 统计非零元素个数
     print(f"Non-zero count: {non_zero_count}")
     print("imp_score return success")
@@ -199,11 +229,12 @@ def time_all_blending_weight(gaussians, opt: OptimizationParams, args, scene, pi
 
 def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
 
-    topk_score = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, True)
-    bias = norm_tensor_01(topk_score)
+    # topk_score = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, False)
+    # bias = norm_tensor_01(topk_score)
+    bias = None
 
     if args.simp_iteration1_score_type == 0:
-        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, True)
+        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, False)
 
     elif args.simp_iteration1_score_type == 1:
         scores = time_all_blending_weight(gaussians, opt, args, scene, pipe, background, True)
@@ -311,7 +342,7 @@ def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
 
     return mask
 
-def get_pruning_iter2_mask(gaussians, opt, args, scene, pipe, background):
+def get_pruning_iter2_mask(gaussians, opt):
     with torch.no_grad():
         scores = get_unactivate_opacity(gaussians)
     scores_sorted, _ = torch.sort(scores, 0)

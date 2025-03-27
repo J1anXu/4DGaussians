@@ -432,12 +432,6 @@ def scene_reconstruction(
 
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
-                if args.admm_update_type != 0:
-                    topk_score = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, True)
-                    normalized_score = norm_tensor_01(topk_score)
-                    opt.normalized_score = normalized_score
-
-                opt.admm_update_type = args.admm_update_type
                 admm.update(opt, update_u=False)
 
             elif (
@@ -449,7 +443,7 @@ def scene_reconstruction(
                 admm.update(opt)
                     
             if args.prune_points and iteration == args.simp_iteration2:
-                mask_2 = get_pruning_iter2_mask(gaussians, opt, args, scene, pipe, background)
+                mask_2 = get_pruning_iter2_mask(gaussians, opt)
                 gaussians.prune_points(mask_2)
 
             # Optimizer step
