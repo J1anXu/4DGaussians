@@ -439,7 +439,7 @@ def scene_reconstruction(
 
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
                 bw = BW(gaussians, opt, args, scene, pipe, background)
-                admm = ADMM(gaussians, opt.rho_lr, device="cuda",w =  bw.get_curr_acc_w())
+                admm = ADMM(gaussians, opt.rho_lr, device="cuda")
                 admm.update(opt, update_u=False)
             elif (
                 iteration % opt.admm_interval == 0
