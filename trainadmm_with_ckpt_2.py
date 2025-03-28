@@ -34,7 +34,7 @@ import shutil
 
 import copy
 from admm import ADMM
-from bw import BW
+from bw2 import BW
 import wandb
 import logging
 from logger import initialize_logger
