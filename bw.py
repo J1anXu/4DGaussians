@@ -21,20 +21,22 @@ class BW:
         self.scene = scene
         self.pipe = pipe
         self.background = background
-        d,w= blending_weight_for_each_img(gaussians, opt, args, scene, pipe, background)
+        d,w=  blending_weight_for_each_img(gaussians, opt, args, scene, pipe, background)
         self.dict = d
         self.curr_acc_w  = w
         print(f" init BW success, len = {len(d)}")
         
     # 注意,paper中的a就是这里的opacity
     def update(self, key, value):
+        value = value.detach().cpu()
         with torch.no_grad():
-            pre = self.dict[key].detach().clone()  # 确保 pre 不会保留计算图
+            pre = self.dict[key]
             diff = value - pre  # 计算 diff
             self.dict[key] = value  # 更新字典
             self.curr_acc_w.add_(diff)  # 使用 in-place 操作，避免额外显存分配
-            torch.cuda.empty_cache()  # 清理缓存
-            torch.cuda.synchronize()  # 确保所有操作完成
+
+
+
     def get_curr_acc_w(self):
         with torch.no_grad():
             return norm_tensor_01(self.curr_acc_w)

@@ -193,8 +193,19 @@ class _RasterizeGaussians(torch.autograd.Function):
         ctx.save_for_backward(
             colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer
         )
+        scores.requires_grad = False  # 确保不计算梯度
+        scores = scores.detach()
 
-        return color, radii, accum_weights_ptr, accum_weights_count, accum_max_count, scores.detach()
+        accum_weights_ptr.requires_grad = False  # 确保不计算梯度
+        accum_weights_ptr = accum_weights_ptr.detach()
+
+        accum_weights_count.requires_grad = False  # 确保不计算梯度
+        accum_weights_count = accum_weights_count.detach()
+
+        accum_max_count.requires_grad = False  # 确保不计算梯度
+        accum_max_count = accum_max_count.detach()
+        
+        return color, radii, accum_weights_ptr, accum_weights_count, accum_max_count, scores
 
     @staticmethod
     def backward(ctx, grad_out_color, a, b, c, d, e):

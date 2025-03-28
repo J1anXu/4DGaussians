@@ -149,20 +149,22 @@ def time_0_blending_weight(gaussians, opt: OptimizationParams, args, scene, pipe
 
 def blending_weight_for_each_img(gaussians, opt: OptimizationParams, args, scene, pipe, background):
     res = {}
-    accum_area_max = torch.zeros(gaussians._xyz.shape[0]).cuda()  
+    accum_area_max = torch.zeros(gaussians._xyz.shape[0])
     views = scene.getTrainCameras()  
     total_views = len(views)  
-    acc_imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda() 
+    acc_imp_score = torch.zeros(gaussians._xyz.shape[0])
 
     with torch.no_grad():
         for view in tqdm(views, total=total_views, desc="blending_weight_for_each_img"):
-            imp_score = torch.zeros(gaussians._xyz.shape[0]).cuda()   
+            imp_score = torch.zeros(gaussians._xyz.shape[0]) 
             # if view.time != 0.0:  
             #     continue
             render_pkg = render(view, gaussians, pipe, background)
-            accum_weights = render_pkg["accum_weights"]
-            area_proj = render_pkg["area_proj"]
-            area_max = render_pkg["area_max"]
+
+            accum_weights = render_pkg["accum_weights"].detach().cpu()
+            area_proj = render_pkg["area_proj"].detach().cpu()
+            area_max = render_pkg["area_max"].detach().cpu()
+            
             accum_area_max = accum_area_max + area_max
             if opt.outdoor == True:
                 mask_t = area_max != 0
