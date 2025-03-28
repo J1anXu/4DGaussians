@@ -151,6 +151,7 @@ class _RasterizeGaussians(torch.autograd.Function):
             raster_settings.campos,
             raster_settings.prefiltered,
             raster_settings.debug,
+            raster_settings.image_gt
         )
 
         # Invoke C++/CUDA rasterizer
@@ -166,7 +167,7 @@ class _RasterizeGaussians(torch.autograd.Function):
                     radii,
                     geomBuffer,
                     binningBuffer,
-                    imgBuffer,
+                    imgBuffer, scores
                 ) = _C.rasterize_gaussians(*args)
 
             except Exception as ex:
@@ -183,7 +184,7 @@ class _RasterizeGaussians(torch.autograd.Function):
                 radii,
                 geomBuffer,
                 binningBuffer,
-                imgBuffer,
+                imgBuffer, scores
             ) = _C.rasterize_gaussians(*args)
 
         # Keep relevant tensors for backward
@@ -193,10 +194,10 @@ class _RasterizeGaussians(torch.autograd.Function):
             colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer
         )
 
-        return color, radii, accum_weights_ptr, accum_weights_count, accum_max_count
+        return color, radii, accum_weights_ptr, accum_weights_count, accum_max_count, scores
 
     @staticmethod
-    def backward(ctx, grad_out_color, a, b, c, d):
+    def backward(ctx, grad_out_color,  *_):
         # Restore necessary values from context
         num_rendered = ctx.num_rendered
         raster_settings = ctx.raster_settings
@@ -519,6 +520,7 @@ class GaussianRasterizationSettings(NamedTuple):
     campos: torch.Tensor
     prefiltered: bool
     debug: bool
+    image_gt: torch.Tensor
 
 
 class GaussianRasterizationTopkMaskSettings(NamedTuple):

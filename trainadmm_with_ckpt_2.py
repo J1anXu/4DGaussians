@@ -130,8 +130,8 @@ def scene_reconstruction(
 
     times = scene.train_camera.dataset.image_times[0 : scene.train_camera.dataset.time_number]
     # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
+    bw = BW(gaussians, opt, args, scene, pipe, background)
 
-    
     for iteration in range(first_iter, final_iter + 1):
         if network_gui.conn == None:
             network_gui.try_connect()
@@ -226,9 +226,9 @@ def scene_reconstruction(
 
 
         for viewpoint_cam in viewpoint_cams:
-
+            progress_bar.update(1)
             render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
-
+            
             image, viewspace_point_tensor, visibility_filter, radii, accum_weights = (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
@@ -236,8 +236,9 @@ def scene_reconstruction(
                 render_pkg["radii"],
                 render_pkg["accum_weights"]
             )
-            if bw is not None and iteration < args.simp_iteration2 and iteration > opt.admm_start_iter1 :#and viewpoint_cam.time== 0.0
-                bw.update(viewpoint_cam.uid, accum_weights)
+            bw.update(viewpoint_cam.uid, accum_weights)
+            # if bw is not None and iteration < args.simp_iteration2 and iteration > opt.admm_start_iter1 :#and viewpoint_cam.time== 0.0
+            #     bw.update(viewpoint_cam.uid, accum_weights)
 
             images.append(image.unsqueeze(0))
             if scene.dataset_type != "PanopticSports":
@@ -249,7 +250,7 @@ def scene_reconstruction(
             radii_list.append(radii.unsqueeze(0))
             visibility_filter_list.append(visibility_filter.unsqueeze(0))
             viewspace_point_tensor_list.append(viewspace_point_tensor)
-
+        continue
         radii = torch.cat(radii_list, 0).max(dim=0).values
         visibility_filter = torch.cat(visibility_filter_list).any(dim=0)
         image_tensor = torch.cat(images, 0)

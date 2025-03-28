@@ -217,10 +217,12 @@ int CudaRasterizer::Rasterizer::forward(
 	const bool prefiltered,
 	float* out_color,
 
+	float* accum_scores_ptr,
 	float* accum_weights_ptr,
 	int* accum_weights_count,
 	float* accum_max_count,
-
+	float* image_gt,
+	
 	int* radii,
 	bool debug)
 {
@@ -335,9 +337,11 @@ int CudaRasterizer::Rasterizer::forward(
 		width, height,
 		geomState.means2D,
 		feature_ptr,
+		accum_scores_ptr,
 		accum_weights_ptr,
 		accum_weights_count,
 		accum_max_count,
+		image_gt,
 		geomState.conic_opacity,
 		imgState.accum_alpha,
 		imgState.n_contrib,

@@ -379,9 +379,11 @@ renderCUDA(
 	const float2* __restrict__ points_xy_image,
 	const float* __restrict__ features,
 
+	float* __restrict__ accum_scores_p,
 	float* __restrict__ accum_weights_p,
 	int* __restrict__ accum_weights_count,
 	float* __restrict__ accum_max_count,
+	float* __restrict__ image_gt,
 
 	const float4* __restrict__ conic_opacity,
 	float* __restrict__ final_T,
@@ -419,6 +421,11 @@ renderCUDA(
 	uint32_t contributor = 0;
 	uint32_t last_contributor = 0;
 	float C[CHANNELS] = { 0 };
+
+	float gt_color[CHANNELS] = { 0 };
+	for (int ch = 0; ch < CHANNELS; ch++)
+		gt_color[ch] = image_gt[ch * H * W + pix_id];
+
 	float D = { 0 };
 	float sum_W = { 0 };
 
@@ -427,6 +434,12 @@ renderCUDA(
 
 	int idx_max=0;
 	int flag_update=0;
+
+
+	// hard code settings
+	int score_function = 36;
+	double p_dist_activation_coef = 1.0;
+	double c_dist_activation_coef = 1.0;
 
 	// Iterate over batches until all done or range is complete
 	for (int i = 0; i < rounds; i++, toDo -= BLOCK_SIZE)
@@ -479,8 +492,12 @@ renderCUDA(
 			}
 
 			// Eq. (3) from 3D Gaussian splatting paper.
+			float prim_color[CHANNELS] = { 0 };
 			for (int ch = 0; ch < CHANNELS; ch++)
+			{
 				C[ch] += features[collected_id[j] * CHANNELS + ch] * alpha * T;
+				prim_color[ch] = features[collected_id[j] * CHANNELS + ch];
+			}
 
 			if(weight_max<alpha * T)
 			{
@@ -490,10 +507,14 @@ renderCUDA(
 			}
 
 
+			float score = compute_score<CHANNELS>(score_function, con_o.w, alpha, T, &d, p_dist_activation_coef, c_dist_activation_coef, gt_color, prim_color);
+
+
 			sum_W += alpha * T;
 			atomicAdd(&(accum_weights_p[collected_id[j]]), alpha * T);
 			atomicAdd(&(accum_weights_count[collected_id[j]]), 1);
-			
+			atomicAdd(&(accum_scores_p[collected_id[j]]), score);
+
 			T = test_T;
 
 			// Keep track of last range entry to update this
@@ -1178,10 +1199,13 @@ void FORWARD::render(
 	int W, int H,
 	const float2* means2D,
 	const float* colors,
+
+	float* accum_scores_p,
 	float* accum_weights_p,
 	int* accum_weights_count,
 	float* accum_max_count,
-	
+	float* image_gt,
+
 	const float4* conic_opacity,
 	float* final_T,
 	uint32_t* n_contrib,
@@ -1195,9 +1219,11 @@ void FORWARD::render(
 		W, H,
 		means2D,
 		colors,
+		accum_scores_p,	
 		accum_weights_p,	
 		accum_weights_count,
 		accum_max_count,
+		image_gt,
 		conic_opacity,
 		final_T,
 		n_contrib,

@@ -62,6 +62,7 @@ def render(
             campos=viewpoint_camera.camera_center.cuda(),
             prefiltered=False,
             debug=pipe.debug,
+            image_gt = viewpoint_camera.original_image[0:3, :, :].cuda()
         )
         time = torch.tensor(viewpoint_camera.time).to(means3D.device).repeat(means3D.shape[0], 1)
     else:
@@ -134,7 +135,7 @@ def render(
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen).
     # time3 = get_time()
-    rendered_image, radii, accum_weights_ptr, accum_weights_count, accum_max_count = rasterizer(
+    rendered_image, radii, accum_weights_ptr, accum_weights_count, accum_max_count, scores = rasterizer(
         means3D=means3D_final,
         means2D=means2D,
         shs=shs_final,
@@ -158,6 +159,7 @@ def render(
         "accum_weights": accum_weights_ptr,
         "area_proj": accum_weights_count,
         "area_max": accum_max_count,
+        "error_scores": scores
     }
 
 

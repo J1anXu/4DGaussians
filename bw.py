@@ -28,14 +28,16 @@ class BW:
         
     # 注意,paper中的a就是这里的opacity
     def update(self, key, value):
-        pre = self.dict[key].clone()
-        diff = value - pre
-        self.dict[key] = value
-        self.curr_acc_w += diff
-
-
+        with torch.no_grad():
+            pre = self.dict[key].detach().clone()  # 确保 pre 不会保留计算图
+            diff = value - pre  # 计算 diff
+            self.dict[key] = value  # 更新字典
+            self.curr_acc_w.add_(diff)  # 使用 in-place 操作，避免额外显存分配
+            torch.cuda.empty_cache()  # 清理缓存
+            torch.cuda.synchronize()  # 确保所有操作完成
     def get_curr_acc_w(self):
-        return norm_tensor_01(self.curr_acc_w)
+        with torch.no_grad():
+            return norm_tensor_01(self.curr_acc_w)
 
 
 

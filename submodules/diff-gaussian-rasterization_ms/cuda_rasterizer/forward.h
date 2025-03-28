@@ -56,9 +56,12 @@ namespace FORWARD
 		int W, int H,
 		const float2* points_xy_image,
 		const float* features,
+
+		float* accum_scores_p,
 		float* accum_weights_p,
 		int* accum_weights_count,
 		float* accum_max_count,
+		float* image_gt,
 
 		const float4* conic_opacity,
 		float* final_T,
