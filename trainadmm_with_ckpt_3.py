@@ -34,7 +34,7 @@ import shutil
 
 import copy
 from admm import ADMM
-from bw import BW
+from bw3 import BW
 import wandb
 import logging
 from logger import initialize_logger
@@ -229,15 +229,17 @@ def scene_reconstruction(
 
             render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
 
-            image, viewspace_point_tensor, visibility_filter, radii, accum_weights = (
+            image, viewspace_point_tensor, visibility_filter, radii, accum_weights, error_scores = (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
                 render_pkg["visibility_filter"],
                 render_pkg["radii"],
-                render_pkg["accum_weights"]
+                render_pkg["accum_weights"],
+                render_pkg["error_scores"]
             )
             if bw is not None and iteration < args.simp_iteration2 and iteration > opt.admm_start_iter1 :#and viewpoint_cam.time== 0.0
-                bw.update(viewpoint_cam.uid, accum_weights)
+                bw.update_weights(viewpoint_cam.uid, accum_weights)
+                bw.update_error_scores(viewpoint_cam.uid, error_scores)
 
             images.append(image.unsqueeze(0))
             if scene.dataset_type != "PanopticSports":

@@ -14,12 +14,12 @@ def analyze_tensor(tensor, filename="tensor_histogram", save_dir="analysis_resul
     positive_ratio = positive_count / total_count * 100
 
     # 打印信息
-    print("Tensor Analysis:")
-    print(f"Shape: {shape}")
-    print(f"Max Value: {max_val}")
-    print(f"Min Value: {min_val}")
-    print(f"Mean Value: {mean_val}")
-    print(f"Count of elements > 0: {positive_count} ({positive_ratio:.2f}%)")
+    # print("Tensor Analysis:")
+    # print(f"Shape: {shape}")
+    # print(f"Max Value: {max_val}")
+    # print(f"Min Value: {min_val}")
+    # print(f"Mean Value: {mean_val}")
+    # print(f"Count of elements > 0: {positive_count} ({positive_ratio:.2f}%)")
 
     # 创建文件夹
     os.makedirs(save_dir, exist_ok=True)

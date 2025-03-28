@@ -91,6 +91,15 @@ def norm_tensor_01(tensor):
     normalized_tensor = (tensor - min_val) / (max_val - min_val + eps)
     return normalized_tensor
 
+def norm_tensor_11(tensor):
+    # 计算最大值和最小值
+    min_val = tensor.min()
+    max_val = tensor.max()
+
+    # 归一化到 [-1, 1]
+    normalized = 2 * (tensor - min_val) / (max_val - min_val) - 1
+    return normalized
+
 def norm_tensor_with_clipping(tensor, lower_percentile=1, upper_percentile=99):
     # 计算分位数
     lower_bound = torch.quantile(tensor, lower_percentile / 100)
@@ -141,6 +150,7 @@ def time_0_blending_weight(gaussians, opt: OptimizationParams, args, scene, pipe
     # scores = imp_score / imp_score.sum()  # 归一化 imp_score 作为采样概率 prob
     scores = norm_tensor_01(imp_score)
     torch.save(scores, tensor_path)
+    torch.save(scores, "time_0_blending_weight.pt")
     print(f"time_0_blending_weight saved to {tensor_path}")
     non_zero_count = torch.count_nonzero(scores)  # 统计非零元素个数
     print(f"Non-zero count: {non_zero_count}")
@@ -179,6 +189,55 @@ def blending_weight_for_each_img(gaussians, opt: OptimizationParams, args, scene
             imp_score[accum_area_max == 0] = 0  
             res[view.uid] = imp_score
     return res,acc_imp_score
+
+
+def rendering_info_for_each_img(gaussians, opt: OptimizationParams, args, scene, pipe, background):
+    acc_w_list = {}
+    acc_s_list = {}
+    accum_area_max = torch.zeros(gaussians._xyz.shape[0])
+    views = scene.getTrainCameras()  
+    total_views = len(views)  
+    acc_w_sum = torch.zeros(gaussians._xyz.shape[0])
+    acc_s_sum = torch.zeros(gaussians._xyz.shape[0])
+
+    with torch.no_grad():
+        for view in tqdm(views, total=total_views, desc="rendering_info_for_each_img"):
+            w = torch.zeros(gaussians._xyz.shape[0]) 
+            s = torch.zeros(gaussians._xyz.shape[0]) 
+            # if view.time != 0.0:  
+            #     continue
+            render_pkg = render(view, gaussians, pipe, background)
+
+            accum_weights = render_pkg["accum_weights"].detach().cpu()
+            area_proj = render_pkg["area_proj"].detach().cpu()
+            area_max = render_pkg["area_max"].detach().cpu()
+            error_scores = render_pkg["error_scores"].detach().cpu()
+           
+            accum_area_max = accum_area_max + area_max
+            if opt.outdoor == True:
+                mask_t = area_max != 0
+                temp = w + accum_weights / area_proj
+                temp2 = s + error_scores / area_proj
+                w[mask_t] = temp[mask_t]
+                s[mask_t] = temp2[mask_t]
+
+            else:
+                w += accum_weights
+                s += error_scores
+
+            acc_w_sum+=w
+            acc_s_sum+=s
+
+            # 对于从未在任何视角中被看到的点，重要性设为 0 ，确保不可见点的 imp_score = 0
+            w[accum_area_max == 0] = 0  
+            # TODO 这里是否需要？
+            s[accum_area_max == 0] = 0  
+
+            acc_w_list[view.uid] = w
+            acc_s_list[view.uid] = s
+
+    return acc_w_list, acc_w_sum, acc_s_list, acc_s_sum
+
 
 
 def get_unactivate_opacity(gaussians):

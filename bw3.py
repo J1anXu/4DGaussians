@@ -7,8 +7,8 @@ import torch
 import fnmatch
 import numpy as np
 import os
-from imp_score_utils import time_0_blending_weight,get_unactivate_opacity, get_pruning_iter1_mask,get_pruning_iter2_mask,get_topk_score,norm_tensor_01,render_info_for_each_img
-
+from imp_score_utils import rendering_info_for_each_img,norm_tensor_01,blending_weight_for_each_img,norm_tensor_11
+from utils.tensor_analysis_utils import analyze_tensor
 #os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128'
 #  交替方向乘子法（ADMM） 优化算法，通常用于解决带有约束和正则化的优化问题。
 class BW:
@@ -21,25 +21,36 @@ class BW:
         self.scene = scene
         self.pipe = pipe
         self.background = background
-        d,w=  render_info_for_each_img(gaussians, opt, args, scene, pipe, background)
-        self.dict = d
-        self.curr_acc_w  = w
-        print(f" init BW success, len = {len(d)}")
+        acc_w_list, acc_w_sum, acc_s_list, acc_s_sum =  rendering_info_for_each_img(gaussians, opt, args, scene, pipe, background)
+        self.acc_w_list = acc_w_list
+        self.acc_w_sum  = acc_w_sum
+        self.acc_s_list = acc_s_list
+        self.acc_s_sum = acc_s_sum
+        torch.save(acc_s_sum, "acc_s_sum.pt")
+        print("BW init success")
         
     # 注意,paper中的a就是这里的opacity
-    def update(self, key, value):
+    def update_weights(self, key, value):
         value = value.detach().cpu()
         with torch.no_grad():
-            pre = self.dict[key]
+            pre = self.acc_w_list[key]
             diff = value - pre  # 计算 diff
-            self.dict[key] = value  # 更新字典
-            self.curr_acc_w.add_(diff)  # 使用 in-place 操作，避免额外显存分配
+            self.acc_w_list[key] = value  # 更新字典
+            self.acc_w_sum.add_(diff)  # 使用 in-place 操作，避免额外显存分配
 
-
+    def update_error_scores(self, key, value):
+        value = value.detach().cpu()
+        with torch.no_grad():
+            pre = self.acc_s_list[key]
+            diff = value - pre  # 计算 diff
+            self.acc_s_list[key] = value  # 更新字典
+            self.acc_s_sum.add_(diff)  # 使用 in-place 操作，避免额外显存分配
 
     def get_curr_acc_w(self):
         with torch.no_grad():
-            return norm_tensor_01(self.curr_acc_w)
+            return norm_tensor_01(self.acc_w_sum)
 
 
-
+    def get_curr_acc_s(self):
+        with torch.no_grad():
+            return norm_tensor_11(self.acc_s_sum)

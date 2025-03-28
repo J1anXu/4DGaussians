@@ -13,3 +13,5 @@ wandb/
 tools/frameDiffRes/
 wandb*
 ~/.cache
+*.pt
+analysis_result/
