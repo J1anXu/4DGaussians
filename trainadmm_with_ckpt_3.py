@@ -29,7 +29,7 @@ from torch.utils.data import DataLoader
 from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
 from utils.scene_utils import render_training_image
-from imp_score_utils import time_0_blending_weight,get_unactivate_opacity, get_pruning_iter1_mask,get_pruning_iter2_mask,get_topk_score,norm_tensor_01,blending_weight_for_each_img
+from imp_score_utils import *
 import shutil
 
 import copy
@@ -448,8 +448,10 @@ def scene_reconstruction(
                 and opt.admm == True
                 and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
             ):
-
-                admm.update_w(opt, bw.get_curr_acc_w().cuda())
+                s = bw.get_actual_acc_s()
+                s_ = norm_zero_tanh(1-s)
+                scores = s_
+                admm.update_w(opt, scores.cuda())
                     
             if args.prune_points and iteration == args.simp_iteration2:
                 mask_2 = get_pruning_iter2_mask(gaussians, opt)

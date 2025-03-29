@@ -100,6 +100,40 @@ def norm_tensor_11(tensor):
     normalized = 2 * (tensor - min_val) / (max_val - min_val) - 1
     return normalized
 
+
+def norm_zero_tanh(tensor_z):
+    # Z-score 标准化	
+    mean = tensor_z.mean()
+    std = tensor_z.std()
+    normalized_z = (tensor_z - mean) / std
+
+    # Tanh  ---->[-1, 1]
+    normalized_z_tanh = torch.tanh(normalized_z)
+    return normalized_z_tanh
+
+
+def norm_zero_tanh_shift(tensor_z):
+    # Z-score 标准化	
+    mean = tensor_z.mean()
+    std = tensor_z.std()
+    normalized_z = (tensor_z - mean) / std
+
+    # Tanh  ---->[-1, 1]
+    normalized_z_tanh = torch.tanh(normalized_z)
+    #  --->[0,1]
+    normalized_z_tanh_shift = (normalized_z_tanh+1)/2
+    return normalized_z_tanh_shift
+
+
+def norm_log_shift(t):
+        # 对数缩放
+    c = 1
+    normalized_log = (torch.log(t + c) -10)/10
+    return normalized_log
+
+
+
+
 def norm_tensor_with_clipping(tensor, lower_percentile=1, upper_percentile=99):
     # 计算分位数
     lower_bound = torch.quantile(tensor, lower_percentile / 100)
@@ -295,7 +329,7 @@ def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
     bias = None
 
     if args.simp_iteration1_score_type == 0:
-        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, False)
+        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, True)
 
     elif args.simp_iteration1_score_type == 1:
         scores = time_all_blending_weight(gaussians, opt, args, scene, pipe, background, True)

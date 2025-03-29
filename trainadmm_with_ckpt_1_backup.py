@@ -29,12 +29,11 @@ from torch.utils.data import DataLoader
 from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
 from utils.scene_utils import render_training_image
-from imp_score_utils import *
+from imp_score_utils import get_unactivate_opacity, get_pruning_iter1_mask,get_pruning_iter2_mask,get_topk_score,norm_tensor_01
 import shutil
 
 import copy
 from admm import ADMM
-from bw3 import BW
 import wandb
 import logging
 from logger import initialize_logger
@@ -64,8 +63,8 @@ def scene_reconstruction(
     train_iter,
     timer,
 ):
-    bw = None
     first_iter = 0
+
     gaussians.training_setup(opt)
     if checkpoint:
         if stage == "coarse" and stage not in checkpoint:
@@ -131,7 +130,9 @@ def scene_reconstruction(
     times = scene.train_camera.dataset.image_times[0 : scene.train_camera.dataset.time_number]
     # scores = getImportantScore4(gaussians, opt, scene, pipe, background)
 
-    
+    scores = None
+    topk_mask = None
+    coff = None
     for iteration in range(first_iter, final_iter + 1):
         if network_gui.conn == None:
             network_gui.try_connect()
@@ -200,8 +201,6 @@ def scene_reconstruction(
                     )
                     random_loader = True
                 loader = iter(viewpoint_stack_loader)
-               # bw = BW(gaussians, opt, args, scene, pipe, background)
-
 
         else:
             idx = 0
@@ -223,27 +222,16 @@ def scene_reconstruction(
         radii_list = []
         visibility_filter_list = []
         viewspace_point_tensor_list = []
-
-        opacity = gaussians.get_opacity.detach().cpu()
-        torch.save(opacity,"opacity.pt")
-
         for viewpoint_cam in viewpoint_cams:
-
             render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
-
-            image, viewspace_point_tensor, visibility_filter, radii, accum_weights, error_scores = (
+            image, viewspace_point_tensor, visibility_filter, radii, p_diff, time = (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
                 render_pkg["visibility_filter"],
                 render_pkg["radii"],
-                render_pkg["accum_weights"],
-                render_pkg["error_scores"]
-
+                render_pkg["p_diff"],
+                render_pkg["time"],
             )
-            if bw is not None and iteration < args.simp_iteration2 and iteration > opt.admm_start_iter1 :#and viewpoint_cam.time== 0.0
-                bw.update_weights(viewpoint_cam.uid, accum_weights)
-                bw.update_error_scores(viewpoint_cam.uid, error_scores)
-                
             images.append(image.unsqueeze(0))
             if scene.dataset_type != "PanopticSports":
                 gt_image = viewpoint_cam.original_image.cuda()
@@ -443,19 +431,16 @@ def scene_reconstruction(
                 gaussians.prune_points(mask)
 
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
-                bw = BW(gaussians, opt, args, scene, pipe, background)
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
                 admm.update(opt, update_u=False)
+
             elif (
                 iteration % opt.admm_interval == 0
                 and opt.admm == True
                 and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
-            ):  
-                w = bw.get_curr_acc_w()
-                s = bw.get_actual_acc_s()
-                s_ = norm_zero_tanh(1-s)*2
-                scores = w+s_
-                admm.update_w(opt, scores.cuda())
+            ):
+                
+                admm.update(opt)
                     
             if args.prune_points and iteration == args.simp_iteration2:
                 mask_2 = get_pruning_iter2_mask(gaussians, opt)

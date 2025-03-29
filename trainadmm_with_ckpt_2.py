@@ -29,12 +29,12 @@ from torch.utils.data import DataLoader
 from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
 from utils.scene_utils import render_training_image
-from imp_score_utils import time_0_blending_weight,get_unactivate_opacity, get_pruning_iter1_mask,get_pruning_iter2_mask,get_topk_score,norm_tensor_01,blending_weight_for_each_img
+from imp_score_utils import *
 import shutil
 
 import copy
 from admm import ADMM
-from bw2 import BW
+from bw3 import BW
 import wandb
 import logging
 from logger import initialize_logger
@@ -224,21 +224,24 @@ def scene_reconstruction(
         visibility_filter_list = []
         viewspace_point_tensor_list = []
 
+        opacity = gaussians.get_opacity.detach().cpu()
+        torch.save(opacity,"opacity.pt")
 
         for viewpoint_cam in viewpoint_cams:
 
             render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
 
-            image, viewspace_point_tensor, visibility_filter, radii, accum_weights = (
+            image, viewspace_point_tensor, visibility_filter, radii, accum_weights, error_scores = (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
                 render_pkg["visibility_filter"],
                 render_pkg["radii"],
-                render_pkg["accum_weights"]
+                render_pkg["accum_weights"],
+                render_pkg["error_scores"]
             )
             if bw is not None and iteration < args.simp_iteration2 and iteration > opt.admm_start_iter1 :#and viewpoint_cam.time== 0.0
-                bw.update(viewpoint_cam.uid, accum_weights)
-
+                bw.update_weights(viewpoint_cam.uid, accum_weights)
+                bw.update_error_scores(viewpoint_cam.uid, error_scores)
             images.append(image.unsqueeze(0))
             if scene.dataset_type != "PanopticSports":
                 gt_image = viewpoint_cam.original_image.cuda()
@@ -445,9 +448,13 @@ def scene_reconstruction(
                 iteration % opt.admm_interval == 0
                 and opt.admm == True
                 and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
-            ):
+            ):  
+                w = bw.get_curr_acc_w()
+                s = bw.get_actual_acc_s()
+                s_ = norm_zero_tanh(1-s)*5
+                scores = w+s_
+                admm.update_w(opt, scores.cuda())
 
-                admm.update_w(opt, bw.get_curr_acc_w().cuda())
                     
             if args.prune_points and iteration == args.simp_iteration2:
                 mask_2 = get_pruning_iter2_mask(gaussians, opt)

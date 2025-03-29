@@ -7,8 +7,7 @@ import torch
 import fnmatch
 import numpy as np
 import os
-from imp_score_utils import time_0_blending_weight,get_unactivate_opacity, get_pruning_iter1_mask,get_pruning_iter2_mask,get_topk_score,norm_tensor_01,blending_weight_for_each_img
-
+from imp_score_utils import *
 #os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128'
 #  交替方向乘子法（ADMM） 优化算法，通常用于解决带有约束和正则化的优化问题。
 class BW:
@@ -42,4 +41,5 @@ class BW:
             return norm_tensor_01(self.curr_acc_w)
 
 
-
+    def get_curr_acc_w_tanh(self):
+        return norm_zero_tanh(self.curr_acc_w)

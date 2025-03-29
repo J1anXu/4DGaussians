@@ -54,3 +54,6 @@ class BW:
     def get_curr_acc_s(self):
         with torch.no_grad():
             return norm_tensor_11(self.acc_s_sum)
+
+    def get_actual_acc_s(self):
+        return norm_tensor_11(self.acc_s_sum)
