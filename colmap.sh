@@ -2,7 +2,7 @@
 
 workdir=$1
 datatype=$2 # blender, hypernerf, llff
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=4
 rm -rf $workdir/sparse_
 rm -rf $workdir/image_colmap
 python scripts/"$datatype"2colmap.py $workdir

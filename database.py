@@ -1,6 +1,8 @@
 # This script is based on an original implementation by True Price.
 # Created by liminghao
 import sys
+import os, sys
+os.environ["CUDA_VISIBLE_DEVICES"] = "4"  # 先设置 GPU 设备
 import numpy as np
 import sqlite3
 

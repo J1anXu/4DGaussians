@@ -17,14 +17,14 @@ command1 = (
 )
 
 command2 = (
-    f"python render{idx}.py "
+    f"python render.py "
     f'--model_path "output/admm_{idx}/cut_roasted_beef" '
     "--skip_train --skip_video "
     "--configs arguments/dynerf/cut_roasted_beef.py "
 )
 
 command3 = (
-    f'python metrics{idx}.py --model_path "output/admm_{idx}/cut_roasted_beef" '
+    f'python metrics.py --model_path "output/admm_{idx}/cut_roasted_beef" '
 )
 
 # 运行命令
