@@ -19,7 +19,7 @@ from scene import Scene
 import cv2
 from tqdm import tqdm
 from os import makedirs
-from gaussian_renderer import render
+from gaussian_renderer import render_with_error_scores
 import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser
@@ -92,7 +92,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
         if idx == 0:time1 = time()
 
-        rendering_res = render(view, gaussians, pipeline, background, cam_type=cam_type)
+        rendering_res = render_with_error_scores(view, gaussians, pipeline, background, cam_type=cam_type)
         rendering = rendering_res["render"]
 
         if DRAW:

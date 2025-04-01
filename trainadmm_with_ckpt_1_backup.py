@@ -18,7 +18,7 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, render_with_topk_mask, render_point_time, network_gui
+from gaussian_renderer import render_with_error_scores, render_point_time, network_gui
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
 from tqdm import tqdm
@@ -29,7 +29,7 @@ from torch.utils.data import DataLoader
 from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
 from utils.scene_utils import render_training_image
-from imp_score_utils import get_unactivate_opacity, get_pruning_iter1_mask,get_pruning_iter2_mask,get_topk_score,norm_tensor_01
+from imp_score_utils import get_unactivate_opacity, get_pruning_iter1_mask,get_pruning_iter2_mask,norm_tensor_01
 import shutil
 
 import copy
@@ -158,7 +158,7 @@ def scene_reconstruction(
                     viewpoint = video_cams[viewpoint_index]
                     custom_cam.time = viewpoint.time
 
-                    net_image = render(
+                    net_image = render_with_error_scores(
                         custom_cam,
                         gaussians,
                         pipe,
@@ -223,7 +223,7 @@ def scene_reconstruction(
         visibility_filter_list = []
         viewspace_point_tensor_list = []
         for viewpoint_cam in viewpoint_cams:
-            render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
+            render_pkg = render_with_error_scores(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
             image, viewspace_point_tensor, visibility_filter, radii, p_diff, time = (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
@@ -330,7 +330,7 @@ def scene_reconstruction(
                 iter_start.elapsed_time(iter_end),
                 testing_iterations,
                 scene,
-                render,
+                render_with_error_scores,
                 [pipe, background],
                 stage,
                 scene.dataset_type,
@@ -350,7 +350,7 @@ def scene_reconstruction(
                         scene,
                         gaussians,
                         [test_cams[iteration % len(test_cams)]],
-                        render,
+                        render_with_error_scores,
                         pipe,
                         background,
                         stage + "test",
@@ -362,7 +362,7 @@ def scene_reconstruction(
                         scene,
                         gaussians,
                         [train_cams[iteration % len(train_cams)]],
-                        render,
+                        render_with_error_scores,
                         pipe,
                         background,
                         stage + "train",

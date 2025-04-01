@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from random import randint
-from gaussian_renderer import render, render_with_topk_mask, render_with_topk_score, render_point_time
+from gaussian_renderer import render_with_error_scores, render_point_time
 from tqdm import tqdm
 from utils.image_utils import psnr
 from arguments import ModelParams, PipelineParams, OptimizationParams, ModelHiddenParams
@@ -13,45 +13,6 @@ from utils.parallel_utils import run_tasks_in_parallel
 from utils.tensor_analysis_utils import analyze_tensor, plot_2_sum_tensors
 
 import os
-
-def get_topk_mask(gaussians, scene, pipe, args, background, related_gs_num, cache = False):
-    tensor_path = args.start_checkpoint + f"_topk_mask_{related_gs_num}.pt"
-    # 检查文件是否存在
-    if cache and os.path.exists(tensor_path):
-        print(f"get topk_mask from {tensor_path}")
-        return torch.load(tensor_path)
-    viewpoint_stack = scene.getTrainCameras()
-    valid_prune_mask = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda", dtype=torch.bool)
-    for view in tqdm(viewpoint_stack, desc=f"topk_mask, K={related_gs_num}"):
-        # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
-        #     continue
-        with torch.no_grad():
-            renderTopk_pkg = render_with_topk_mask(view, gaussians, pipe, background, topk=related_gs_num)
-            topk_mask = renderTopk_pkg["topk_mask"]
-            valid_prune_mask = torch.logical_or(valid_prune_mask, topk_mask)
-    # 计算 valid_prune_mask 中 True 的数量
-    num_true = torch.sum(valid_prune_mask).item()
-    torch.save(valid_prune_mask, tensor_path)
-    return valid_prune_mask
-
-def get_topk_score(gaussians, scene, pipe, args, background, related_gs_num, cache = False):
-    tensor_path = args.start_checkpoint + f"top{related_gs_num}_score_.pt"
-    # 检查文件是否存在
-    if cache and os.path.exists(tensor_path):
-        print(f"get topk_score from {tensor_path}")
-        return torch.load(tensor_path)
-    viewpoint_stack = scene.getTrainCameras()
-    final_score = torch.zeros((gaussians.get_xyz.shape[0]), device="cuda")
-    for view in tqdm(viewpoint_stack, desc=f"topk_score, K={related_gs_num}"):
-        # if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
-        #     continue
-        with torch.no_grad():
-            renderTopk_pkg = render_with_topk_score(view, gaussians, pipe, background, topk=related_gs_num, score_function = args.score_function)
-            topk_score = renderTopk_pkg["topk_score"]
-            final_score += topk_score
-    # 计算 valid_prune_mask 中 True 的数量
-    torch.save(final_score, tensor_path)
-    return final_score
 
 
 def movingLength(gaussians, times):
@@ -169,7 +130,7 @@ def time_0_blending_weight(gaussians, opt: OptimizationParams, args, scene, pipe
         for view in tqdm(views, total=total_views, desc="time0BlendingWeight"):
             if view.time != 0.0:  
                 continue
-            render_pkg = render(view, gaussians, pipe, background)
+            render_pkg = render_with_error_scores(view, gaussians, pipe, background)
             accum_weights = render_pkg["accum_weights"]
             area_proj = render_pkg["area_proj"]
             area_max = render_pkg["area_max"]
@@ -203,7 +164,7 @@ def blending_weight_for_each_img(gaussians, opt: OptimizationParams, args, scene
             imp_score = torch.zeros(gaussians._xyz.shape[0]) 
             # if view.time != 0.0:  
             #     continue
-            render_pkg = render(view, gaussians, pipe, background)
+            render_pkg = render_with_error_scores(view, gaussians, pipe, background)
 
             accum_weights = render_pkg["accum_weights"].detach().cpu()
             area_proj = render_pkg["area_proj"].detach().cpu()
@@ -240,7 +201,7 @@ def rendering_info_for_each_img(gaussians, opt: OptimizationParams, args, scene,
             s = torch.zeros(gaussians._xyz.shape[0]) 
             # if view.time != 0.0:  
             #     continue
-            render_pkg = render(view, gaussians, pipe, background)
+            render_pkg = render_with_error_scores(view, gaussians, pipe, background)
 
             accum_weights = render_pkg["accum_weights"].detach().cpu()
             area_proj = render_pkg["area_proj"].detach().cpu()
@@ -298,7 +259,7 @@ def time_all_blending_weight(gaussians, opt: OptimizationParams, args, scene, pi
     total_views = len(views)  # 获取视角总数
 
     for view in tqdm(views, total=total_views, desc="allTimeBledWeight"):
-        render_pkg = render(view, gaussians, pipe, background)
+        render_pkg = render_with_error_scores(view, gaussians, pipe, background)
         accum_weights = render_pkg["accum_weights"]
         area_proj = render_pkg["area_proj"]
         area_max = render_pkg["area_max"]
@@ -375,59 +336,6 @@ def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
     elif args.simp_iteration1_score_type == 23:  # 01_opacity + (1-bias)
         scores = get_01_opacity(gaussians).squeeze(1)
         scores = scores + (1-bias)
-
-
-
-
-    elif args.simp_iteration1_score_type == -1:
-        scores = get_topk_score(gaussians, scene, pipe, args, background, args.related_gs_num, True)
-
-
-
-    elif args.simp_iteration1_score_type == 4: # time_0_blending_weight * bias
-        scores, topk_score = run_tasks_in_parallel(
-            (time_0_blending_weight, gaussians, opt, args, scene, pipe, background, True),
-            (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num, True)
-        )
-        scores =  scores * bias
-    
-    elif args.simp_iteration1_score_type == 5: # unactivate_opacity * bias
-        scores, topk_score = run_tasks_in_parallel(
-            (get_unactivate_opacity, gaussians),
-            (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num, True)
-        )
-        scores = scores * bias
-    
-
-
-    elif args.simp_iteration1_score_type == 41: # time_0_blending_weight * (1+bias)
-        scores, topk_score = run_tasks_in_parallel(
-            (time_0_blending_weight, gaussians, opt, args, scene, pipe, background, True),
-            (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num, True)
-        )
-        scores =  scores * (1+bias)
-    
-    elif args.simp_iteration1_score_type == 51: # unactivate_opacity * (1+bias)
-        scores, topk_score = run_tasks_in_parallel(
-            (get_unactivate_opacity, gaussians),
-            (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num, True)
-        )
-        scores = scores * (1+bias)
-
-
-    elif args.simp_iteration1_score_type == 42: # time_0_blending_weight * bias**2
-        scores, topk_score = run_tasks_in_parallel(
-            (time_0_blending_weight, gaussians, opt, args, scene, pipe, background, True),
-            (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num, True)
-        )
-        scores =  scores * bias**2
-    
-    elif args.simp_iteration1_score_type == 52: # unactivate_opacity * bias**2
-        scores, topk_score = run_tasks_in_parallel(
-            (get_unactivate_opacity, gaussians),
-            (get_topk_score, gaussians, scene, pipe, args, background, args.related_gs_num, True)
-        )
-        scores = scores * bias**2
 
 
     scores_sorted, _ = torch.sort(scores, 0)

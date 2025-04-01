@@ -18,7 +18,7 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, render_with_topk_mask, render_point_time, network_gui
+from gaussian_renderer import render_with_error_scores, render_with_topk_mask, render_point_time, network_gui
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
 from utils.loss_utils import ssim
@@ -66,7 +66,7 @@ from scene import Scene
 import cv2
 from tqdm import tqdm
 from os import makedirs
-from gaussian_renderer import render
+from gaussian_renderer import render_with_error_scores
 import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser
@@ -226,7 +226,7 @@ def scene_reconstruction(
                     viewpoint = video_cams[viewpoint_index]
                     custom_cam.time = viewpoint.time
 
-                    net_image = render(
+                    net_image = render_with_error_scores(
                         custom_cam,
                         gaussians,
                         pipe,
@@ -291,7 +291,7 @@ def scene_reconstruction(
         visibility_filter_list = []
         viewspace_point_tensor_list = []
         for viewpoint_cam in viewpoint_cams:
-            render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
+            render_pkg = render_with_error_scores(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
             image, viewspace_point_tensor, visibility_filter, radii, p_diff, time = (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
@@ -398,7 +398,7 @@ def scene_reconstruction(
                 iter_start.elapsed_time(iter_end),
                 testing_iterations,
                 scene,
-                render,
+                render_with_error_scores,
                 [pipe, background],
                 stage,
                 scene.dataset_type,
@@ -418,7 +418,7 @@ def scene_reconstruction(
                         scene,
                         gaussians,
                         [test_cams[iteration % len(test_cams)]],
-                        render,
+                        render_with_error_scores,
                         pipe,
                         background,
                         stage + "test",
@@ -430,7 +430,7 @@ def scene_reconstruction(
                         scene,
                         gaussians,
                         [train_cams[iteration % len(train_cams)]],
-                        render,
+                        render_with_error_scores,
                         pipe,
                         background,
                         stage + "train",
@@ -784,7 +784,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     count = 0
 
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
-        rendering_res = render(view, gaussians, pipeline, background, cam_type=cam_type)
+        rendering_res = render_with_error_scores(view, gaussians, pipeline, background, cam_type=cam_type)
         rendering = rendering_res["render"]
 
         if DRAW:

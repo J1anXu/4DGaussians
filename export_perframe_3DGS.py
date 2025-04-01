@@ -6,7 +6,7 @@ import os
 import cv2
 from tqdm import tqdm
 from os import makedirs
-from gaussian_renderer import render
+from gaussian_renderer import render_with_error_scores
 import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser

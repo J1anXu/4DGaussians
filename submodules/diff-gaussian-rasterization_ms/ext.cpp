@@ -13,6 +13,7 @@
 #include "rasterize_points.h"
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def("rasterize_gaussians", &RasterizeGaussiansCUDA);
   m.def("rasterize_gaussians_with_score", &RasterizeGaussiansWithScoreCUDA);
   m.def("rasterize_gaussians_depth", &RasterizeGaussiansDepthCUDA);
   m.def("rasterize_gaussians_backward", &RasterizeGaussiansBackwardCUDA);

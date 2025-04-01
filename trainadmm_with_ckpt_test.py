@@ -18,7 +18,7 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, render_with_topk_mask, render_point_time, network_gui
+from gaussian_renderer import render_with_error_scores, render_point_time, network_gui
 import sys
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
@@ -150,7 +150,7 @@ def scene_reconstruction(
 
     view = viewpoint_cams[0]
     print(f"time: {view.time}")
-    render_pkg = render(view, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
+    render_pkg = render_with_error_scores(view, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
     image_1 = render_pkg["render"]
     if scene.dataset_type != "PanopticSports":
         gt_image = view.original_image.cuda()
@@ -185,7 +185,7 @@ def scene_reconstruction(
         print(f"maskSize =======================: {count}")
         gaussians.prune_points(~topk_mask)
         # 只保留指定高斯,再渲染一次
-        render_pkg_2 = render(view, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
+        render_pkg_2 = render_with_error_scores(view, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
         image_2 = render_pkg_2["render"]
         image = image_2.detach().cpu().permute(1, 2, 0).numpy()  # 形状变为 (1014, 1352, 3)
         image = (image - image.min()) / (image.max() - image.min())
@@ -271,7 +271,7 @@ def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgroun
     total_views = len(views)  # 获取视角总数
 
     for view in tqdm(views, total=total_views, desc="allTimeBledWeight"):
-        render_pkg = render(view, gaussians, pipe, background)
+        render_pkg = render_with_error_scores(view, gaussians, pipe, background)
         accum_weights = render_pkg["accum_weights"]
         area_proj = render_pkg["area_proj"]
         area_max = render_pkg["area_max"]
@@ -307,7 +307,7 @@ def zeroTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgrou
         # if view.time not in time_samples:  # 相较于ImportantScore3 唯一的区别
         if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
             continue
-        render_pkg = render(view, gaussians, pipe, background)
+        render_pkg = render_with_error_scores(view, gaussians, pipe, background)
         accum_weights = render_pkg["accum_weights"]
         area_proj = render_pkg["area_proj"]
         area_max = render_pkg["area_max"]

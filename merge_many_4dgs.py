@@ -6,7 +6,7 @@ import os
 import cv2
 from tqdm import tqdm
 from os import makedirs
-from gaussian_renderer import render
+from gaussian_renderer import render_with_error_scores
 import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser
@@ -56,7 +56,7 @@ def rotate_point_cloud(point_cloud, displacement, rotation_angles, scales_bias):
 
     return displaced_point_cloud
 @torch.no_grad()
-def render(viewpoint_camera, gaussians, bg_color : torch.Tensor, scaling_modifier = 1.0, motion_bias = [torch.tensor([0,0,0])], rotation_bias = [torch.tensor([0,0])],
+def render_with_error_scores(viewpoint_camera, gaussians, bg_color : torch.Tensor, scaling_modifier = 1.0, motion_bias = [torch.tensor([0,0,0])], rotation_bias = [torch.tensor([0,0])],
            scales_bias=[1,1]):
     """
     Render the scene. 
@@ -213,7 +213,7 @@ render_images=[]
 if not os.path.exists(render_path):
     os.makedirs(render_path,exist_ok=True)
 for index, viewpoint in tqdm(enumerate(scene1.getVideoCameras())):
-    result = render(viewpoint, gaussians, 
+    result = render_with_error_scores(viewpoint, gaussians, 
                     bg_color=background,
                     motion_bias=[
                         torch.tensor([4,4,12]),

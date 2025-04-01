@@ -17,7 +17,7 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, network_gui, render_point_time
+from gaussian_renderer import render_with_error_scores, network_gui, render_point_time
 import sys
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
@@ -180,7 +180,7 @@ def scene_reconstruction(
                     viewpoint = video_cams[viewpoint_index]
                     custom_cam.time = viewpoint.time
 
-                    net_image = render(
+                    net_image = render_with_error_scores(
                         custom_cam,
                         gaussians,
                         pipe,
@@ -245,7 +245,7 @@ def scene_reconstruction(
         visibility_filter_list = []
         viewspace_point_tensor_list = []
         for viewpoint_cam in viewpoint_cams:
-            render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
+            render_pkg = render_with_error_scores(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
             image, viewspace_point_tensor, visibility_filter, radii = (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
@@ -350,7 +350,7 @@ def scene_reconstruction(
                 iter_start.elapsed_time(iter_end),
                 testing_iterations,
                 scene,
-                render,
+                render_with_error_scores,
                 [pipe, background],
                 stage,
                 scene.dataset_type,
@@ -370,7 +370,7 @@ def scene_reconstruction(
                         scene,
                         gaussians,
                         [test_cams[iteration % len(test_cams)]],
-                        render,
+                        render_with_error_scores,
                         pipe,
                         background,
                         stage + "test",
@@ -382,7 +382,7 @@ def scene_reconstruction(
                         scene,
                         gaussians,
                         [train_cams[iteration % len(train_cams)]],
-                        render,
+                        render_with_error_scores,
                         pipe,
                         background,
                         stage + "train",
@@ -502,7 +502,7 @@ def allTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgroun
     total_views = len(views)  # 获取视角总数
 
     for view in tqdm(views, total=total_views, desc="allTimeBledWeight"):
-        render_pkg = render(view, gaussians, pipe, background)
+        render_pkg = render_with_error_scores(view, gaussians, pipe, background)
         accum_weights = render_pkg["accum_weights"]
         area_proj = render_pkg["area_proj"]
         area_max = render_pkg["area_max"]
@@ -538,7 +538,7 @@ def zeroTimeBledWeight(gaussians, opt: OptimizationParams, scene, pipe, backgrou
         # if view.time not in time_samples:  # 相较于ImportantScore3 唯一的区别
         if view.time != 0.0:  # 相较于ImportantScore3 唯一的区别
             continue
-        render_pkg = render(view, gaussians, pipe, background)
+        render_pkg = render_with_error_scores(view, gaussians, pipe, background)
         accum_weights = render_pkg["accum_weights"]
         area_proj = render_pkg["area_proj"]
         area_max = render_pkg["area_max"]
