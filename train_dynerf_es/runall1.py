@@ -2,13 +2,11 @@ import subprocess
 import os,sys
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(ROOT_DIR)
-# 创建日志目录
-
 # 
-scene = "sear_steak"
-n = 4
+scene = "cut_roasted_beef"
+n = 1
 
-log_dir = "log"
+log_dir = "es_log"
 log_file = os.path.join(log_dir, f"{scene}.log")
 os.makedirs(log_dir, exist_ok=True)
 

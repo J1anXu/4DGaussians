@@ -3,11 +3,10 @@ import os,sys
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(ROOT_DIR)
 # 
-#scene = "cook_spinach"
 scene = "cut_roasted_beef"
-n = 0
+n = 1
 
-log_dir = "log"
+log_dir = "og_log"
 log_file = os.path.join(log_dir, f"{scene}.log")
 os.makedirs(log_dir, exist_ok=True)
 

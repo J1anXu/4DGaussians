@@ -16,7 +16,7 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer_ms import render, network_gui
+from gaussian_renderer_es import render, network_gui
 import sys
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state

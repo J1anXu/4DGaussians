@@ -11,7 +11,7 @@
 import os,sys
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(ROOT_DIR)
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"  # 先设置 GPU 设备
+os.environ["CUDA_VISIBLE_DEVICES"] = "4"  # 先设置 GPU 设备
 import imageio
 import numpy as np
 import torch
@@ -20,12 +20,12 @@ import os
 import cv2
 from tqdm import tqdm
 from os import makedirs
-from gaussian_renderer import render
+from gaussian_renderer_es import render
 import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args, ModelHiddenParams
-from gaussian_renderer_ms import GaussianModel
+from gaussian_renderer_es import GaussianModel
 from time import time
 import threading
 import concurrent.futures

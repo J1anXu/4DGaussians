@@ -5,10 +5,10 @@ sys.path.append(ROOT_DIR)
 # 创建日志目录
 
 # 
-scene = "flame_steak"
-n = 3
+scene = "sear_steak"
+n = 4
 
-log_dir = "log"
+log_dir = "og_log"
 log_file = os.path.join(log_dir, f"{scene}.log")
 os.makedirs(log_dir, exist_ok=True)
 

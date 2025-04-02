@@ -25,7 +25,7 @@ import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args, ModelHiddenParams
-from gaussian_renderer_ms import GaussianModel
+from gaussian_renderer import GaussianModel
 from time import time
 import threading
 import concurrent.futures

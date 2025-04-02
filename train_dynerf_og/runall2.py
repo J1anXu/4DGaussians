@@ -8,7 +8,7 @@ sys.path.append(ROOT_DIR)
 scene = "flame_salmon_1"
 n = 2
 
-log_dir = "log"
+log_dir = "og_log"
 log_file = os.path.join(log_dir, f"{scene}.log")
 os.makedirs(log_dir, exist_ok=True)
 
