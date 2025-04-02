@@ -1,47 +1,16 @@
 import numpy as np
 import torch
 from random import randint
-from gaussian_renderer_es import render_with_error_scores, render_point_time
+from gaussian_renderer import render_e
 from tqdm import tqdm
 from utils.image_utils import psnr
-from arguments import ModelParams, PipelineParams, OptimizationParams, ModelHiddenParams
+from arguments import *
 from imp_score_utils import *
 import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel as DDP
-import concurrent.futures
-from utils.parallel_utils import run_tasks_in_parallel
-from utils.tensor_analysis_utils import analyze_tensor, plot_2_sum_tensors
+
 
 import os
 
-
-def movingLength(gaussians, times):
-    # 获取高斯点数量和时间步数量
-    num_gaussians = gaussians.get_xyz.shape[0]
-
-    # 初始化累计移动距离张量 (num_gaussians,)
-    moving_length_table = torch.zeros(num_gaussians, device="cuda" if gaussians.get_xyz.is_cuda else "cpu")
-
-    # 记录上一时间步的坐标
-    prev_means3D = None
-
-    for time in times:
-        # 获取当前时间步的高斯点位置
-        render_point_time_res = render_point_time(time, gaussians, cam_type=None)
-        means3D_at_time_tensor = render_point_time_res["means3D_final"]  # 形状 (num_gaussians, 3)
-
-        if prev_means3D is not None:
-            # 计算欧几里得距离 ||x_t - x_{t-1}||
-            distance = torch.norm(means3D_at_time_tensor - prev_means3D, dim=1)  # 形状 (num_gaussians,)
-
-            # 累加到移动长度表
-            moving_length_table += distance
-
-        # 更新上一时刻的位置
-        prev_means3D = means3D_at_time_tensor.clone()
-
-    normalized_moving_length = norm_tensor_01(moving_length_table)
-    return normalized_moving_length
 
 
 def norm_tensor_01(tensor):
@@ -130,7 +99,7 @@ def time_0_blending_weight(gaussians, opt: OptimizationParams, args, scene, pipe
         for view in tqdm(views, total=total_views, desc="time0BlendingWeight"):
             if view.time != 0.0:  
                 continue
-            render_pkg = render_with_error_scores(view, gaussians, pipe, background)
+            render_pkg = render_e(view, gaussians, pipe, background)
             accum_weights = render_pkg["accum_weights"]
             area_proj = render_pkg["area_proj"]
             area_max = render_pkg["area_max"]
@@ -164,7 +133,7 @@ def blending_weight_for_each_img(gaussians, opt: OptimizationParams, args, scene
             imp_score = torch.zeros(gaussians._xyz.shape[0]) 
             # if view.time != 0.0:  
             #     continue
-            render_pkg = render_with_error_scores(view, gaussians, pipe, background)
+            render_pkg = render_e(view, gaussians, pipe, background)
 
             accum_weights = render_pkg["accum_weights"].detach().cpu()
             area_proj = render_pkg["area_proj"].detach().cpu()
@@ -201,7 +170,7 @@ def rendering_info_for_each_img(gaussians, opt: OptimizationParams, args, scene,
             s = torch.zeros(gaussians._xyz.shape[0]) 
             # if view.time != 0.0:  
             #     continue
-            render_pkg = render_with_error_scores(view, gaussians, pipe, background)
+            render_pkg = render_e(view, gaussians, pipe, background)
 
             accum_weights = render_pkg["accum_weights"].detach().cpu()
             area_proj = render_pkg["area_proj"].detach().cpu()
@@ -259,7 +228,7 @@ def time_all_blending_weight(gaussians, opt: OptimizationParams, args, scene, pi
     total_views = len(views)  # 获取视角总数
 
     for view in tqdm(views, total=total_views, desc="allTimeBledWeight"):
-        render_pkg = render_with_error_scores(view, gaussians, pipe, background)
+        render_pkg = render_e(view, gaussians, pipe, background)
         accum_weights = render_pkg["accum_weights"]
         area_proj = render_pkg["area_proj"]
         area_max = render_pkg["area_max"]
@@ -290,7 +259,7 @@ def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
     bias = None
 
     if args.simp_iteration1_score_type == 0:
-        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, True)
+        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, False)
 
     elif args.simp_iteration1_score_type == 1:
         scores = time_all_blending_weight(gaussians, opt, args, scene, pipe, background, True)

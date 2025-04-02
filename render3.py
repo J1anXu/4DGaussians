@@ -21,12 +21,12 @@ from scene import Scene
 import cv2
 from tqdm import tqdm
 from os import makedirs
-from gaussian_renderer_es import render_with_error_scores
+from gaussian_renderer import render_e
 import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args, ModelHiddenParams
-from gaussian_renderer_es import GaussianModel
+from gaussian_renderer import GaussianModel
 import time
 from PIL import Image, ImageDraw
 from torchvision import transforms
@@ -91,7 +91,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     count = 0
 
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
-        rendering_res = render_with_error_scores(view, gaussians, pipeline, background, cam_type=cam_type)
+        rendering_res = render_e(view, gaussians, pipeline, background, cam_type=cam_type)
         rendering = rendering_res["render"]
 
         if DRAW:
