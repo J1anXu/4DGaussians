@@ -19,12 +19,12 @@ from scene import Scene
 import cv2
 from tqdm import tqdm
 from os import makedirs
-from gaussian_renderer import render_with_error_scores
+from gaussian_renderer_ms import render_with_error_scores
 import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args, ModelHiddenParams
-from gaussian_renderer import GaussianModel
+from gaussian_renderer_ms import GaussianModel
 from time import time
 import threading
 import concurrent.futures
