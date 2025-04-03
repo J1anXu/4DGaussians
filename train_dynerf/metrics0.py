@@ -80,13 +80,13 @@ def evaluate(model_paths):
                     ms_ssims.append(ms_ssim(renders[idx], gts[idx],data_range=1, size_average=True ))
                     lpipsa.append(lpips(renders[idx], gts[idx], net_type='alex'))
                     Dssims.append((1-ms_ssims[-1])/2)
-
-                print("Scene: ", scene_dir,  "SSIM : {:>12.7f}".format(torch.tensor(ssims).mean(), ".5"))
-                print("Scene: ", scene_dir,  "PSNR : {:>12.7f}".format(torch.tensor(psnrs).mean(), ".5"))
-                print("Scene: ", scene_dir,  "LPIPS-vgg: {:>12.7f}".format(torch.tensor(lpipss).mean(), ".5"))
-                print("Scene: ", scene_dir,  "LPIPS-alex: {:>12.7f}".format(torch.tensor(lpipsa).mean(), ".5"))
-                print("Scene: ", scene_dir,  "MS-SSIM: {:>12.7f}".format(torch.tensor(ms_ssims).mean(), ".5"))
-                print("Scene: ", scene_dir,  "D-SSIM: {:>12.7f}".format(torch.tensor(Dssims).mean(), ".5"))
+                print("Scene: ", scene_dir)
+                print("SSIM : {:>12.7f}".format(torch.tensor(ssims).mean(), ".5"))
+                print("PSNR : {:>12.7f}".format(torch.tensor(psnrs).mean(), ".5"))
+                print("LPIPS-vgg: {:>12.7f}".format(torch.tensor(lpipss).mean(), ".5"))
+                print("LPIPS-alex: {:>12.7f}".format(torch.tensor(lpipsa).mean(), ".5"))
+                print("MS-SSIM: {:>12.7f}".format(torch.tensor(ms_ssims).mean(), ".5"))
+                print("D-SSIM: {:>12.7f}".format(torch.tensor(Dssims).mean(), ".5"))
 
                 full_dict[scene_dir][method].update({"SSIM": torch.tensor(ssims).mean().item(),
                                                         "PSNR": torch.tensor(psnrs).mean().item(),

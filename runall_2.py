@@ -7,7 +7,7 @@ timezone = pytz.timezone("America/Chicago")
 current_time = datetime.now(timezone).strftime("%Y-%m-%d_%H-%M-%S")
 
 idx = 2
-scene = "flame_salmon_1"
+scene = "cut_roasted_beef"
 command1 = (
     f"python trainadmm_with_ckpt_{idx}.py "
     f"-s data/dynerf/{scene} --port 600{idx} "

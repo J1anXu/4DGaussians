@@ -10,8 +10,8 @@
 #
 import os
 from typing_extensions import Literal
-idx = 2
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+idx = 3
+os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
 import pprint
 from pathlib import Path
@@ -91,7 +91,7 @@ def evaluate(model_paths):
                 print("LPIPS-alex: {:>12.7f}".format(torch.tensor(lpipsa).mean(), ".5"))
                 print("MS-SSIM: {:>12.7f}".format(torch.tensor(ms_ssims).mean(), ".5"))
                 print("D-SSIM: {:>12.7f}".format(torch.tensor(Dssims).mean(), ".5"))
-
+                
                 # Logging the results
                 logging.info(f"Mertics2 {method_dir}")
                 logging.info("Scene: %s", scene_dir)

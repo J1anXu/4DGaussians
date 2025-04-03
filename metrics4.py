@@ -10,8 +10,8 @@
 #
 import os
 from typing_extensions import Literal
-idx = 2
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+idx = 3
+os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 
 import pprint
 from pathlib import Path

@@ -11,7 +11,7 @@
 import os
 from typing_extensions import Literal
 idx = 3
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 
 import pprint
 from pathlib import Path
@@ -84,14 +84,13 @@ def evaluate(model_paths):
                 ms_ssims = results["MS-SSIM"]
                 Dssims = results["D-SSIM"]
 
-                # Print the results
-                print(f"Metrics2 {method_dir}")
-                print("SSIM : {:>12.8f}".format(ssims))
-                print("PSNR : {:>12.8f}".format(psnrs))
-                print("LPIPS-vgg: {:>12.8f}".format(lpipss))
-                print("LPIPS-alex: {:>12.8f}".format(lpipsa))
-                print("MS-SSIM: {:>12.8f}".format(ms_ssims))
-                print("D-SSIM: {:>12.8f}".format(Dssims))
+                print("Scene: ", scene_dir)
+                print("SSIM : {:>12.7f}".format(torch.tensor(ssims).mean(), ".5"))
+                print("PSNR : {:>12.7f}".format(torch.tensor(psnrs).mean(), ".5"))
+                print("LPIPS-vgg: {:>12.7f}".format(torch.tensor(lpipss).mean(), ".5"))
+                print("LPIPS-alex: {:>12.7f}".format(torch.tensor(lpipsa).mean(), ".5"))
+                print("MS-SSIM: {:>12.7f}".format(torch.tensor(ms_ssims).mean(), ".5"))
+                print("D-SSIM: {:>12.7f}".format(torch.tensor(Dssims).mean(), ".5"))
 
                 # Logging the results
                 logging.info(f"Mertics2 {method_dir}")
