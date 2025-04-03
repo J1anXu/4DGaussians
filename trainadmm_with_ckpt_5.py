@@ -9,8 +9,8 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
-idx = 2
-os.environ["CUDA_VISIBLE_DEVICES"] = f"3"  # 先设置 GPU 设备
+idx = 5
+os.environ["CUDA_VISIBLE_DEVICES"] = f"6"  # 先设置 GPU 设备
 
 import sys
 import numpy as np

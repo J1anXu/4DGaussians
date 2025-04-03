@@ -2,12 +2,28 @@ import subprocess
 from datetime import datetime
 import os
 import pytz
+#cut_roasted_beef
+idx = 2
+scene = "cut_roasted_beef"
+
+
+log_dir = "log"
+log_file = os.path.join(log_dir, f"{scene}_admm.log")
+os.makedirs(log_dir, exist_ok=True)
+
+def run_command(command):
+    with open(log_file, "a") as log:
+        log.write(f"Executing: {command}\n")
+        process = subprocess.run(command, shell=True, stdout=log, stderr=log)
+        if process.returncode != 0:
+            log.write(f"Command failed: {command}\n")
+            exit(1)
+
 
 timezone = pytz.timezone("America/Chicago")
 current_time = datetime.now(timezone).strftime("%Y-%m-%d_%H-%M-%S")
 
-idx = 2
-scene = "cut_roasted_beef"
+
 command1 = (
     f"python trainadmm_with_ckpt_{idx}.py "
     f"-s data/dynerf/{scene} --port 600{idx} "
@@ -27,9 +43,10 @@ command3 = (
     f'python metrics.py --model_path "output/admm/{scene}" '
 )
 
-# 运行命令
-subprocess.run(command1, shell=True, check=True)
-subprocess.run(command2, shell=True, check=True)
-subprocess.run(command3, shell=True, check=True)
+commands = [command1,command2,command3]
+
+for cmd in commands:
+    run_command(cmd)
+
 
 

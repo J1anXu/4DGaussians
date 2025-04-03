@@ -5,7 +5,7 @@ import pytz
 
 
 def initialize_logger():
-    log_dir = "./log"
+    log_dir = "./logs"
     timezone_str = "America/Chicago"
     """
     Initializes the logging system with a timestamped log file and a given timezone.
