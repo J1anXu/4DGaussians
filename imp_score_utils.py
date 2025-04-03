@@ -290,7 +290,7 @@ def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
     bias = None
 
     if args.simp_iteration1_score_type == 0:
-        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, True)
+        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, False)
 
     elif args.simp_iteration1_score_type == 1:
         scores = time_all_blending_weight(gaussians, opt, args, scene, pipe, background, True)
