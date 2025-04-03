@@ -9,9 +9,12 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
-idx = 2
-os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
-
+idx = 4
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"  # 先设置 GPU 设备
+import subprocess
+import os,sys
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(ROOT_DIR)
 import sys
 import numpy as np
 import random
@@ -695,6 +698,7 @@ if __name__ == "__main__":
 
     for arg, value in vars(op.extract(args)).items():
         logging.info(f"{arg}: {value}")
+    logging.info(args.expname)
         
     if WANDB:
         wandb.login()

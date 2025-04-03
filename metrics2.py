@@ -11,7 +11,7 @@
 import os
 from typing_extensions import Literal
 idx = 2
-os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
 
 import pprint
 from pathlib import Path

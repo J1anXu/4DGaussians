@@ -1,5 +1,6 @@
 _base_ = "./default.py"
 OptimizationParams = dict(
+    batch_size=2,
     densify_from_iter=0,  # 动态调整开始
     densify_until_iter=0,  # 动态调整结束
     simp_iteration1=14001,  # 删点执行
