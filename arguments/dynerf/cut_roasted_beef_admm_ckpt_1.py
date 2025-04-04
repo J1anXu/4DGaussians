@@ -5,12 +5,12 @@ OptimizationParams = dict(
     densify_until_iter=0,  # 动态调整结束
     simp_iteration1=14001,  # 删点执行
     admm_start_iter1=16000,  # admm迭代开始
-    admm_stop_iter1=23000,  # admm迭代结束 19400
-    simp_iteration2=23000,  # 删点执行 19401
-    iterations=25000,  # 整体迭代
+    admm_stop_iter1=25000,  # admm迭代结束 19400
+    simp_iteration2=25000,  # 删点执行 19401
+    iterations=27000,  # 整体迭代
     admm_interval=50,
     rho_lr=0.0005,
-    opacity_admm_threshold1=0.8,  # 0.8
+    opacity_admm_threshold1=0.5,  # 0.8
     opacity_admm_threshold2=0.5,
     coarse_iterations=0,
     outdoor=False,
@@ -20,6 +20,8 @@ OptimizationParams = dict(
     simp_iteration1_score_type = 0,
     score_function = 36,
     )
+
+
 
 
 # _base_ = "./default.py"

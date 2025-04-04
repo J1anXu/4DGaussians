@@ -14,4 +14,5 @@ tools/frameDiffRes/
 wandb*
 ~/.cache
 *.pt
+*.pth
 analysis_result/

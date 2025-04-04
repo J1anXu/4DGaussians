@@ -1,0 +1,64 @@
+2025-04-03 19:31:40 - INFO - Log system initialized.
+2025-04-03 19:31:40 - INFO - Loaded data:
+{ 'add_point': False,
+  'admm': True,
+  'admm_interval': 50,
+  'admm_start_iter1': 16000,
+  'admm_stop_iter1': 19900,
+  'batch_size': 2,
+  'coarse_iterations': 0,
+  'custom_sampler': None,
+  'dataloader': True,
+  'deformation_lr_delay_mult': 0.01,
+  'deformation_lr_final': 1.6e-05,
+  'deformation_lr_init': 0.00016,
+  'densification_interval': 100,
+  'densify_from_iter': 0,
+  'densify_grad_threshold_after': 0.0002,
+  'densify_grad_threshold_coarse': 0.0002,
+  'densify_grad_threshold_fine_init': 0.0002,
+  'densify_until_iter': 0,
+  'fast_test': True,
+  'feature_lr': 0.0025,
+  'grid_lr_final': 0.00016,
+  'grid_lr_init': 0.0016,
+  'iterations': 22000,
+  'lambda_dssim': 0,
+  'lambda_lpips': 0,
+  'opacity_admm_threshold1': 0.8,
+  'opacity_admm_threshold2': 0.5,
+  'opacity_lr': 0.05,
+  'opacity_reset_interval': 60000,
+  'opacity_threshold_coarse': 0.005,
+  'opacity_threshold_fine_after': 0.005,
+  'opacity_threshold_fine_init': 0.005,
+  'outdoor': False,
+  'percent_dense': 0.01,
+  'position_lr_delay_mult': 0.01,
+  'position_lr_final': 1.6e-06,
+  'position_lr_init': 0.00016,
+  'position_lr_max_steps': 20000,
+  'prune_points': True,
+  'pruning_from_iter': 500,
+  'pruning_interval': 100,
+  'related_gs_num': 1,
+  'rho_lr': 0.0005,
+  'rotation_lr': 0.001,
+  'scaling_lr': 0.005,
+  'score_function': 36,
+  'simp_iteration1': 14001,
+  'simp_iteration1_score_type': 0,
+  'simp_iteration2': 19900,
+  'weight_constraint_after': 0.2,
+  'weight_constraint_init': 1,
+  'weight_decay_iteration': 5000,
+  'zerostamp_init': False}
+
+2025-04-03 19:33:42 - INFO - Mertics2 output/admm_1/cut_roasted_beef/test/ours_22000
+2025-04-03 19:33:42 - INFO - Scene: output/admm_1/cut_roasted_beef
+2025-04-03 19:33:42 - INFO -   SSIM: 0.91658189
+2025-04-03 19:33:42 - INFO -   PSNR: 30.51352751
+2025-04-03 19:33:42 - INFO -   LPIPS-vgg: 0.18867091
+2025-04-03 19:33:42 - INFO -   LPIPS-alex: 0.08233239
+2025-04-03 19:33:42 - INFO -   MS-SSIM: 0.96531930
+2025-04-03 19:33:42 - INFO -   D-SSIM: 0.01734035

@@ -9,7 +9,7 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
-idx = 2
+idx = 4
 os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
 
 import sys
@@ -224,8 +224,6 @@ def scene_reconstruction(
         visibility_filter_list = []
         viewspace_point_tensor_list = []
 
-        opacity = gaussians.get_opacity.detach().cpu()
-        torch.save(opacity,"opacity.pt")
 
         for viewpoint_cam in viewpoint_cams:
 
@@ -238,12 +236,11 @@ def scene_reconstruction(
                 render_pkg["radii"],
                 render_pkg["accum_weights"],
                 render_pkg["error_scores"]
-
             )
             if bw is not None and iteration < args.simp_iteration2 and iteration > opt.admm_start_iter1 :#and viewpoint_cam.time== 0.0
                 bw.update_weights(viewpoint_cam.uid, accum_weights)
                 bw.update_error_scores(viewpoint_cam.uid, error_scores)
-                
+
             images.append(image.unsqueeze(0))
             if scene.dataset_type != "PanopticSports":
                 gt_image = viewpoint_cam.original_image.cuda()
@@ -450,13 +447,13 @@ def scene_reconstruction(
                 iteration % opt.admm_interval == 0
                 and opt.admm == True
                 and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
-            ):  
+            ):
                 w = bw.get_curr_acc_w()
                 s = bw.get_actual_acc_s()
                 s_ = norm_zero_tanh(1-s)
                 scores = w+s_
                 admm.update_w(opt, scores.cuda())
-                    
+
             if args.prune_points and iteration == args.simp_iteration2:
                 mask_2 = get_pruning_iter2_mask(gaussians, opt)
                 gaussians.prune_points(mask_2)
