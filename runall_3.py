@@ -7,24 +7,29 @@ timezone = pytz.timezone("America/Chicago")
 current_time = datetime.now(timezone).strftime("%Y-%m-%d_%H-%M-%S")
 
 idx = 3
-
+scene = "cook_spinach"
+# cook_spinach
+# cut_roasted_beef
+# flame_salmon_1
+# flame_steak
+# sear_steak
 command1 = (
     f"python trainadmm_with_ckpt_{idx}.py "
-    f"-s data/dynerf/cut_roasted_beef --port 600{idx} "
-    f'--expname "admm_{idx}/cut_roasted_beef" '
-    f"--configs arguments/dynerf/cut_roasted_beef_admm_ckpt_{idx}.py "
-    '--start_checkpoint "output/dynerf/cut_roasted_beef/chkpnt_fine_14000.pth" '
+    f"-s data/dynerf/{scene} --port 600{idx} "
+    f'--expname "admm_{idx}/{scene}" '
+    f"--configs arguments/dynerf/{scene}_admm_ckpt_{idx}.py "
+    f'--start_checkpoint "output/dynerf/{scene}/chkpnt_fine_14000.pth" '
 )
 
 command2 = (
     f"python render{idx}.py "
-    f'--model_path "output/admm_{idx}/cut_roasted_beef" '
+    f'--model_path "output/admm_{idx}/{scene}" '
     "--skip_train --skip_video "
-    "--configs arguments/dynerf/cut_roasted_beef.py "
+    f"--configs arguments/dynerf/{scene}.py "
 )
 
 command3 = (
-    f'python metrics{idx}.py --model_path "output/admm_{idx}/cut_roasted_beef" '
+    f'python metrics{idx}.py --model_path "output/admm_{idx}/{scene}" '
 )
 
 # 运行命令

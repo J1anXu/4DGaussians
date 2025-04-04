@@ -329,10 +329,10 @@ def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
     bias = None
 
     if args.simp_iteration1_score_type == 0:
-        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, True)
+        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, False)
 
     elif args.simp_iteration1_score_type == 1:
-        scores = time_all_blending_weight(gaussians, opt, args, scene, pipe, background, True)
+        scores = time_all_blending_weight(gaussians, opt, args, scene, pipe, background, False)
 
     elif args.simp_iteration1_score_type == 2:
         scores = get_unactivate_opacity(gaussians)
@@ -342,11 +342,11 @@ def get_pruning_iter1_mask(gaussians, opt, args, scene, pipe, background):
 
 
     if args.simp_iteration1_score_type == 10: # time_0_blending_weight + bias
-        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, True)
+        scores = time_0_blending_weight(gaussians, opt, args, scene, pipe, background, False)
         scores = scores + bias
 
     elif args.simp_iteration1_score_type == 11: # time_all_blending_weight + bias
-        scores = time_all_blending_weight(gaussians, opt, args, scene, pipe, background, True)
+        scores = time_all_blending_weight(gaussians, opt, args, scene, pipe, background, False)
         scores = scores + bias
 
     elif args.simp_iteration1_score_type == 12: # unactivate_opacity + bias
