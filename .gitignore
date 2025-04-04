@@ -9,6 +9,7 @@ screenshots
 data/
 data
 log/
+logs/
 wandb/
 tools/frameDiffRes/
 wandb*
