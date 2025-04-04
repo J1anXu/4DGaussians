@@ -14,7 +14,7 @@ idx = 5
 # sear_steak
 scene = "flame_salmon_1"
 command1 = (
-    f"python trainadmm_with_ckpt_{idx}.py "
+    f"python train_admm_with_ckpt_{idx}.py "
     f"-s data/dynerf/{scene} --port 600{idx} "
     f'--expname "admm_{idx}/{scene}" '
     f"--configs arguments/dynerf/{scene}_og_test.py "

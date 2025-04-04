@@ -451,12 +451,7 @@ def scene_reconstruction(
                 and opt.admm == True
                 and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
             ):  
-                #admm.update(opt)
-                w = bw.get_curr_acc_w()
-                s = bw.get_actual_acc_s()
-                s_ = norm_zero_tanh(1-s)
-                scores = w+s_
-                admm.update_w(opt, scores.cuda())
+                admm.update(opt)
                 
             if args.prune_points and iteration == args.simp_iteration2:
                 mask_2 = get_pruning_iter2_mask(gaussians, opt)

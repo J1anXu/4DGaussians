@@ -14,7 +14,7 @@ scene = "cook_spinach"
 # flame_steak
 # sear_steak
 command1 = (
-    f"python trainadmm_with_ckpt_{idx}.py "
+    f"python train_admm_with_ckpt_{idx}.py "
     f"-s data/dynerf/{scene} --port 600{idx} "
     f'--expname "admm_{idx}/{scene}" '
     f"--configs arguments/dynerf/{scene}_admm_ckpt_{idx}.py "
@@ -38,3 +38,4 @@ subprocess.run(command2, shell=True, check=True)
 subprocess.run(command3, shell=True, check=True)
 
 
+print(">>>>>>>[admm, scores = w+s_]<<<<<<<")
