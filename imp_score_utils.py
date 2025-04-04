@@ -445,3 +445,16 @@ def get_pruning_iter2_mask(gaussians, opt):
     abs_threshold = scores_sorted[threshold_idx - 1]
     mask = (scores <= abs_threshold).squeeze()
     return mask
+
+def get_pruning_iter2_mask_2(gaussians, opt, extra_score):
+    with torch.no_grad():
+        scores = get_unactivate_opacity(gaussians)
+        
+    s1 = gaussians._opacity[:, 0]
+    s2 =  extra_score   
+    scores = s1+s2
+    scores_sorted, _ = torch.sort(scores, 0)
+    threshold_idx = int(opt.opacity_admm_threshold2 * len(scores_sorted))
+    abs_threshold = scores_sorted[threshold_idx - 1]
+    mask = (scores <= abs_threshold).squeeze()
+    return mask
