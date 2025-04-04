@@ -453,7 +453,7 @@ def scene_reconstruction(
             ):  
                 w = bw.get_curr_acc_w()
                 s = bw.get_actual_acc_s()
-                s_ = norm_zero_tanh(1-s)*2
+                s_ = norm_zero_tanh(1-s)
                 scores = w+s_
                 admm.update_w(opt, scores.cuda())
                     

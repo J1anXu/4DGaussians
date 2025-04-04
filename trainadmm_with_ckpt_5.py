@@ -9,8 +9,8 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
-idx = 4
-os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
+idx = 5
+os.environ["CUDA_VISIBLE_DEVICES"] = f"5"  # 先设置 GPU 设备
 
 import sys
 import numpy as np
@@ -448,11 +448,11 @@ def scene_reconstruction(
                 and opt.admm == True
                 and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
             ):
-                # s = bw.get_actual_acc_s()
-                # s_ = norm_zero_tanh(1-s)
-                # scores = s_
-                # admm.update_w(opt, scores.cuda())
-                admm.update(opt)
+                w = bw.get_curr_acc_w()
+                s = bw.get_actual_acc_s()
+                s_ = norm_zero_tanh(1-s)
+                scores = w+s_
+                admm.update_w(opt, scores.cuda())
 
             if args.prune_points and iteration == args.simp_iteration2:
                 mask_2 = get_pruning_iter2_mask(gaussians, opt)
