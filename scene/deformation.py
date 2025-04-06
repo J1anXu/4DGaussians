@@ -73,12 +73,23 @@ class Deformation(nn.Module):
             grid_feature = self.grid(rays_pts_emb[:,:3], time_emb[:,:1])
             # breakpoint()
             if self.grid_pe > 1:
-                grid_feature = poc_fre(grid_feature,self.grid_pe)
+                #grid_feature = poc_fre(grid_feature,self.grid_pe)
+                # avoid grad problem
+                grid_feature = torch.nan_to_num(grid_feature, nan=0.0, posinf=1e4, neginf=-1e4)
+
             hidden = torch.cat([grid_feature],-1) 
-        
-        
-        hidden = self.feature_out(hidden)   
- 
+            
+        try:
+            hidden = self.feature_out(hidden)
+        except Exception as e:
+            print("❌ Error in self.feature_out(hidden):", e)
+            # 打印 hidden 的维度、数值范围、是否含 NaN
+            print(">> hidden.shape:", hidden.shape)
+            print(">> hidden dtype:", hidden.dtype)
+            print(">> hidden min/max:", hidden.min().item(), hidden.max().item())
+            print(">> hidden has NaN:", torch.isnan(hidden).any().item())
+            raise e
+
 
         return hidden
     @property
@@ -94,6 +105,7 @@ class Deformation(nn.Module):
         grid_feature = self.grid(rays_pts_emb[:,:3])
         dx = self.static_mlp(grid_feature)
         return rays_pts_emb[:, :3] + dx
+    
     def forward_dynamic(self,rays_pts_emb, scales_emb, rotations_emb, opacity_emb, shs_emb, time_feature, time_emb):
         hidden = self.query_time(rays_pts_emb, scales_emb, rotations_emb, time_feature, time_emb)
         if self.args.static_mlp:

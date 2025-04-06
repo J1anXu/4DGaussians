@@ -175,7 +175,18 @@ class OptimizationParams(ParamGroup):
         self.related_gs_num = 1
         self.simp_iteration1_score_type = 0
         self.score_function = 36
+        self.add_extra_scores = True,
 
+        self.quant = False
+        self.kmeans_st_iter = 25000
+        self.kmeans_ncls = 4096
+        self.kmeans_ncls_sh = 512
+        self.kmeans_ncls_dc = 4096
+        self.kmeans_iters = 10
+        self.kmeans_freq = 100
+        self.grad_thresh = 0.002
+        self.quant_params = ['sh', 'dc', 'scale', 'rot']
+        
         super().__init__(parser, "Optimization Parameters")
 
 
