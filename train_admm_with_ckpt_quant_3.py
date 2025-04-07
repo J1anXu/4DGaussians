@@ -30,6 +30,7 @@ from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
 from utils.scene_utils import render_training_image
 from imp_score_utils import *
+from quant_utils import *
 import shutil
 from scene.kmeans_quantize import Quantize_kMeans
 
@@ -74,7 +75,6 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
     n_cls_sh = args.kmeans_ncls_sh
     n_cls_dc = args.kmeans_ncls_dc
     n_it = args.kmeans_iters
-    kmeans_st_iter = args.kmeans_st_iter
     freq_cls_assn = args.kmeans_freq
     kmeans_rot_q = None  # or some default value
     kmeans_dc_q = None
@@ -204,7 +204,7 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
                 continue
 
 
-        if (args.quant == True and iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1):
+        if (args.quant and iteration > opt.quant_start_iter and iteration <= opt.quant_stop_iter):
             if iteration % freq_cls_assn == 1:
                 assign = True
                 update_centers_flag = True
@@ -293,7 +293,7 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
         Lcluster_scale=0
         Lcluster_rot=0
 
-        if (args.quant == True and iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1):
+        if (args.quant and iteration > opt.quant_start_iter and iteration <= opt.quant_stop_iter):
             if iteration % freq_cls_assn == 1:
                 if 'pos' in quantized_params:
                     Lcluster_pos=kmeans_pos_q.get_loss(gaussians._xyz)
@@ -444,10 +444,25 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
                 gaussians.optimizer.step()
                 gaussians.optimizer.zero_grad(set_to_none=True)
 
-            if iteration in checkpoint_iterations:
-                save_path = scene.model_path + "/chkpnt" + f"_{stage}_quant_" + str(iteration) + ".pth"
-                print(f"\n[ITER {iteration}] Saving Checkpoint in {save_path}")
-                torch.save((gaussians.capture(), iteration), save_path,)
+
+   # Saving model withoud quant
+    save_path = scene.model_path + "/chkpnt" + f"_{stage}_quant_" + str(iteration) + ".pth"
+    print(f"\n[ITER {iteration}] Saving Checkpoint in {save_path}")
+    torch.save((gaussians.capture(), iteration), save_path,)
+    
+    # Save gaussians
+    all_attributes = {'xyz': 'xyz', 'dc': 'f_dc', 'sh': 'f_rest', 'opacities': 'opacities','scale': 'scale', 'rot': 'rotation'}
+    save_attributes = [val for (key, val) in all_attributes.items() if key not in quantized_params]
+    scene.save_quant(iteration, save_q=quantized_params, save_attributes=save_attributes)
+
+    # Save indices and codebook for quantized parameters
+    kmeans_dict = {'rot': kmeans_rot_q, 'scale': kmeans_sc_q, 'sh': kmeans_sh_q, 'dc': kmeans_dc_q}
+    kmeans_list = []
+    for param in quantized_params:
+        kmeans_list.append(kmeans_dict[param])
+    out_dir = join(scene.model_path, 'point_cloud/iteration_%d' % iteration)
+    save_kmeans(kmeans_list, quantized_params, out_dir)
+
 
 def training(dataset,hyper,opt: OptimizationParams,pipe,testing_iterations,saving_iterations,checkpoint_iterations,checkpoint,debug_from,expname,):
     # first_iter = 0

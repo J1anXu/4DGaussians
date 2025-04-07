@@ -466,12 +466,10 @@ def scene_reconstruction(
                 gaussians.optimizer.step()
                 gaussians.optimizer.zero_grad(set_to_none=True)
 
-            if iteration in checkpoint_iterations:
-                print("\n[ITER {}] Saving Checkpoint".format(iteration))
-                torch.save(
-                    (gaussians.capture(), iteration),
-                    scene.model_path + "/chkpnt" + f"_{stage}_" + str(iteration) + ".pth",
-                )
+    torch.save(
+        (gaussians.capture(), iteration),
+        scene.model_path + "/chkpnt" + f"_{stage}_admm_" + str(iteration) + ".pth",
+    )
 
 def training(
     dataset,

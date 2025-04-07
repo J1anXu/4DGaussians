@@ -9,7 +9,7 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
-idx = 1
+idx = 4
 os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
 
 import sys
@@ -30,7 +30,9 @@ from utils.timer import Timer
 from utils.loader_utils import FineSampler, get_stamp_list
 from utils.scene_utils import render_training_image
 from imp_score_utils import *
+from quant_utils import *
 import shutil
+from scene.kmeans_quantize import Quantize_kMeans
 
 import copy
 from admm import ADMM
@@ -47,23 +49,7 @@ try:
 except ImportError:
     TENSORBOARD_FOUND = False
 
-def scene_reconstruction(
-    dataset,
-    opt: OptimizationParams,
-    hyper,
-    pipe,
-    testing_iterations,
-    saving_iterations,
-    checkpoint_iterations,
-    checkpoint,
-    debug_from,
-    gaussians: GaussianModel,
-    scene: Scene,
-    stage,
-    tb_writer,
-    train_iter,
-    timer,
-):
+def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iterations,saving_iterations,checkpoint_iterations,checkpoint,debug_from,gaussians: GaussianModel,scene: Scene,stage,tb_writer,train_iter,timer,):
     bw = None
     first_iter = 0
     gaussians.training_setup(opt)
@@ -77,16 +63,43 @@ def scene_reconstruction(
             gaussians.restore(model_params, opt)
 
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
-
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 
     iter_start = torch.cuda.Event(enable_timing=True)
     iter_end = torch.cuda.Event(enable_timing=True)
 
+
+    # k-Means quantization
+    quantized_params = args.quant_params
+    n_cls = args.kmeans_ncls
+    n_cls_sh = args.kmeans_ncls_sh
+    n_cls_dc = args.kmeans_ncls_dc
+    n_it = args.kmeans_iters
+    freq_cls_assn = args.kmeans_freq
+
+    quantize_manager = QuantizeKMeansManager(gaussians, quantized_params, n_cls_dc, n_cls_sh, n_cls, n_it)
+
+    if 'pos' in quantized_params:
+        kmeans_pos_q = quantize_manager.get_quantizer('pos').prune()
+    if 'dc' in quantized_params:
+        kmeans_dc_q = quantize_manager.get_quantizer('dc')
+    if 'sh' in quantized_params:
+        kmeans_sh_q = quantize_manager.get_quantizer('sh')
+    if 'scale' in quantized_params:
+        kmeans_sc_q = quantize_manager.get_quantizer('scale')
+    if 'rot' in quantized_params:
+        kmeans_rot_q = quantize_manager.get_quantizer('rot')
+    if 'scale_rot' in quantized_params:
+        kmeans_scrot_q = quantize_manager.get_quantizer('scale_rot')
+    if 'sh_dc' in quantized_params:
+        kmeans_shdc_q = quantize_manager.get_quantizer('sh_dc')
+
+
     viewpoint_stack = None
     ema_loss_for_log = 0.0
     ema_psnr_for_log = 0.0
     ema_admm_loss_for_log = 0.0
+    ema_quant_loss_for_log = 0.0
     final_iter = train_iter
 
     progress_bar = tqdm(range(first_iter, final_iter), desc="Training...")
@@ -105,14 +118,10 @@ def scene_reconstruction(
         viewpoint_stack = scene.getTrainCameras()
         if opt.custom_sampler is not None:
             sampler = FineSampler(viewpoint_stack)
-            viewpoint_stack_loader = DataLoader(
-                viewpoint_stack, batch_size=batch_size, sampler=sampler, num_workers=16, collate_fn=list
-            )
+            viewpoint_stack_loader = DataLoader(viewpoint_stack, batch_size=batch_size, sampler=sampler, num_workers=16, collate_fn=list)
             random_loader = False
         else:
-            viewpoint_stack_loader = DataLoader(
-                viewpoint_stack, batch_size=batch_size, shuffle=True, num_workers=16, collate_fn=list
-            )
+            viewpoint_stack_loader = DataLoader(viewpoint_stack, batch_size=batch_size, shuffle=True, num_workers=16, collate_fn=list)
             random_loader = True
         loader = iter(viewpoint_stack_loader)
 
@@ -135,18 +144,10 @@ def scene_reconstruction(
     for iteration in range(first_iter, final_iter + 1):
         if network_gui.conn == None:
             network_gui.try_connect()
-
         while network_gui.conn != None:
             try:
                 net_image_bytes = None
-                (
-                    custom_cam,
-                    do_training,
-                    pipe.convert_SHs_python,
-                    pipe.compute_cov3D_python,
-                    keep_alive,
-                    scaling_modifer,
-                ) = network_gui.receive()
+                (custom_cam, do_training, pipe.convert_SHs_python, pipe.compute_cov3D_python, keep_alive, scaling_modifer,) = network_gui.receive()
                 if custom_cam != None:
                     count += 1
                     viewpoint_index = (count) % len(video_cams)
@@ -156,25 +157,8 @@ def scene_reconstruction(
                         viewpoint_index = len(video_cams) - viewpoint_index - 1
                     viewpoint = video_cams[viewpoint_index]
                     custom_cam.time = viewpoint.time
-
-                    net_image = render(
-                        custom_cam,
-                        gaussians,
-                        pipe,
-                        background,
-                        scaling_modifer,
-                        stage=stage,
-                        cam_type=scene.dataset_type,
-                    )["render"]
-
-                    net_image_bytes = memoryview(
-                        (torch.clamp(net_image, min=0, max=1.0) * 255)
-                        .byte()
-                        .permute(1, 2, 0)
-                        .contiguous()
-                        .cpu()
-                        .numpy()
-                    )
+                    net_image = render(custom_cam,gaussians,pipe,background,scaling_modifer,stage=stage,cam_type=scene.dataset_type,)["render"]
+                    net_image_bytes = memoryview((torch.clamp(net_image, min=0, max=1.0) * 255).byte().permute(1, 2, 0).contiguous().cpu().numpy())
                 network_gui.send(net_image_bytes, dataset.source_path)
                 if do_training and ((iteration < int(opt.iterations)) or not keep_alive):
                     break
@@ -189,20 +173,23 @@ def scene_reconstruction(
         if iteration % 1000 == 0:
             gaussians.oneupSHdegree()
 
+        # 这里需要调整
+        K = 500 # 原来是5000
+        if iteration > 3100:
+            freq_cls_assn = 100
+            if iteration > (opt.iterations - K):
+                freq_cls_assn = K
+
         if opt.dataloader and not load_in_memory:
             try:
                 viewpoint_cams = next(loader)
             except StopIteration:
                 print("reset dataloader into random dataloader.")
                 if not random_loader:
-                    viewpoint_stack_loader = DataLoader(
-                        viewpoint_stack, batch_size=opt.batch_size, shuffle=True, num_workers=32, collate_fn=list
-                    )
+                    viewpoint_stack_loader = DataLoader(viewpoint_stack, batch_size=opt.batch_size, shuffle=True, num_workers=32, collate_fn=list)
                     random_loader = True
                 loader = iter(viewpoint_stack_loader)
                # bw = BW(gaussians, opt, args, scene, pipe, background)
-
-
         else:
             idx = 0
             viewpoint_cams = []
@@ -216,6 +203,20 @@ def scene_reconstruction(
             if len(viewpoint_cams) == 0:
                 continue
 
+
+        if (args.quant and iteration > opt.quant_start_iter and iteration <= opt.quant_stop_iter):
+            if iteration % freq_cls_assn == 1:
+                assign = True
+                update_centers_flag = True
+            #elif iteration in saving_iterations:
+            else:
+                assign = False
+                update_centers_flag = True
+
+            quantize_manager.forward_all(gaussians, quantized_params, assign, update_centers_flag)
+
+
+        # Render
         if (iteration - 1) == debug_from:
             pipe.debug = True
         images = []
@@ -224,13 +225,8 @@ def scene_reconstruction(
         visibility_filter_list = []
         viewspace_point_tensor_list = []
 
-        opacity = gaussians.get_opacity.detach().cpu()
-        torch.save(opacity,"opacity.pt")
-
         for viewpoint_cam in viewpoint_cams:
-
             render_pkg = render(viewpoint_cam, gaussians, pipe, background, stage=stage, cam_type=scene.dataset_type)
-
             image, viewspace_point_tensor, visibility_filter, radii, accum_weights, error_scores = (
                 render_pkg["render"],
                 render_pkg["viewspace_points"],
@@ -238,12 +234,11 @@ def scene_reconstruction(
                 render_pkg["radii"],
                 render_pkg["accum_weights"],
                 render_pkg["error_scores"]
-
             )
             if bw is not None and iteration < args.simp_iteration2 and iteration > opt.admm_start_iter1 :#and viewpoint_cam.time== 0.0
                 bw.update_weights(viewpoint_cam.uid, accum_weights)
                 bw.update_error_scores(viewpoint_cam.uid, error_scores)
-                
+
             images.append(image.unsqueeze(0))
             if scene.dataset_type != "PanopticSports":
                 gt_image = viewpoint_cam.original_image.cuda()
@@ -260,29 +255,58 @@ def scene_reconstruction(
         image_tensor = torch.cat(images, 0)
         gt_image_tensor = torch.cat(gt_images, 0)
 
+
+        # Loss
         Ll1 = l1_loss(image_tensor, gt_image_tensor[:, :3, :, :])
         psnr_ = psnr(image_tensor, gt_image_tensor).mean().double()
         loss = Ll1
 
-        if (
-            opt.admm == True
-            and iteration > opt.admm_start_iter1
-            and iteration % opt.admm_interval == 0
-            and iteration <= opt.admm_stop_iter1
-        ):
+        if (opt.admm == True and iteration > opt.admm_start_iter1 and iteration % opt.admm_interval == 0 and iteration <= opt.admm_stop_iter1):
             admm_loss = 0.1 * admm.get_admm_loss(loss)
             loss += admm_loss
 
         if stage == "fine" and hyper.time_smoothness_weight != 0:
-            tv_loss = gaussians.compute_regulation(
-                hyper.time_smoothness_weight, hyper.l1_time_planes, hyper.plane_tv_weight
-            )
+            tv_loss = gaussians.compute_regulation(hyper.time_smoothness_weight, hyper.l1_time_planes, hyper.plane_tv_weight)
             loss += tv_loss
 
         if opt.lambda_dssim != 0:
             ssim_loss = ssim(image_tensor, gt_image_tensor)
             loss += opt.lambda_dssim * (1.0 - ssim_loss)
 
+
+        Lcluster_pos=0
+        Lcluster_dc=0
+        Lcluster_sh=0
+        Lcluster_scale=0
+        Lcluster_rot=0
+
+        if (args.quant and iteration > opt.quant_start_iter and iteration <= opt.quant_stop_iter):
+            if iteration % freq_cls_assn == 1:
+                if 'pos' in quantized_params:
+                    Lcluster_pos=kmeans_pos_q.get_loss(gaussians._xyz)
+                if 'dc' in quantized_params:
+                    Lcluster_dc=kmeans_dc_q.get_loss(gaussians._features_dc)/10
+            if iteration % freq_cls_assn == 1:
+                if 'sh' in quantized_params:
+                    Lcluster_sh=kmeans_sh_q.get_loss(gaussians._features_rest)/10
+            if iteration % freq_cls_assn == 1:
+                if 'scale' in quantized_params:
+                    Lcluster_scale=kmeans_sc_q.get_loss(gaussians._scaling)
+                    Lcluster_scale=Lcluster_scale/10
+            if iteration % freq_cls_assn == 1:
+                if 'rot' in quantized_params:
+                    Lcluster_rot=kmeans_rot_q.get_loss(gaussians._rotation)
+                #if 'scale_rot' in quantized_params:
+                    #Lcluster+=kmeans_scrot_q.get_loss(gaussians._scale_rot)
+                #if 'sh_dc' in quantized_params:
+                    #Lcluster+=kmeans_shdc_q.get_loss(gaussians._f_dc_frest)
+
+        quant_coff = 0.1 # 0.00005
+        quant_loss = quant_coff * (Lcluster_pos + Lcluster_dc + Lcluster_sh + Lcluster_scale + Lcluster_rot)   
+        
+        if args.quant:
+            loss+=quant_loss
+        
         loss.backward()
 
         if torch.isnan(loss).any():
@@ -298,90 +322,38 @@ def scene_reconstruction(
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
             ema_psnr_for_log = 0.4 * psnr_ + 0.6 * ema_psnr_for_log
             ema_admm_loss_for_log = 0.4 * admm_loss.item() + 0.6 * ema_admm_loss_for_log
-
+            ema_quant_loss_for_log = 0.4 * quant_loss + 0.6 * ema_quant_loss_for_log
             total_point = gaussians._xyz.shape[0]
-            if iteration % 10 == 0:
-                progress_bar.set_postfix(
-                    {
+            info = {
+                        "iteration":iteration,
                         "Loss": f"{ema_loss_for_log:.{7}f}",
                         "admm_loss": f"{ema_admm_loss_for_log:.{7}f}",
-                        "psnr": f"{psnr_:.{2}f}",
-                        "point": f"{total_point}",
-                    }
-                )
-                progress_bar.update(10)
-                logging.info(
-                    {
-                        "Loss": f"{ema_loss_for_log:.5f}",
-                        "admm_loss": f"{ema_admm_loss_for_log:.5f}",
-                        "psnr": f"{psnr_:.2f}",
+                        "quant_loss": f"{ema_quant_loss_for_log:.{7}f}",
+                        "psnr": f"{psnr_:.{7}f}",
                         "point": total_point,  # 直接使用数值，无需字符串格式化
                     }
-                )
+            if iteration % 10 == 0:
+                progress_bar.set_postfix(info)
+                progress_bar.update(10)
+                logging.info(info)
                 if WANDB:
-                    wandb.log(
-                        {   "iteration":iteration,
-                            "loss": round(ema_loss_for_log, 7),
-                            "admm_loss": round(ema_admm_loss_for_log, 7),
-                            "psnr": round(psnr_.item(), 7),
-                            "point": total_point,  # 直接使用数值，无需字符串格式化
-                        }
-                    )
+                    wandb.log(info)
 
             if iteration == opt.iterations:
                 progress_bar.close()
 
             # Log and save
             timer.pause()
-            training_report(
-                tb_writer,
-                iteration,
-                Ll1,
-                loss,
-                l1_loss,
-                iter_start.elapsed_time(iter_end),
-                testing_iterations,
-                scene,
-                render,
-                [pipe, background],
-                stage,
-                scene.dataset_type,
-            )
+            training_report(tb_writer,iteration,Ll1,loss,l1_loss,iter_start.elapsed_time(iter_end),testing_iterations,scene,render,[pipe, background],stage,scene.dataset_type,)
             if iteration in saving_iterations:
                 print("\n[ITER {}] Saving Gaussians".format(iteration))
                 scene.save(iteration, stage)
 
             if dataset.render_process:
-                if (
-                    (iteration < 1000 and iteration % 10 == 9)
-                    or (iteration < 3000 and iteration % 50 == 49)
-                    or (iteration < 60000 and iteration % 100 == 99)
-                ):
+                if ((iteration < 1000 and iteration % 10 == 9)or (iteration < 3000 and iteration % 50 == 49)or (iteration < 60000 and iteration % 100 == 99)):
                     # breakpoint()
-                    render_training_image(
-                        scene,
-                        gaussians,
-                        [test_cams[iteration % len(test_cams)]],
-                        render,
-                        pipe,
-                        background,
-                        stage + "test",
-                        iteration,
-                        timer.get_elapsed_time(),
-                        scene.dataset_type,
-                    )
-                    render_training_image(
-                        scene,
-                        gaussians,
-                        [train_cams[iteration % len(train_cams)]],
-                        render,
-                        pipe,
-                        background,
-                        stage + "train",
-                        iteration,
-                        timer.get_elapsed_time(),
-                        scene.dataset_type,
-                    )
+                    render_training_image(scene,gaussians,[test_cams[iteration % len(test_cams)]],render,pipe,background,stage + "test",iteration,timer.get_elapsed_time(),scene.dataset_type,)
+                    render_training_image(scene,gaussians,[train_cams[iteration % len(train_cams)]],render,pipe,background,stage + "train",iteration,timer.get_elapsed_time(),scene.dataset_type,)
                     # render_training_image(scene, gaussians, train_cams, render, pipe, background, stage+"train", iteration,timer.get_elapsed_time(),scene.dataset_type)
 
                 # total_images.append(to8b(temp_image).transpose(1,2,0))
@@ -408,29 +380,11 @@ def scene_reconstruction(
                         opt.densify_grad_threshold_fine_init - opt.densify_grad_threshold_after
                     ) / (opt.densify_until_iter)
 
-                if (
-                    iteration > opt.densify_from_iter
-                    and iteration % opt.densification_interval == 0
-                    and gaussians.get_xyz.shape[0] < 360000
-                ):
+                if (iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0 and gaussians.get_xyz.shape[0] < 360000):
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.densify(
-                        densify_threshold,
-                        abs_threshold,
-                        scene.cameras_extent,
-                        size_threshold,
-                        5,
-                        5,
-                        scene.model_path,
-                        iteration,
-                        stage,
-                    )
+                    gaussians.densify(densify_threshold,abs_threshold,scene.cameras_extent,size_threshold,5,5,scene.model_path,iteration,stage,)
 
-                if (
-                    iteration > opt.pruning_from_iter
-                    and iteration % opt.pruning_interval == 0
-                    and gaussians.get_xyz.shape[0] > 200000
-                ):
+                if (iteration > opt.pruning_from_iter and iteration % opt.pruning_interval == 0 and gaussians.get_xyz.shape[0] > 200000):
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
                     gaussians.prune(densify_threshold, abs_threshold, scene.cameras_extent, size_threshold)
 
@@ -443,19 +397,28 @@ def scene_reconstruction(
                 gaussians.prune_points(mask)
 
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
-                bw = BW(gaussians, opt, args, scene, pipe, background)
+                if args.add_extra_scores:
+                    bw = BW(gaussians, opt, args, scene, pipe, background)
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
                 admm.update(opt, update_u=False)
-            elif (
-                iteration % opt.admm_interval == 0
-                and opt.admm == True
-                and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)
-            ):  
-                admm.update(opt)
-                
+
+            elif (iteration % opt.admm_interval == 0 and opt.admm == True and (iteration > opt.admm_start_iter1 and iteration <= opt.admm_stop_iter1)):
+                if bw is not None:
+                    w = bw.get_curr_acc_w()
+                    s = bw.get_actual_acc_s()
+                    s_ = norm_zero_tanh(1-s)
+                    scores = w+s_
+                    admm.update_w(opt, scores.cuda())
+                else:
+                    admm.update(opt)
+
             if args.prune_points and iteration == args.simp_iteration2:
-                mask_2 = get_pruning_iter2_mask(gaussians, opt)
+                if bw is not None:
+                    mask_2 = get_pruning_iter2_mask_2(gaussians, opt, scores.cuda())
+                else:
+                    mask_2 = get_pruning_iter2_mask(gaussians, opt)
                 gaussians.prune_points(mask_2)
+                quantize_manager.prune(mask_2)
 
             # Optimizer step
             if iteration < opt.iterations:
@@ -463,23 +426,27 @@ def scene_reconstruction(
                 gaussians.optimizer.zero_grad(set_to_none=True)
 
 
-    torch.save(
-        (gaussians.capture(), iteration),
-        scene.model_path + "/chkpnt" + f"_{stage}_admm_" + str(iteration) + ".pth",
-    )
+   # Saving model withoud quant
+    save_path = scene.model_path + "/chkpnt" + f"_{stage}_quant_" + str(iteration) + ".pth"
+    print(f"\n[ITER {iteration}] Saving Checkpoint in {save_path}")
+    torch.save((gaussians.capture(), iteration), save_path,)
+    
+    if args.quant:
+        # Save gaussians
+        all_attributes = {'xyz': 'xyz', 'dc': 'f_dc', 'sh': 'f_rest', 'opacities': 'opacities','scale': 'scale', 'rot': 'rotation'}
+        save_attributes = [val for (key, val) in all_attributes.items() if key not in quantized_params]
+        scene.save_quant(iteration, save_q=quantized_params, save_attributes=save_attributes)
 
-def training(
-    dataset,
-    hyper,
-    opt: OptimizationParams,
-    pipe,
-    testing_iterations,
-    saving_iterations,
-    checkpoint_iterations,
-    checkpoint,
-    debug_from,
-    expname,
-):
+        # Save indices and codebook for quantized parameters
+        kmeans_dict = {'rot': kmeans_rot_q, 'scale': kmeans_sc_q, 'sh': kmeans_sh_q, 'dc': kmeans_dc_q}
+        kmeans_list = []
+        for param in quantized_params:
+            kmeans_list.append(kmeans_dict[param])
+        out_dir = join(scene.model_path, 'point_cloud/iteration_%d' % iteration)
+        save_kmeans(kmeans_list, quantized_params, out_dir)
+
+
+def training(dataset,hyper,opt: OptimizationParams,pipe,testing_iterations,saving_iterations,checkpoint_iterations,checkpoint,debug_from,expname,):
     # first_iter = 0
     tb_writer = prepare_output_and_logger(expname)
     gaussians = GaussianModel(dataset.sh_degree, hyper)
@@ -491,53 +458,19 @@ def training(
     hp_path = os.path.join(args.model_path, "opt_params.pth")
     os.makedirs(os.path.dirname(args.model_path), exist_ok=True)
     torch.save(opt, hp_path)
-    scene_reconstruction(
-        dataset,
-        opt,
-        hyper,
-        pipe,
-        testing_iterations,
-        saving_iterations,
-        checkpoint_iterations,
-        checkpoint,
-        debug_from,
-        gaussians,
-        scene,
-        "coarse",
-        tb_writer,
-        opt.coarse_iterations,
-        timer,
-    )
-    scene_reconstruction(
-        dataset,
-        opt,
-        hyper,
-        pipe,
-        testing_iterations,
-        saving_iterations,
-        checkpoint_iterations,
-        checkpoint,
-        debug_from,
-        gaussians,
-        scene,
-        "fine",
-        tb_writer,
-        opt.iterations,
-        timer,
-    )
+    scene_reconstruction(dataset,opt,hyper,pipe,testing_iterations,saving_iterations,checkpoint_iterations,checkpoint,debug_from,gaussians,scene,"coarse",tb_writer,opt.coarse_iterations,timer,)
+    scene_reconstruction(dataset,opt,hyper,pipe,testing_iterations,saving_iterations,checkpoint_iterations,checkpoint,debug_from,gaussians,scene,"fine",tb_writer,opt.iterations,timer,)
 
 
 def prepare_output_and_logger(expname):
     if not args.model_path:
         unique_str = expname
-
         args.model_path = os.path.join("./output/", unique_str)
     # Set up output folder
     print("Output folder: {}".format(args.model_path))
     os.makedirs(args.model_path, exist_ok=True)
     with open(os.path.join(args.model_path, "cfg_args"), "w") as cfg_log_f:
         cfg_log_f.write(str(Namespace(**vars(args))))
-
     # Create Tensorboard writer
     tb_writer = None
     if TENSORBOARD_FOUND:
@@ -547,20 +480,7 @@ def prepare_output_and_logger(expname):
     return tb_writer
 
 
-def training_report(
-    tb_writer,
-    iteration,
-    Ll1,
-    loss,
-    l1_loss,
-    elapsed,
-    testing_iterations,
-    scene: Scene,
-    renderFunc,
-    renderArgs,
-    stage,
-    dataset_type,
-):
+def training_report(tb_writer,iteration,Ll1,loss,l1_loss,elapsed,testing_iterations,scene: Scene,renderFunc,renderArgs,stage,dataset_type,):
     if tb_writer:
         tb_writer.add_scalar(f"{stage}/train_loss_patches/l1_loss", Ll1.item(), iteration)
         tb_writer.add_scalar(f"{stage}/train_loss_patchestotal_loss", loss.item(), iteration)
@@ -698,7 +618,7 @@ if __name__ == "__main__":
     if WANDB:
         wandb.login()
         run = wandb.init(
-            project="admm",
+            project="quant",
             name=f"idx_{idx}_{current_time}",  # 让不同脚本的数据归为一组
             job_type="training",
             config=vars(op.extract(args))

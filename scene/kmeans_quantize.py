@@ -106,27 +106,32 @@ class Quantize_kMeans():
         
         Args:
             feat (torch.Tensor): Feature tensor of shape (N, vec_dim).
-            nn_index (torch.Tensor): Cluster assignments of shape (N,).
-            num_clusters (int): Number of clusters.
             
         Returns:
             torch.Tensor: Cluster centers of shape (num_clusters, vec_dim).
         """
-        # Initialize tensor for cluster centers
         feat = feat.detach().reshape(-1, self.vec_dim)
-        cluster_sums = torch.zeros((self.num_clusters, self.vec_dim), device="cuda")
-        cluster_sizes = torch.zeros(self.num_clusters, device="cuda")
+        device = feat.device  # 👈 自动获取 device，统一用它
 
-        # Sum features into their respective clusters
-        cluster_sums = torch.scatter_add(cluster_sums, 0, self.nn_index.unsqueeze(1).expand(-1, self.vec_dim), feat)
+        # 确保 nn_index 也搬到相同的 device 上
+        nn_index = self.nn_index.to(device).long()
 
-        # Count the number of points in each cluster
-        cluster_sizes = torch.bincount(self.nn_index, minlength=self.num_clusters).float()
+        # 初始化
+        cluster_sums = torch.zeros((self.num_clusters, self.vec_dim), device=device)
+        cluster_sizes = torch.zeros(self.num_clusters, device=device)
 
-        # Avoid division by zero and calculate the mean
+        # 特征加到对应 cluster 上
+        index = nn_index.unsqueeze(1).expand(-1, self.vec_dim)
+        cluster_sums = torch.scatter_add(cluster_sums, 0, index, feat)
+
+        # 每个 cluster 的元素数量
+        cluster_sizes = torch.bincount(nn_index, minlength=self.num_clusters).float()
+
+        # 防止除以 0
         cluster_centers = cluster_sums / (cluster_sizes.unsqueeze(1) + 1e-6)
-        
+
         return cluster_centers
+
         
 
     # Update centers during cluster assignment using mask matrix multiplication
@@ -205,6 +210,10 @@ class Quantize_kMeans():
             return feat / (abs(feat).max(dim=0)[0] + 1e-8)
         else:
             return feat / (scale + 1e-8)
+
+    def prune(self, valid_indices, feat):
+        self.nn_index = self.nn_index[valid_indices]
+        self.centers = self.update_centers(feat)
 
     def forward_pos(self, gaussian, assign=False, update_centers_flag=False):
         if self.vec_dim == 0:

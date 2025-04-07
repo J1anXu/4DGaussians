@@ -178,7 +178,8 @@ class OptimizationParams(ParamGroup):
         self.add_extra_scores = True,
 
         self.quant = False
-        self.kmeans_st_iter = 25000
+        self.quant_start_iter = 19000
+        self.quant_stop_iter = 22000
         self.kmeans_ncls = 4096
         self.kmeans_ncls_sh = 512
         self.kmeans_ncls_dc = 4096

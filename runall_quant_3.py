@@ -22,10 +22,10 @@ command1 = (
 )
 
 command2 = (
-    f"python render{idx}.py "
+    f"python render_parallel.py "
     f'--model_path "output/admm_quant_{idx}/{scene}" '
     "--skip_train --skip_video "
-    f"--configs arguments/dynerf/{scene}.py "
+    f"--configs arguments/dynerf/{scene}_admm_ckpt_quant_{idx}.py "
 )
 
 command3 = (

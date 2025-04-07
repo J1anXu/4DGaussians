@@ -25,7 +25,7 @@ from gaussian_renderer import render
 import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser
-from arguments import ModelParams, PipelineParams, get_combined_args, ModelHiddenParams
+from arguments import ModelParams, PipelineParams, get_combined_args, ModelHiddenParams, OptimizationParams
 from gaussian_renderer import GaussianModel
 import time
 from PIL import Image, ImageDraw
@@ -33,6 +33,7 @@ from torchvision import transforms
 from torch.utils.data import Subset
 import concurrent.futures
 import torch.multiprocessing as mp
+
 DRAW = True  # 是否画出高斯中心
 
 to8b = lambda x: (255 * np.clip(x.cpu().numpy(), 0, 1)).astype(np.uint8)
@@ -90,7 +91,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     print("Point count:", gaussians._xyz.shape[0])
     count = 0
 
-    for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
+    for idx, view in enumerate(tqdm(views, desc="Rendering:")):
         rendering_res = render(view, gaussians, pipeline, background, cam_type=cam_type)
         rendering = rendering_res["render"]
 
@@ -132,14 +133,14 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     # return render_images
 
 
-def render_worker(gpu_id, dataset, hyperparam, iteration, pipeline, views, mode, result_dict):
+def render_worker(gpu_id, dataset, hyperparam, iteration, pipeline, views, mode, result_dict, quant):
     """多进程渲染 Worker 进程"""
     torch.cuda.set_device(gpu_id)
     device = torch.device(f"cuda:{gpu_id}")
 
     with torch.no_grad():
-        gaussians = GaussianModel(dataset.sh_degree, hyperparam)
-        scene = Scene(dataset, gaussians, load_iteration=iteration, shuffle=False)
+        gaussians = GaussianModel(dataset.sh_degree, hyperparam) # 这个gs是空的,并没有load数据,数据在scene里load
+        scene = Scene(dataset, gaussians, load_iteration=iteration, shuffle=False, quant = quant)
         cam_type = scene.dataset_type
         bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
         background = torch.tensor(bg_color, dtype=torch.float32, device=device)
@@ -160,20 +161,19 @@ def ensure_directories_exist(*paths):
         os.makedirs(path, exist_ok=True)
 
 
-def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, skip_test, skip_video):
+def parallel_render_sets(lp, hp, pp, op, iteration):
     num_gpus = torch.cuda.device_count()
     print(f"Detected {num_gpus} GPUs.")
 
     with torch.no_grad():
-        gaussians = GaussianModel(dataset.sh_degree, hyperparam)
-        scene = Scene(dataset, gaussians, load_iteration=iteration, shuffle=False)
+        gaussians = GaussianModel(lp.sh_degree, hp)
+        scene = Scene(lp, gaussians, load_iteration=iteration, shuffle=False, quant = op.quant)
 
     manager = mp.Manager()
     result_dict = manager.dict()  # 共享字典存储 GPU 结果
     processes = []
 
     def split_and_render(mode, views):
-        """按 GPU 划分 views，并启动多进程渲染"""
         if len(views) == 0:
             return
 
@@ -184,7 +184,7 @@ def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, s
         for gpu_id in range(num_gpus):
             p = mp.Process(
                 target=render_worker,
-                args=(gpu_id, dataset, hyperparam, scene.loaded_iter, pipeline, split_views[gpu_id], mode, result_dict),
+                args=(gpu_id, lp, hp, scene.loaded_iter, pp, split_views[gpu_id], mode, result_dict, op.quant),
             )
             p.start()
             processes.append(p)
@@ -192,8 +192,7 @@ def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, s
         for p in processes:
             p.join()
 
-        # **汇总所有 GPU 结果并按顺序写入**
-        sorted_gpu_ids = sorted(result_dict.keys())  # 确保按 GPU ID 顺序
+        sorted_gpu_ids = sorted(result_dict.keys()) 
         final_renders, final_gts, final_draws = [], [], []
 
         for gpu_id in sorted_gpu_ids:
@@ -201,9 +200,9 @@ def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, s
             final_gts.extend(result_dict[gpu_id]["gts"])
             final_draws.extend(result_dict[gpu_id]["draws"])
 
-        render_path = os.path.join(dataset.model_path, mode, f"ours_{scene.loaded_iter}", "renders")
-        gts_path = os.path.join(dataset.model_path, mode, f"ours_{scene.loaded_iter}", "gt")
-        draw_path = os.path.join(dataset.model_path, mode, f"ours_{scene.loaded_iter}", "draw")
+        render_path = os.path.join(lp.model_path, mode, f"ours_{scene.loaded_iter}", "renders")
+        gts_path = os.path.join(lp.model_path, mode, f"ours_{scene.loaded_iter}", "gt")
+        draw_path = os.path.join(lp.model_path, mode, f"ours_{scene.loaded_iter}", "draw")
         ensure_directories_exist(render_path, gts_path, draw_path)
 
         print(f"Writing images to {gts_path}... size = {len(final_gts)}")
@@ -222,9 +221,8 @@ def parallel_render_sets(dataset, hyperparam, iteration, pipeline, skip_train, s
     #     print("Starting train set rendering...")
     #     split_and_render("train", scene.getTrainCameras())
 
-    if not skip_test:
-        print("Starting test set rendering...")
-        split_and_render("test", scene.getTestCameras())
+
+    split_and_render("test", scene.getTestCameras())
 
     # if not skip_video:
     #     print("Starting video rendering...")
@@ -237,9 +235,12 @@ if __name__ == "__main__":
     mp.set_start_method("spawn", force=True)
     # Set up command line argument parser
     parser = ArgumentParser(description="Testing script parameters")
-    model = ModelParams(parser, sentinel=True)
-    pipeline = PipelineParams(parser)
-    hyperparam = ModelHiddenParams(parser)
+
+    lp = ModelParams(parser, sentinel=True)
+    pp = PipelineParams(parser)
+    hp = ModelHiddenParams(parser)
+    op = OptimizationParams(parser)
+
     parser.add_argument("--iteration", default=-1, type=int)
     parser.add_argument("--skip_train", action="store_true")
     parser.add_argument("--skip_test", action="store_true")
@@ -258,11 +259,9 @@ if __name__ == "__main__":
     safe_state(args.quiet)
 
     parallel_render_sets(
-        model.extract(args),
-        hyperparam.extract(args),
-        args.iteration,
-        pipeline.extract(args),
-        args.skip_train,
-        args.skip_test,
-        args.skip_video,
+        lp.extract(args),
+        hp.extract(args),
+        pp.extract(args),
+        op.extract(args),
+        args.iteration
     )

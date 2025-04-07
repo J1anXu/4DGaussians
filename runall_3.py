@@ -7,7 +7,7 @@ timezone = pytz.timezone("America/Chicago")
 current_time = datetime.now(timezone).strftime("%Y-%m-%d_%H-%M-%S")
 
 idx = 3
-scene = "cook_spinach"
+scene = "cut_roasted_beef"
 # cook_spinach
 # cut_roasted_beef
 # flame_salmon_1
@@ -22,7 +22,7 @@ command1 = (
 )
 
 command2 = (
-    f"python render{idx}.py "
+    f"python render_parallel.py "
     f'--model_path "output/admm_{idx}/{scene}" '
     "--skip_train --skip_video "
     f"--configs arguments/dynerf/{scene}.py "

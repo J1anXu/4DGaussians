@@ -33,6 +33,7 @@ class Scene:
         shuffle=True,
         resolution_scales=[1.0],
         load_coarse=False,
+        quant=False
     ):
         """b
         :param path: Path to colmap scene main folder.
@@ -95,16 +96,12 @@ class Scene:
             )
         self.gaussians._deformation.deformation_net.set_aabb(xyz_max, xyz_min)
         if self.loaded_iter:
-            self.gaussians.load_ply(
-                os.path.join(self.model_path, "point_cloud", "iteration_" + str(self.loaded_iter), "point_cloud.ply")
-            )
-            self.gaussians.load_model(
-                os.path.join(
-                    self.model_path,
-                    "point_cloud",
-                    "iteration_" + str(self.loaded_iter),
-                )
-            )
+            # 装载高斯数据
+            point_cloud_path = os.path.join(self.model_path, "point_cloud", "iteration_" + str(self.loaded_iter), "point_cloud.ply")
+            self.gaussians.load_ply(point_cloud_path, quant)
+            # 装载变形场
+            model_path = os.path.join(self.model_path,"point_cloud","iteration_" + str(self.loaded_iter),)
+            self.gaussians.load_model(model_path)
         else:
             self.gaussians.create_from_pcd(scene_info.point_cloud, self.cameras_extent, self.maxtime)
 
@@ -117,6 +114,11 @@ class Scene:
 
         self.gaussians.save_ply(os.path.join(point_cloud_path, "point_cloud.ply"))
         self.gaussians.save_deformation(point_cloud_path)
+
+    def save_quant(self, iteration, save_q=[], save_attributes=None):
+        point_cloud_path = os.path.join(self.model_path, "point_cloud/iteration_{}".format(iteration))
+        self.gaussians.save_quant_ply(os.path.join(point_cloud_path, "point_cloud.ply"), save_q, save_attributes)
+
 
     def getTrainCameras(self, scale=1.0):
         return self.train_camera

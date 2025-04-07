@@ -63,7 +63,7 @@ class Deformation(nn.Module):
         self.rotations_deform = nn.Sequential(nn.ReLU(),nn.Linear(self.W,self.W),nn.ReLU(),nn.Linear(self.W, 4))
         self.opacity_deform = nn.Sequential(nn.ReLU(),nn.Linear(self.W,self.W),nn.ReLU(),nn.Linear(self.W, 1))
         self.shs_deform = nn.Sequential(nn.ReLU(),nn.Linear(self.W,self.W),nn.ReLU(),nn.Linear(self.W, 16*3))
-
+    
     def query_time(self, rays_pts_emb, scales_emb, rotations_emb, time_feature, time_emb):
 
         if self.no_grid:
@@ -82,8 +82,7 @@ class Deformation(nn.Module):
         try:
             hidden = self.feature_out(hidden)
         except Exception as e:
-            print("❌ Error in self.feature_out(hidden):", e)
-            # 打印 hidden 的维度、数值范围、是否含 NaN
+            print("Error in self.feature_out(hidden):", e)
             print(">> hidden.shape:", hidden.shape)
             print(">> hidden dtype:", hidden.dtype)
             print(">> hidden min/max:", hidden.min().item(), hidden.max().item())
