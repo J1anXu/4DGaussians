@@ -28,5 +28,5 @@ folder = "/data2/jian/4DGS_ADMM/output/admm_3/cut_roasted_beef/point_cloud/itera
 print_all_file_sizes(folder)
 
 
-folder = "/data2/jian/4DGS_ADMM/output/admm_quant_3/cut_roasted_beef/point_cloud/iteration_29000"
+folder = "/data2/jian/4DGS_ADMM/output/admm_quant_3/cut_roasted_beef/point_cloud/iteration_27000"
 print_all_file_sizes(folder)

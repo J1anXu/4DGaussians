@@ -445,23 +445,24 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
                 gaussians.optimizer.zero_grad(set_to_none=True)
 
 
-   # Saving model withoud quant
+    # Saving model withoud quant
     save_path = scene.model_path + "/chkpnt" + f"_{stage}_quant_" + str(iteration) + ".pth"
     print(f"\n[ITER {iteration}] Saving Checkpoint in {save_path}")
     torch.save((gaussians.capture(), iteration), save_path,)
-    
-    # Save gaussians
-    all_attributes = {'xyz': 'xyz', 'dc': 'f_dc', 'sh': 'f_rest', 'opacities': 'opacities','scale': 'scale', 'rot': 'rotation'}
-    save_attributes = [val for (key, val) in all_attributes.items() if key not in quantized_params]
-    scene.save_quant(iteration, save_q=quantized_params, save_attributes=save_attributes)
 
-    # Save indices and codebook for quantized parameters
-    kmeans_dict = {'rot': kmeans_rot_q, 'scale': kmeans_sc_q, 'sh': kmeans_sh_q, 'dc': kmeans_dc_q}
-    kmeans_list = []
-    for param in quantized_params:
-        kmeans_list.append(kmeans_dict[param])
-    out_dir = join(scene.model_path, 'point_cloud/iteration_%d' % iteration)
-    save_kmeans(kmeans_list, quantized_params, out_dir)
+    if args.quant:    
+        # Save gaussians
+        all_attributes = {'xyz': 'xyz', 'dc': 'f_dc', 'sh': 'f_rest', 'opacities': 'opacities','scale': 'scale', 'rot': 'rotation'}
+        save_attributes = [val for (key, val) in all_attributes.items() if key not in quantized_params]
+        scene.save_quant(iteration, save_q=quantized_params, save_attributes=save_attributes)
+
+        # Save indices and codebook for quantized parameters
+        kmeans_dict = {'rot': kmeans_rot_q, 'scale': kmeans_sc_q, 'sh': kmeans_sh_q, 'dc': kmeans_dc_q}
+        kmeans_list = []
+        for param in quantized_params:
+            kmeans_list.append(kmeans_dict[param])
+        out_dir = join(scene.model_path, 'point_cloud/iteration_%d' % iteration)
+        save_kmeans(kmeans_list, quantized_params, out_dir)
 
 
 def training(dataset,hyper,opt: OptimizationParams,pipe,testing_iterations,saving_iterations,checkpoint_iterations,checkpoint,debug_from,expname,):
