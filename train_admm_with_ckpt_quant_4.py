@@ -76,24 +76,24 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
     n_cls_dc = args.kmeans_ncls_dc
     n_it = args.kmeans_iters
     freq_cls_assn = args.kmeans_freq
-
-    quantize_manager = QuantizeKMeansManager(gaussians, quantized_params, n_cls_dc, n_cls_sh, n_cls, n_it)
-
+    kmeans_rot_q = None  # or some default value
+    kmeans_dc_q = None
+    kmeans_sh_q = None
+    kmeans_sc_q = None
     if 'pos' in quantized_params:
-        kmeans_pos_q = quantize_manager.get_quantizer('pos').prune()
+        kmeans_pos_q = Quantize_kMeans(num_clusters=n_cls_dc, num_iters=n_it)
     if 'dc' in quantized_params:
-        kmeans_dc_q = quantize_manager.get_quantizer('dc')
+        kmeans_dc_q = Quantize_kMeans(num_clusters=n_cls_dc, num_iters=n_it)
     if 'sh' in quantized_params:
-        kmeans_sh_q = quantize_manager.get_quantizer('sh')
+        kmeans_sh_q = Quantize_kMeans(num_clusters=n_cls_sh, num_iters=n_it)
     if 'scale' in quantized_params:
-        kmeans_sc_q = quantize_manager.get_quantizer('scale')
+        kmeans_sc_q = Quantize_kMeans(num_clusters=n_cls, num_iters=n_it)
     if 'rot' in quantized_params:
-        kmeans_rot_q = quantize_manager.get_quantizer('rot')
+        kmeans_rot_q = Quantize_kMeans(num_clusters=n_cls, num_iters=n_it)
     if 'scale_rot' in quantized_params:
-        kmeans_scrot_q = quantize_manager.get_quantizer('scale_rot')
+        kmeans_scrot_q = Quantize_kMeans(num_clusters=n_cls, num_iters=n_it)
     if 'sh_dc' in quantized_params:
-        kmeans_shdc_q = quantize_manager.get_quantizer('sh_dc')
-
+        kmeans_shdc_q = Quantize_kMeans(num_clusters=n_cls_sh, num_iters=n_it)
 
     viewpoint_stack = None
     ema_loss_for_log = 0.0
@@ -213,7 +213,20 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
                 assign = False
                 update_centers_flag = True
 
-            quantize_manager.forward_all(gaussians, quantized_params, assign, update_centers_flag)
+            if 'pos' in quantized_params:
+                kmeans_pos_q.forward_pos(gaussians, assign=assign,update_centers_flag=update_centers_flag)
+            if 'dc' in quantized_params:
+                kmeans_dc_q.forward_dc(gaussians, assign=assign,update_centers_flag=update_centers_flag)
+            if 'sh' in quantized_params:
+                kmeans_sh_q.forward_frest(gaussians, assign=assign,update_centers_flag=update_centers_flag)
+            if 'scale' in quantized_params:
+                kmeans_sc_q.forward_scale(gaussians, assign=assign,update_centers_flag=update_centers_flag)
+            if 'rot' in quantized_params:
+                kmeans_rot_q.forward_rot(gaussians, assign=assign,update_centers_flag=update_centers_flag)
+            if 'scale_rot' in quantized_params:
+                kmeans_scrot_q.forward_scale_rot(gaussians, assign=assign,update_centers_flag=update_centers_flag)
+            if 'sh_dc' in quantized_params:
+                kmeans_shdc_q.forward_dcfrest(gaussians, assign=assign,update_centers_flag=update_centers_flag)
 
 
         # Render
@@ -284,23 +297,31 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
             if iteration % freq_cls_assn == 1:
                 if 'pos' in quantized_params:
                     Lcluster_pos=kmeans_pos_q.get_loss(gaussians._xyz)
+                    #Lcluster_pos=Lcluster_pos/torch.std(Lcluster_pos.detach())
+                    print('Lcluster_pos: ', Lcluster_pos)
                 if 'dc' in quantized_params:
                     Lcluster_dc=kmeans_dc_q.get_loss(gaussians._features_dc)/10
+                    #Lcluster_dc=Lcluster_dc/torch.std(Lcluster_dc.detach())
+                    print('Lcluster_dc: ', Lcluster_dc)
             if iteration % freq_cls_assn == 1:
                 if 'sh' in quantized_params:
                     Lcluster_sh=kmeans_sh_q.get_loss(gaussians._features_rest)/10
+                    #Lcluster_sh=Lcluster_sh/torch.std(Lcluster_sh.detach())
+                    print('Lcluster_sh: ', Lcluster_sh)
             if iteration % freq_cls_assn == 1:
                 if 'scale' in quantized_params:
                     Lcluster_scale=kmeans_sc_q.get_loss(gaussians._scaling)
                     Lcluster_scale=Lcluster_scale/10
+                    print('Lcluster_scale: ', Lcluster_scale)
             if iteration % freq_cls_assn == 1:
                 if 'rot' in quantized_params:
                     Lcluster_rot=kmeans_rot_q.get_loss(gaussians._rotation)
+                    #Lcluster_rot=Lcluster_rot/torch.std(Lcluster_rot.detach())
+                    print('Lcluster_rot: ', Lcluster_rot)
                 #if 'scale_rot' in quantized_params:
                     #Lcluster+=kmeans_scrot_q.get_loss(gaussians._scale_rot)
                 #if 'sh_dc' in quantized_params:
                     #Lcluster+=kmeans_shdc_q.get_loss(gaussians._f_dc_frest)
-
         quant_coff = 0.1 # 0.00005
         quant_loss = quant_coff * (Lcluster_pos + Lcluster_dc + Lcluster_sh + Lcluster_scale + Lcluster_rot)   
         
@@ -326,10 +347,10 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
             total_point = gaussians._xyz.shape[0]
             info = {
                         "iteration":iteration,
-                        "Loss": f"{ema_loss_for_log:.{7}f}",
-                        "admm_loss": f"{ema_admm_loss_for_log:.{7}f}",
-                        "quant_loss": f"{ema_quant_loss_for_log:.{7}f}",
-                        "psnr": f"{psnr_:.{7}f}",
+                        "Loss": f"{ema_loss_for_log:.{5}f}",
+                        "admm_loss": f"{ema_admm_loss_for_log:.{5}f}",
+                        "quant_loss": f"{ema_quant_loss_for_log:.{5}f}",
+                        "psnr": f"{psnr_:.{3}f}",
                         "point": total_point,  # 直接使用数值，无需字符串格式化
                     }
             if iteration % 10 == 0:
@@ -411,14 +432,12 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
                     admm.update_w(opt, scores.cuda())
                 else:
                     admm.update(opt)
-
             if args.prune_points and iteration == args.simp_iteration2:
                 if bw is not None:
                     mask_2 = get_pruning_iter2_mask_2(gaussians, opt, scores.cuda())
                 else:
                     mask_2 = get_pruning_iter2_mask(gaussians, opt)
                 gaussians.prune_points(mask_2)
-                quantize_manager.prune(mask_2)
 
             # Optimizer step
             if iteration < opt.iterations:
@@ -431,19 +450,18 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
     print(f"\n[ITER {iteration}] Saving Checkpoint in {save_path}")
     torch.save((gaussians.capture(), iteration), save_path,)
     
-    if args.quant:
-        # Save gaussians
-        all_attributes = {'xyz': 'xyz', 'dc': 'f_dc', 'sh': 'f_rest', 'opacities': 'opacities','scale': 'scale', 'rot': 'rotation'}
-        save_attributes = [val for (key, val) in all_attributes.items() if key not in quantized_params]
-        scene.save_quant(iteration, save_q=quantized_params, save_attributes=save_attributes)
+    # Save gaussians
+    all_attributes = {'xyz': 'xyz', 'dc': 'f_dc', 'sh': 'f_rest', 'opacities': 'opacities','scale': 'scale', 'rot': 'rotation'}
+    save_attributes = [val for (key, val) in all_attributes.items() if key not in quantized_params]
+    scene.save_quant(iteration, save_q=quantized_params, save_attributes=save_attributes)
 
-        # Save indices and codebook for quantized parameters
-        kmeans_dict = {'rot': kmeans_rot_q, 'scale': kmeans_sc_q, 'sh': kmeans_sh_q, 'dc': kmeans_dc_q}
-        kmeans_list = []
-        for param in quantized_params:
-            kmeans_list.append(kmeans_dict[param])
-        out_dir = join(scene.model_path, 'point_cloud/iteration_%d' % iteration)
-        save_kmeans(kmeans_list, quantized_params, out_dir)
+    # Save indices and codebook for quantized parameters
+    kmeans_dict = {'rot': kmeans_rot_q, 'scale': kmeans_sc_q, 'sh': kmeans_sh_q, 'dc': kmeans_dc_q}
+    kmeans_list = []
+    for param in quantized_params:
+        kmeans_list.append(kmeans_dict[param])
+    out_dir = join(scene.model_path, 'point_cloud/iteration_%d' % iteration)
+    save_kmeans(kmeans_list, quantized_params, out_dir)
 
 
 def training(dataset,hyper,opt: OptimizationParams,pipe,testing_iterations,saving_iterations,checkpoint_iterations,checkpoint,debug_from,expname,):

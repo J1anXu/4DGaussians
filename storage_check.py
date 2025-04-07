@@ -2,10 +2,9 @@ import os
 
 def print_all_file_sizes(folder_path):
     if not os.path.isdir(folder_path):
-        print("路径不是一个有效的文件夹")
+        print(f"{folder_path} 不是一个有效的文件夹")
         return
 
-    print(f"📁 文件夹: {folder_path}\n")
     total_size = 0
     for root, dirs, files in os.walk(folder_path):
         for filename in files:
@@ -16,8 +15,7 @@ def print_all_file_sizes(folder_path):
                 print(f"{filepath}  ——  {size / 1024:.2f} KB")
             except Exception as e:
                 print(f"❌ 无法读取 {filepath}: {e}")
-
-    print(f"\n📦 总大小: {total_size / (1024**2):.2f} MB")
+    print(f"📁 文件夹: {folder_path} 📦 总大小: {total_size / (1024**2):.2f} MB \n")
 
 # 示例使用
 

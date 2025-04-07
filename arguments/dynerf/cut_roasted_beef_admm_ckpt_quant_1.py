@@ -6,13 +6,13 @@ OptimizationParams = dict(
     densify_from_iter=0,  # 动态调整开始
     densify_until_iter=0,  # 动态调整结束
 
-    simp_iteration1=14001,  # admm之前的硬阈值删点执行
+    simp_iteration1=14001,  # 第一次删点 (admm之前的硬阈值删点)
     admm_start_iter1=16000,  # admm迭代开始
     admm_stop_iter1=25000,  # admm迭代结束
-    simp_iteration2=25000,  # admm软阈值删点
-    quant_start_iter = 25000, # quant迭代开始
-    quant_stop_iter = 27000, # quant迭代结束
-    iterations=27000,  # 整体迭代次数
+    simp_iteration2=25000,  # 第二次删点 (admm软阈值删点)
+    quant_start_iter = 27500, # quant迭代开始
+    quant_stop_iter = 29000, # quant迭代结束
+    iterations=29000,  # 整体迭代次数
 
     admm=True, #是否admm迭代
     admm_interval=50,
@@ -26,7 +26,7 @@ OptimizationParams = dict(
     related_gs_num=1,
     simp_iteration1_score_type = 0,
     score_function = 36,
-    add_extra_scores = False,
+    add_extra_scores = True,
 
     quant = True,
     kmeans_ncls = 4096,

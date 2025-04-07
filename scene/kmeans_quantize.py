@@ -212,8 +212,9 @@ class Quantize_kMeans():
             return feat / (scale + 1e-8)
 
     def prune(self, valid_indices, feat):
+        valid_indices = valid_indices.to(self.nn_index.device)
         self.nn_index = self.nn_index[valid_indices]
-        self.centers = self.update_centers(feat)
+
 
     def forward_pos(self, gaussian, assign=False, update_centers_flag=False):
         if self.vec_dim == 0:

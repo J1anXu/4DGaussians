@@ -347,10 +347,10 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
             total_point = gaussians._xyz.shape[0]
             info = {
                         "iteration":iteration,
-                        "Loss": f"{ema_loss_for_log:.{7}f}",
-                        "admm_loss": f"{ema_admm_loss_for_log:.{7}f}",
-                        "quant_loss": f"{ema_quant_loss_for_log:.{7}f}",
-                        "psnr": f"{psnr_:.{7}f}",
+                        "Loss": f"{ema_loss_for_log:.{5}f}",
+                        "admm_loss": f"{ema_admm_loss_for_log:.{5}f}",
+                        "quant_loss": f"{ema_quant_loss_for_log:.{5}f}",
+                        "psnr": f"{psnr_:.{3}f}",
                         "point": total_point,  # 直接使用数值，无需字符串格式化
                     }
             if iteration % 10 == 0:
