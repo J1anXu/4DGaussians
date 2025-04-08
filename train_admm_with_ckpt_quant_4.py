@@ -96,10 +96,10 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
         kmeans_shdc_q = Quantize_kMeans(num_clusters=n_cls_sh, num_iters=n_it)
 
     viewpoint_stack = None
-    ema_loss_for_log = 0.0
-    ema_psnr_for_log = 0.0
-    ema_admm_loss_for_log = 0.0
-    ema_quant_loss_for_log = 0.0
+    ema_loss_for_log = torch.tensor(0.0, dtype=torch.float32)
+    ema_psnr_for_log = torch.tensor(0.0, dtype=torch.float32)
+    ema_admm_loss_for_log = torch.tensor(0.0, dtype=torch.float32)
+    ema_quant_loss_for_log = torch.tensor(0.0, dtype=torch.float32)
     final_iter = train_iter
 
     progress_bar = tqdm(range(first_iter, final_iter), desc="Training...")
@@ -204,7 +204,7 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
                 continue
 
 
-        if (args.quant and iteration > opt.quant_start_iter and iteration <= opt.quant_stop_iter):
+        if (args.quant and iteration > opt.quant_start_iter):
             if iteration % freq_cls_assn == 1:
                 assign = True
                 update_centers_flag = True
@@ -287,13 +287,13 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
             loss += opt.lambda_dssim * (1.0 - ssim_loss)
 
 
-        Lcluster_pos=0
-        Lcluster_dc=0
-        Lcluster_sh=0
-        Lcluster_scale=0
-        Lcluster_rot=0
+        Lcluster_pos = torch.tensor(0.0, dtype=torch.float32)
+        Lcluster_dc = torch.tensor(0.0, dtype=torch.float32)
+        Lcluster_sh = torch.tensor(0.0, dtype=torch.float32)
+        Lcluster_scale = torch.tensor(0.0, dtype=torch.float32)
+        Lcluster_rot = torch.tensor(0.0, dtype=torch.float32)
 
-        if (args.quant and iteration > opt.quant_start_iter and iteration <= opt.quant_stop_iter):
+        if (args.quant and iteration > opt.quant_start_iter):
             if iteration % freq_cls_assn == 1:
                 if 'pos' in quantized_params:
                     Lcluster_pos=kmeans_pos_q.get_loss(gaussians._xyz)
@@ -345,24 +345,41 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
 
         with torch.no_grad():
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
-            ema_psnr_for_log = 0.4 * psnr_ + 0.6 * ema_psnr_for_log
+            ema_psnr_for_log = 0.4 * psnr_.item() + 0.6 * ema_psnr_for_log
             ema_admm_loss_for_log = 0.4 * admm_loss.item() + 0.6 * ema_admm_loss_for_log
-            ema_quant_loss_for_log = 0.4 * quant_loss + 0.6 * ema_quant_loss_for_log
+            ema_quant_loss_for_log = 0.4 * quant_loss.item() + 0.6 * ema_quant_loss_for_log
             total_point = gaussians._xyz.shape[0]
-            info = {
-                        "iteration":iteration,
+
+            if iteration % 10 == 0:
+                progress_bar.set_postfix(
+                    {   "iteration":iteration,
                         "Loss": f"{ema_loss_for_log:.{5}f}",
                         "admm_loss": f"{ema_admm_loss_for_log:.{5}f}",
-                        "quant_loss": f"{quant_loss:.{5}f}",
-                        "psnr": f"{psnr_:.{3}f}",
+                        "q_loss": f"{ema_quant_loss_for_log:.{5}f}",
+                        "psnr": f"{psnr_:.{2}f}",
+                        "point": f"{total_point}",
+                    }
+                )
+                progress_bar.update(10)
+                logging.info(
+                    {   "iteration":iteration,
+                        "Loss": f"{ema_loss_for_log:.5f}",
+                        "admm_loss": f"{ema_admm_loss_for_log:.5f}",
+                        "q_loss": f"{ema_quant_loss_for_log:.5f}",
+                        "psnr": f"{psnr_:.2f}",
                         "point": total_point,  # 直接使用数值，无需字符串格式化
                     }
-            if iteration % 10 == 0:
-                progress_bar.set_postfix(info)
-                progress_bar.update(10)
-                logging.info(info)
+                )
                 if WANDB:
-                    wandb.log(info)
+                    wandb.log(
+                        {   "iteration":iteration,
+                            "loss": round(ema_loss_for_log.item(), 7),
+                            "admm_loss": round(ema_admm_loss_for_log.item(), 7),
+                            "q_loss": round(ema_quant_loss_for_log.item(), 7),
+                            "psnr": round(psnr_.item(), 7),
+                            "point": total_point,  # 直接使用数值，无需字符串格式化
+                        }
+                    )
 
             if iteration == opt.iterations:
                 progress_bar.close()
@@ -449,12 +466,12 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
                 gaussians.optimizer.zero_grad(set_to_none=True)
 
 
-    # Saving model withoud quant
+   # Saving model withoud quant
     save_path = scene.model_path + "/chkpnt" + f"_{stage}_quant_" + str(iteration) + ".pth"
     print(f"\n[ITER {iteration}] Saving Checkpoint in {save_path}")
     torch.save((gaussians.capture(), iteration), save_path,)
-
-    if args.quant:    
+    
+    if args.quant:
         # Save gaussians
         all_attributes = {'xyz': 'xyz', 'dc': 'f_dc', 'sh': 'f_rest', 'opacities': 'opacities','scale': 'scale', 'rot': 'rotation'}
         save_attributes = [val for (key, val) in all_attributes.items() if key not in quantized_params]
