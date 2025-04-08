@@ -328,13 +328,13 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
         if args.quant:
             loss+=quant_loss
         
-        # if iteration >= args.simp_iteration2:
-        #     with torch.autograd.set_detect_anomaly(True):
-        #         loss.backward()
-        # else:
-        #     loss.backward()
+        if iteration > args.simp_iteration2 + 10:
+            with torch.autograd.set_detect_anomaly(True):
+                loss.backward()
+        else:
+            loss.backward()
 
-        loss.backward()
+        #loss.backward()
 
         if torch.isnan(loss).any():
             print("loss is nan,end training, reexecv program now.")
@@ -355,7 +355,7 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
                         "iteration":iteration,
                         "Loss": f"{ema_loss_for_log:.{5}f}",
                         "admm_loss": f"{ema_admm_loss_for_log:.{5}f}",
-                        "quant_loss": f"{ema_quant_loss_for_log:.{5}f}",
+                        "quant_loss": f"{quant_loss:.{5}f}",
                         "psnr": f"{psnr_:.{3}f}",
                         "point": total_point,  # 直接使用数值，无需字符串格式化
                     }

@@ -458,3 +458,10 @@ def get_pruning_iter2_mask_2(gaussians, opt, extra_score):
     abs_threshold = scores_sorted[threshold_idx - 1]
     mask = (scores <= abs_threshold).squeeze()
     return mask
+
+
+def assert_all_shapes_equal(tensor_list, name="tensor"):
+    ref_shape = tensor_list[0].shape
+    for i, t in enumerate(tensor_list):
+        if t.shape != ref_shape:
+            raise ValueError(f"[{i}] {name} shape mismatch: expected {ref_shape}, got {t.shape}")
