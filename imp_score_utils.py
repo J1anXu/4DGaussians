@@ -446,7 +446,7 @@ def get_pruning_iter2_mask(gaussians, opt):
     mask = (scores <= abs_threshold).squeeze()
     return mask
 
-def get_pruning_iter2_mask_2(gaussians, opt, extra_score):
+def get_pruning_iter2_mask_with_extra_score(gaussians, opt, extra_score):
     with torch.no_grad():
         scores = get_unactivate_opacity(gaussians)
         

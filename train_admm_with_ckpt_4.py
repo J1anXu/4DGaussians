@@ -462,7 +462,7 @@ def scene_reconstruction(
                     
             if args.prune_points and iteration == args.simp_iteration2:
                 if args.add_extra_scores:
-                    mask_2 = get_pruning_iter2_mask_2(gaussians, opt, scores.cuda())
+                    mask_2 = get_pruning_iter2_mask_with_extra_score(gaussians, opt, scores.cuda())
                 else:
                     mask_2 = get_pruning_iter2_mask(gaussians, opt)
                 gaussians.prune_points(mask_2)

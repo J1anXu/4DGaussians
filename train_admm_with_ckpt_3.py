@@ -18,7 +18,7 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, render_with_topk_mask, render_point_time, network_gui
+from gaussian_renderer import render, render_with_topk_mask, render_point_time, network_gui, render_with_topk_score
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
 from tqdm import tqdm
@@ -461,7 +461,10 @@ def scene_reconstruction(
                     admm.update(opt)  
                     
             if args.prune_points and iteration == args.simp_iteration2:
-                mask_2 = get_pruning_iter2_mask(gaussians, opt)
+                if args.add_extra_scores:
+                    mask_2 = get_pruning_iter2_mask_with_extra_score(gaussians, opt, scores.cuda())
+                else:
+                    mask_2 = get_pruning_iter2_mask(gaussians, opt)
                 gaussians.prune_points(mask_2)
 
             # Optimizer step

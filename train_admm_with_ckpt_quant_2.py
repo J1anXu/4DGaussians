@@ -455,7 +455,7 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
                     admm.update(opt)
             if args.prune_points and iteration == args.simp_iteration2:
                 if bw is not None:
-                    mask_2 = get_pruning_iter2_mask_2(gaussians, opt, scores.cuda())
+                    mask_2 = get_pruning_iter2_mask_with_extra_score(gaussians, opt, scores.cuda())
                 else:
                     mask_2 = get_pruning_iter2_mask(gaussians, opt)
                 gaussians.prune_points(mask_2)
