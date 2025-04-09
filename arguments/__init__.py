@@ -175,7 +175,7 @@ class OptimizationParams(ParamGroup):
         self.related_gs_num = 1
         self.simp_iteration1_score_type = 0
         self.score_function = 36
-        self.add_extra_scores = True,
+        self.add_extra_scores = False,
     
         self.quant = False
         self.quant_start_iter = 19000

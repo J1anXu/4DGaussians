@@ -16,9 +16,10 @@ OptimizationParams = dict(
     outdoor=False,
     prune_points=True,  # 是否进行删点
     admm=True,
-    related_gs_num=1,
+    related_gs_num=5,
     simp_iteration1_score_type = 0,
     score_function = 36,
+    add_extra_scores = False
     )
 
 

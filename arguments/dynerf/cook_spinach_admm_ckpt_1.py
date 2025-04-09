@@ -10,7 +10,7 @@ OptimizationParams = dict(
     iterations=27000,  # 整体迭代
     admm_interval=50,
     rho_lr=0.0005,
-    opacity_admm_threshold1=0.8,  # 0.8
+    opacity_admm_threshold1=0.5,  # 0.8
     opacity_admm_threshold2=0.5,
     coarse_iterations=0,
     outdoor=False,
@@ -19,4 +19,5 @@ OptimizationParams = dict(
     related_gs_num=1,
     simp_iteration1_score_type = 0,
     score_function = 36,
+    add_extra_scores = True
     )

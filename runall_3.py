@@ -7,7 +7,7 @@ timezone = pytz.timezone("America/Chicago")
 current_time = datetime.now(timezone).strftime("%Y-%m-%d_%H-%M-%S")
 
 idx = 3
-scene = "cut_roasted_beef"
+scene = "cook_spinach"
 # cook_spinach
 # cut_roasted_beef
 # flame_salmon_1
@@ -36,4 +36,3 @@ command3 = (
 subprocess.run(command1, shell=True, check=True)
 subprocess.run(command2, shell=True, check=True)
 subprocess.run(command3, shell=True, check=True)
-print(">>>>>>>[admm, scores = w+s_, get_pruning_iter2_mask_2]<<<<<<<")

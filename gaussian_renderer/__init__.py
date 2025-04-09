@@ -456,7 +456,7 @@ def render_with_topk_score(
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen).
     # time3 = get_time()
-    rendered_image, radii, accum_weights_ptr, accum_weights_count, accum_max_count, topk_score = rasterizer(
+    rendered_image, radii, accum_weights_ptr, accum_weights_count, accum_max_count, scores = rasterizer(
         means3D=means3D_final,
         means2D=means2D,
         shs=shs_final,
@@ -480,7 +480,7 @@ def render_with_topk_score(
         "accum_weights": accum_weights_ptr,
         "area_proj": accum_weights_count,
         "area_max": accum_max_count,
-        "topk_score": topk_score,
+        "error_scores": scores
     }
 
 
