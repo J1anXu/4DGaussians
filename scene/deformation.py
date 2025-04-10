@@ -157,18 +157,21 @@ class Deformation(nn.Module):
             shs = shs_emb*mask.unsqueeze(-1) + dshs
 
         return pts, scales, rotations, opacity, shs
+    
     def get_mlp_parameters(self):
         parameter_list = []
         for name, param in self.named_parameters():
             if  "grid" not in name:
                 parameter_list.append(param)
         return parameter_list
+    
     def get_grid_parameters(self):
         parameter_list = []
         for name, param in self.named_parameters():
             if  "grid" in name:
                 parameter_list.append(param)
         return parameter_list
+    
 class deform_network(nn.Module):
     def __init__(self, args) :
         super(deform_network, self).__init__()

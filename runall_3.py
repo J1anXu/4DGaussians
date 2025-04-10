@@ -7,7 +7,7 @@ timezone = pytz.timezone("America/Chicago")
 current_time = datetime.now(timezone).strftime("%Y-%m-%d_%H-%M-%S")
 
 idx = 3
-scene = "cook_spinach"
+scene = "flame_salmon_1"
 # cook_spinach
 # cut_roasted_beef
 # flame_salmon_1

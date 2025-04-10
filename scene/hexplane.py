@@ -170,8 +170,6 @@ class HexPlaneField(nn.Module):
             concat_features=self.concat_features, num_levels=None)
         if len(features) < 1:
             features = torch.zeros((0, 1)).to(features.device)
-
-
         return features
 
     def forward(self,
