@@ -443,7 +443,8 @@ def scene_reconstruction(
                 gaussians.prune_points(mask)
 
             elif iteration == opt.admm_start_iter1 and opt.admm == True:
-                bw = BW(gaussians, opt, args, scene, pipe, background)
+                if args.add_extra_scores:
+                    bw = BW(gaussians, opt, args, scene, pipe, background)
                 admm = ADMM(gaussians, opt.rho_lr, device="cuda")
                 admm.update(opt, update_u=False)
             elif (
@@ -699,7 +700,7 @@ if __name__ == "__main__":
 
     args.save_iterations.append(args.iterations)
 
-    current_time = initialize_logger()
+    current_time = initialize_logger("Train")
 
     for arg, value in vars(op.extract(args)).items():
         logging.info(f"{arg}: {value}")

@@ -211,7 +211,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     args_path = Path(args.model_paths[0]) / "opt_params.pth"
-    initialize_logger()
+    initialize_logger("Eval")
 
     # 检查文件是否存在
     if args_path.exists():

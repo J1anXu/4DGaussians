@@ -4,7 +4,7 @@ from datetime import datetime
 import pytz
 
 
-def initialize_logger():
+def initialize_logger(prefix = ""):
     log_dir = "./log"
     timezone_str = "America/Chicago"
     """
@@ -20,14 +20,14 @@ def initialize_logger():
 
     # 设置时区
     timezone = pytz.timezone(timezone_str)
-    current_time = datetime.now(timezone).strftime("%Y-%m-%d_%H-%M-%S")
+    current_time = datetime.now(timezone).strftime("%m-%d_%H-%M")
 
         
     # 创建日志目录
     os.makedirs(log_dir, exist_ok=True)
 
     # 设置日志文件名
-    log_file = os.path.join(log_dir, f"{current_time}.log")
+    log_file = os.path.join(log_dir, f"{prefix}_{current_time}.log")
 
     # 配置日志系统
     logging.basicConfig(
