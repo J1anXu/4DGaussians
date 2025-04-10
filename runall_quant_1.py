@@ -18,7 +18,7 @@ command1 = (
     f"-s data/dynerf/{scene} --port 600{idx} "
     f'--expname "admm_quant_{idx}/{scene}" '
     f"--configs arguments/dynerf/{scene}_admm_ckpt_quant_{idx}.py "
-    f'--start_checkpoint "output/dynerf/{scene}/chkpnt_fine_14000.pth" '
+    f'--start_checkpoint "output/admm_{idx}/{scene}/chkpnt_fine_admm_21000.pth" '
 )
 
 command2 = (
