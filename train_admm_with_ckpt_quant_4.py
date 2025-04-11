@@ -10,7 +10,7 @@
 #
 import os
 idx = 4
-os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
+os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx - 3 + 2}"  # 先设置 GPU 设备
 
 import sys
 import numpy as np
@@ -467,9 +467,9 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
 
 
    # Saving model withoud quant
-    save_path = scene.model_path + "/chkpnt" + f"_{stage}_quant_" + str(iteration) + ".pth"
-    print(f"\n[ITER {iteration}] Saving Checkpoint in {save_path}")
-    torch.save((gaussians.capture(), iteration), save_path,)
+    # save_path = scene.model_path + "/chkpnt" + f"_{stage}_quant_" + str(iteration) + ".pth"
+    # print(f"\n[ITER {iteration}] Saving Checkpoint in {save_path}")
+    # torch.save((gaussians.capture(), iteration), save_path,)
     
     if args.quant:
         # Save gaussians
@@ -586,20 +586,7 @@ def training_report(tb_writer,iteration,Ll1,loss,l1_loss,elapsed,testing_iterati
                     tb_writer.add_scalar(stage + "/" + config["name"] + "/loss_viewpoint - l1_loss", l1_test, iteration)
                     tb_writer.add_scalar(stage + "/" + config["name"] + "/loss_viewpoint - psnr", psnr_test, iteration)
 
-        if tb_writer:
-            tb_writer.add_scalar(f"{stage}/total_points", scene.gaussians.get_xyz.shape[0], iteration)
-            tb_writer.add_scalar(
-                f"{stage}/deformation_rate",
-                scene.gaussians._deformation_table.sum() / scene.gaussians.get_xyz.shape[0],
-                iteration,
-            )
-            tb_writer.add_histogram(
-                f"{stage}/scene/motion_histogram",
-                scene.gaussians._deformation_accum.mean(dim=-1) / 100,
-                iteration,
-                max_bins=500,
-            )
-            tb_writer.add_histogram(f"{stage}/scene/opacity_histogram", scene.gaussians.get_opacity, iteration)
+
         torch.cuda.empty_cache()
 
 

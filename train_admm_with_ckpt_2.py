@@ -636,20 +636,7 @@ def training_report(
                     tb_writer.add_scalar(stage + "/" + config["name"] + "/loss_viewpoint - l1_loss", l1_test, iteration)
                     tb_writer.add_scalar(stage + "/" + config["name"] + "/loss_viewpoint - psnr", psnr_test, iteration)
 
-        if tb_writer:
-            tb_writer.add_scalar(f"{stage}/total_points", scene.gaussians.get_xyz.shape[0], iteration)
-            tb_writer.add_scalar(
-                f"{stage}/deformation_rate",
-                scene.gaussians._deformation_table.sum() / scene.gaussians.get_xyz.shape[0],
-                iteration,
-            )
-            tb_writer.add_histogram(
-                f"{stage}/scene/motion_histogram",
-                scene.gaussians._deformation_accum.mean(dim=-1) / 100,
-                iteration,
-                max_bins=500,
-            )
-            tb_writer.add_histogram(f"{stage}/scene/opacity_histogram", scene.gaussians.get_opacity, iteration)
+
         torch.cuda.empty_cache()
 
 

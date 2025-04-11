@@ -9,8 +9,8 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
-idx = 1
-os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx + 2}"  # 先设置 GPU 设备
+idx = 5
+os.environ["CUDA_VISIBLE_DEVICES"] = f"{idx - 3 + 2}"  # 先设置 GPU 设备
 
 import sys
 import numpy as np
@@ -449,7 +449,7 @@ def scene_reconstruction(dataset,opt: OptimizationParams,hyper,pipe,testing_iter
                     w = bw.get_curr_acc_w()
                     s = bw.get_actual_acc_s()
                     s_ = norm_zero_tanh(1-s)
-                    scores = w+s_
+                    scores = (w+s_)*0.0000001
                     admm.update_w(opt, scores.cuda())
                 else:
                     admm.update(opt)
@@ -585,7 +585,6 @@ def training_report(tb_writer,iteration,Ll1,loss,l1_loss,elapsed,testing_iterati
                 if tb_writer:
                     tb_writer.add_scalar(stage + "/" + config["name"] + "/loss_viewpoint - l1_loss", l1_test, iteration)
                     tb_writer.add_scalar(stage + "/" + config["name"] + "/loss_viewpoint - psnr", psnr_test, iteration)
-
 
         torch.cuda.empty_cache()
 

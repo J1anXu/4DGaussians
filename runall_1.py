@@ -29,7 +29,7 @@ command2 = (
 )
 
 command3 = (
-    f'python metrics{idx}.py --model_path "output/admm_{idx}/{scene}" '
+    f'python metrics_parallel.py --model_path "output/admm_{idx}/{scene}" '
 )
 
 # 运行命令
