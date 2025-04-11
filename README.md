@@ -320,4 +320,3 @@ Some insights about neural voxel grids and dynamic scenes reconstruction origina
   booktitle = {SIGGRAPH Asia 2022 Conference Papers}
 }
 ```
-# mkmmd

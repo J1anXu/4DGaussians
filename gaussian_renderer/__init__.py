@@ -89,7 +89,6 @@ def render(
     else:
         scales = pc._scaling
         rotations = pc._rotation
-    deformation_point = pc._deformation_table
     if "coarse" in stage:
         means3D_final, scales_final, rotations_final, opacity_final, shs_final = (
             means3D,
@@ -261,7 +260,6 @@ def render_with_topk_mask(
     else:
         scales = pc._scaling
         rotations = pc._rotation
-    deformation_point = pc._deformation_table
     if "coarse" in stage:
         means3D_final, scales_final, rotations_final, opacity_final, shs_final = (
             means3D,
@@ -410,7 +408,6 @@ def render_with_topk_score(
     else:
         scales = pc._scaling
         rotations = pc._rotation
-    deformation_point = pc._deformation_table
     if "coarse" in stage:
         means3D_final, scales_final, rotations_final, opacity_final, shs_final = (
             means3D,

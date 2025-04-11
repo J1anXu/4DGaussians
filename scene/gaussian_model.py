@@ -285,8 +285,8 @@ class GaussianModel:
 
     def save_deformation(self, path):
         torch.save(self._deformation.state_dict(), os.path.join(path, "deformation.pth"))
-        torch.save(self._deformation_table, os.path.join(path, "deformation_table.pth"))
-        torch.save(self._deformation_accum, os.path.join(path, "deformation_accum.pth"))
+        #torch.save(self._deformation_table, os.path.join(path, "deformation_table.pth"))
+        #torch.save(self._deformation_accum, os.path.join(path, "deformation_accum.pth"))
 
     def save_ply(self, path):
         mkdir_p(os.path.dirname(path))
