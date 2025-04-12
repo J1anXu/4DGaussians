@@ -349,7 +349,7 @@ def scene_reconstruction(
             )
             if iteration in saving_iterations:
                 print("\n[ITER {}] Saving Gaussians".format(iteration))
-                scene.save(iteration, stage)
+                scene.save(iteration, stage, args.half_prec, args.point_half_prec)
 
             if dataset.render_process:
                 if (

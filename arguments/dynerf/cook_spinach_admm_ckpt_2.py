@@ -19,5 +19,8 @@ OptimizationParams = dict(
     related_gs_num=1,
     simp_iteration1_score_type = 0,
     score_function = 36,
-    add_extra_scores = False
+    add_extra_scores = False,
+
+    half_prec = True,
+    point_half_prec = True
     )

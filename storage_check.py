@@ -24,7 +24,7 @@ folder = "/data2/jian/4DGS_ADMM/output/dynerf/flame_steak/point_cloud/iteration_
 print_all_file_sizes(folder)
 
 
-folder = "/data2/jian/4DGS_ADMM/output/admm_4/flame_steak/point_cloud/iteration_21000"
+folder = "/data2/jian/4DGS_ADMM/output/admm_2/cook_spinach/point_cloud/iteration_21000"
 print_all_file_sizes(folder)
 
 f = "/data2/jian/4DGS_ADMM/output/admm_quant_4/flame_steak/point_cloud/iteration_23001"

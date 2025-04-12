@@ -105,15 +105,15 @@ class Scene:
         else:
             self.gaussians.create_from_pcd(scene_info.point_cloud, self.cameras_extent, self.maxtime)
 
-    def save(self, iteration, stage):
+    def save(self, iteration, stage, half_prec = False, point_half_prec = False):
         if stage == "coarse":
             point_cloud_path = os.path.join(self.model_path, "point_cloud/coarse_iteration_{}".format(iteration))
 
         else:
             point_cloud_path = os.path.join(self.model_path, "point_cloud/iteration_{}".format(iteration))
 
-        self.gaussians.save_ply(os.path.join(point_cloud_path, "point_cloud.ply"))
-        self.gaussians.save_deformation(point_cloud_path)
+        self.gaussians.save_ply(os.path.join(point_cloud_path, "point_cloud.ply"), point_half_prec)
+        self.gaussians.save_deformation(point_cloud_path, half_prec)
 
     def save_quant(self, iteration, save_q=[], save_attributes=None):
         point_cloud_path = os.path.join(self.model_path, "point_cloud/iteration_{}".format(iteration))

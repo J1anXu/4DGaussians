@@ -283,12 +283,19 @@ class GaussianModel:
         self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
         # print(self._deformation.deformation_net.grid.)
 
-    def save_deformation(self, path):
-        torch.save(self._deformation.state_dict(), os.path.join(path, "deformation.pth"))
+    def save_deformation(self, path, half_prec):
+        if half_prec:
+            self._deformation_half = self._deformation.half()
+            torch.save(self._deformation_half.state_dict(), os.path.join(path, "deformation.pth"))
+            print("save half_prec model!")
+        else:
+            torch.save(self._deformation.state_dict(), os.path.join(path, "deformation.pth"))
+
+
         #torch.save(self._deformation_table, os.path.join(path, "deformation_table.pth"))
         #torch.save(self._deformation_accum, os.path.join(path, "deformation_accum.pth"))
 
-    def save_ply(self, path):
+    def save_ply(self, path, point_half_prec):
         mkdir_p(os.path.dirname(path))
 
         xyz = self._xyz.detach().cpu().numpy()
@@ -305,7 +312,11 @@ class GaussianModel:
         attributes = np.concatenate((xyz, normals, f_dc, f_rest, opacities, scale, rotation), axis=1)
         elements[:] = list(map(tuple, attributes))
         el = PlyElement.describe(elements, "vertex")
-        PlyData([el]).write(path)
+        if point_half_prec:
+            PlyData([el], text=False).write(path)
+            print("save half_prec point!")
+        else:
+            PlyData([el]).write(path)
 
     def save_quant_ply(self, path, save_q=[], save_attributes=None):
         mkdir_p(os.path.dirname(path))

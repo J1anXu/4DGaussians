@@ -186,7 +186,9 @@ class OptimizationParams(ParamGroup):
         self.kmeans_freq = 100
         self.grad_thresh = 0.002
         self.quant_params = ['sh', 'dc', 'scale', 'rot']
-        
+
+        self.half_prec = False
+        self.point_half_prec = False
         super().__init__(parser, "Optimization Parameters")
 
 
