@@ -100,7 +100,7 @@ class Scene:
             point_cloud_path = os.path.join(self.model_path, "point_cloud", "iteration_" + str(self.loaded_iter), "point_cloud.ply")
             self.gaussians.load_ply(point_cloud_path, quant)
             # 装载变形场
-            model_path = os.path.join(self.model_path,"point_cloud","iteration_" + str(self.loaded_iter),)
+            model_path = os.path.join(self.model_path,"point_cloud", "iteration_" + str(self.loaded_iter),)
             self.gaussians.load_model(model_path)
         else:
             self.gaussians.create_from_pcd(scene_info.point_cloud, self.cameras_extent, self.maxtime)

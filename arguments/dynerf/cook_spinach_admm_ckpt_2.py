@@ -22,5 +22,6 @@ OptimizationParams = dict(
     add_extra_scores = False,
 
     half_prec = True,
-    point_half_prec = True
+    point_half_prec = False # 没啥用
+    
     )
