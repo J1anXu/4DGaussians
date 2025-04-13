@@ -18,7 +18,7 @@ import random
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
-from gaussian_renderer import render, render_with_topk_mask, render_point_time, network_gui, render_with_topk_score
+from gaussian_renderer_ms import render, render_with_topk_mask, render_point_time, network_gui, render_with_topk_score
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
 from tqdm import tqdm

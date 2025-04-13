@@ -32,8 +32,7 @@ class Camera(nn.Module):
         data_device="cuda",
         time=0,
         mask=None,
-        depth=None,
-        mark_pixels_image=None,
+        depth=None
     ):
         super(Camera, self).__init__()
 
@@ -53,7 +52,6 @@ class Camera(nn.Module):
             self.data_device = torch.device("cuda")
 
         self.original_image = image.clamp(0.0, 1.0)[:3, :, :]
-        self.mark_pixels_image = mark_pixels_image.clamp(0.0, 1.0)[:3, :, :] if mark_pixels_image is not None else None
 
         # breakpoint()
         # .to(self.data_device)

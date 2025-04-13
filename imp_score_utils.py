@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from random import randint
-from gaussian_renderer import render, render_with_topk_mask, render_with_topk_score, render_point_time
+from gaussian_renderer_ms import render, render_with_topk_mask, render_with_topk_score, render_point_time
 from tqdm import tqdm
 from utils.image_utils import psnr
 from arguments import ModelParams, PipelineParams, OptimizationParams, ModelHiddenParams

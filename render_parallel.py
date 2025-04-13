@@ -21,12 +21,12 @@ from scene import Scene
 import cv2
 from tqdm import tqdm
 from os import makedirs
-from gaussian_renderer import render
+from gaussian_renderer_ms import render
 import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args, ModelHiddenParams, OptimizationParams
-from gaussian_renderer import GaussianModel
+from gaussian_renderer_ms import GaussianModel
 import time
 from PIL import Image, ImageDraw
 from torchvision import transforms

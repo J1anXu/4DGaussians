@@ -24,14 +24,14 @@ import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args, ModelHiddenParams
-from gaussian_renderer import GaussianModel
+from gaussian_renderer_ms import GaussianModel
 from time import time
 import threading
 import concurrent.futures
 from PIL import Image, ImageDraw
 from torchvision import transforms
 import torchvision.utils as vutils
-DRAW = True # 是否画出高斯中心
+DRAW = False # 是否画出高斯中心
 
 def multithread_write(image_list, path):
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=None)
