@@ -61,7 +61,6 @@ class Deformation(nn.Module):
         self.pos_deform = nn.Sequential(nn.ReLU(),nn.Linear(self.W,self.W),nn.ReLU(),nn.Linear(self.W, 3))
         self.scales_deform = nn.Sequential(nn.ReLU(),nn.Linear(self.W,self.W),nn.ReLU(),nn.Linear(self.W, 3))
         self.rotations_deform = nn.Sequential(nn.ReLU(),nn.Linear(self.W,self.W),nn.ReLU(),nn.Linear(self.W, 4))
-        self.opacity_deform = nn.Sequential(nn.ReLU(),nn.Linear(self.W,self.W),nn.ReLU(),nn.Linear(self.W, 1))
         self.shs_deform = nn.Sequential(nn.ReLU(),nn.Linear(self.W,self.W),nn.ReLU(),nn.Linear(self.W, 16*3))
     
     def query_time(self, rays_pts_emb, scales_emb, rotations_emb, time_feature, time_emb):
@@ -140,13 +139,8 @@ class Deformation(nn.Module):
             else:
                 rotations = rotations_emb[:,:4] + dr
 
-        if self.args.no_do :
-            opacity = opacity_emb[:,:1] 
-        else:
-            do = self.opacity_deform(hidden) 
-          
-            opacity = torch.zeros_like(opacity_emb[:,:1])
-            opacity = opacity_emb[:,:1]*mask + do
+        opacity = opacity_emb[:,:1] 
+
         if self.args.no_dshs:
             shs = shs_emb
         else:
@@ -192,7 +186,6 @@ class deform_network(nn.Module):
         self.register_buffer('time_poc', torch.FloatTensor([(2**i) for i in range(timebase_pe)]))
         self.register_buffer('pos_poc', torch.FloatTensor([(2**i) for i in range(posbase_pe)]))
         self.register_buffer('rotation_scaling_poc', torch.FloatTensor([(2**i) for i in range(scale_rotation_pe)]))
-        self.register_buffer('opacity_poc', torch.FloatTensor([(2**i) for i in range(opacity_pe)]))
         self.apply(initialize_weights)
         # print(self)
 

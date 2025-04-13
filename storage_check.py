@@ -20,7 +20,7 @@ def print_all_file_sizes(folder_path):
 # 示例使用
 
 
-folder = "/data2/jian/4DGS_ADMM/output/dynerf/flame_steak/point_cloud/iteration_14000"
+folder = "/data2/jian/4DGS_ADMM/output/dynerf/cook_spinach/point_cloud/iteration_14000"
 print_all_file_sizes(folder)
 
 
