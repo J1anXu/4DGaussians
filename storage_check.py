@@ -30,3 +30,7 @@ print_all_file_sizes(folder)
 f = "/data2/jian/4DGS_ADMM/output/admm_quant_4/flame_steak/point_cloud/iteration_23001"
 print_all_file_sizes(f)
 
+f = "/data2/jian/4DGS_ADMM/output/admm_1/cook_spinach/point_cloud/iteration_14000/decom"
+print_all_file_sizes(f)
+
+
