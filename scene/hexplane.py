@@ -55,6 +55,7 @@ def init_grid_param(
     assert in_dim == len(reso), "Resolution must have same number of elements as input-dimension"
     has_time_planes = in_dim == 4
     assert grid_nd <= in_dim
+    # 核心代码 coo_combs = [(0,1), (0,2), (0,3), (1,2), (1,3), (2,3)]  # 共6个planes
     coo_combs = list(itertools.combinations(range(in_dim), grid_nd))
     grid_coefs = nn.ParameterList()
     for ci, coo_comb in enumerate(coo_combs):
