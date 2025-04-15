@@ -9,12 +9,13 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "7"  
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"  
 
 import imageio
 import numpy as np
 import torch
 from scene import Scene
+from utils.tensor_decomposition_utils import decom_tt
 
 import cv2
 from tqdm import tqdm
@@ -160,7 +161,23 @@ def render_sets(dataset : ModelParams, hyperparam, iteration : int, pipeline : P
         cam_type=scene.dataset_type
         bg_color = [1,1,1] if dataset.white_background else [0, 0, 0]
         background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
-
+        rank = 64
+        rank_dict = {
+            (0, 0): rank,  # level_1=0, level_2=0 使用 rank=4
+            (0, 1): rank,  # level_1=0, level_2=1 使用 rank=8
+            (0, 2): rank, # level_1=0, level_2=2 使用 rank=12
+            (0, 3): rank, # level_1=0, level_2=3 使用 rank=16
+            (0, 4): rank, # level_1=0, level_2=4 使用 rank=20
+            (0, 5): rank, # level_1=0, level_2=5 使用 rank=18
+            (1, 0): rank,  # level_1=1, level_2=0 使用 rank=4
+            (1, 1): rank,  # level_1=1, level_2=1 使用 rank=8
+            (1, 2): rank, # level_1=1, level_2=2 使用 rank=12
+            (1, 3): rank, # level_1=1, level_2=3 使用 rank=16
+            (1, 4): rank, # level_1=1, level_2=4 使用 rank=20
+            (1, 5): rank, # level_1=1, level_2=5 使用 rank=18
+        }
+        decom_path = os.path.join(scene.model_path, f"point_cloud/iteration_{iteration}/decom")
+        decom_tt(scene.gaussians,rank_dict,decom_path)
         if not skip_train:
             render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, background,cam_type)
 
