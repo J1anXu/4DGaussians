@@ -283,6 +283,20 @@ def scene_reconstruction(
             ssim_loss = ssim(image_tensor, gt_image_tensor)
             loss += opt.lambda_dssim * (1.0 - ssim_loss)
 
+
+        torch.autograd.set_detect_anomaly(True)
+        try:
+            print(f"[DEBUG] Loss value: {loss.item()}")
+        except Exception as e:
+            print(f"[ERROR] Cannot convert loss to item. Type: {type(loss)}, Error: {e}")
+            print(f"Loss tensor: {loss}")
+            exit()
+
+        if not torch.isfinite(loss):
+            print(f"[ERROR] Non-finite loss detected: {loss}")
+            print("Possible reasons: gradient explosion, invalid operations (like log(0), div by 0), etc.")
+            exit()
+
         loss.backward()
 
         if torch.isnan(loss).any():
