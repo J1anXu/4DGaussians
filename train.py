@@ -10,7 +10,7 @@
 #
 import os, sys
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 import numpy as np
 import random
 import torch

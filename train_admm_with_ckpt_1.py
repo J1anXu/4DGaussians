@@ -31,7 +31,8 @@ from utils.loader_utils import FineSampler, get_stamp_list
 from utils.scene_utils import render_training_image
 from imp_score_utils import *
 import shutil
-
+import time
+import torch
 import copy
 from admm import ADMM
 from bw3 import BW
@@ -299,8 +300,14 @@ def scene_reconstruction(
 
         loss.backward()
 
-        if torch.isnan(loss).any():
-            print("loss is nan,end training, reexecv program now.")
+        if torch.isnan(loss):
+            print("loss is nan. Cleaning CUDA before restart...")
+            torch.cuda.empty_cache()
+            time.sleep(2)  # 等 2 秒确保清完
+
+            # 如果你用了 DDP 或多进程训练，也要加 destroy_process_group
+
+            print("Restarting program now.")
             os.execv(sys.executable, [sys.executable] + sys.argv)
 
         viewspace_point_tensor_grad = torch.zeros_like(viewspace_point_tensor)

@@ -10,7 +10,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 from utils.graphics_utils import apply_rotation, batch_quaternion_multiply
+
+from scene.hexplane_tt import HexPlaneField_tt
 from scene.hexplane import HexPlaneField
+
 from scene.grid import DenseGrid
 # from scene.grid import HashHexPlane
 class Deformation(nn.Module):
@@ -23,7 +26,8 @@ class Deformation(nn.Module):
         self.skips = skips
         self.grid_pe = grid_pe
         self.no_grid = args.no_grid
-        self.grid = HexPlaneField(args.bounds, args.kplanes_config, args.multires)
+        #HexPlaneField(args.bounds, args.kplanes_config, args.multires)
+        self.grid = HexPlaneField_tt(args.bounds, args.kplanes_config, args.multires)
         # breakpoint()
         self.args = args
         # self.args.empty_voxel=True

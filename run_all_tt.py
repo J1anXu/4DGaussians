@@ -13,19 +13,19 @@ idx = 3
 # flame_steak
 # sear_steak
 scene = "cook_spinach"
-expname = "dynerf"
+expname = "dynerf_tt"
 command1 = (
     f"python train.py "
-    f"-s data/{expname}/{scene} --port 600{idx} "
+    f"-s data/dynerf/{scene} --port 600{idx} "
     f'--expname "{expname}/{scene}" '
-    f"--configs arguments/{expname}/{scene}.py "
+    f"--configs arguments/dynerf/{scene}.py "
 )
 
 command2 = (
     f"python render_parallel.py "
     f'--model_path "output/{expname}/{scene}" '
     "--skip_train --skip_video "
-    f"--configs arguments/{expname}/{scene}.py "
+    f"--configs arguments/dynerf/{scene}.py "
 )
 
 command3 = (
@@ -33,8 +33,8 @@ command3 = (
 )
 
 # 运行命令
-subprocess.run(command1, shell=True, check=True)
+##subprocess.run(command1, shell=True, check=True)
 subprocess.run(command2, shell=True, check=True)
-subprocess.run(command3, shell=True, check=True)
+#subprocess.run(command3, shell=True, check=True)
 
 
