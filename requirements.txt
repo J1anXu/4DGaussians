@@ -8,6 +8,9 @@ lpips
 plyfile
 pytorch_msssim
 open3d
+bitarray
+tntorch
 imageio[ffmpeg]
+submodules/depth-diff-gaussian-rasterization
 submodules/diff-gaussian-rasterization_ms
 submodules/simple-knn

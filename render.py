@@ -161,23 +161,39 @@ def render_sets(dataset : ModelParams, hyperparam, iteration : int, pipeline : P
         cam_type=scene.dataset_type
         bg_color = [1,1,1] if dataset.white_background else [0, 0, 0]
         background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
-        rank = 64
+        # deformation_net.grid.grids.0.0                      shape=(1, 16, 64, 64)       size=0.25 MB
+        # deformation_net.grid.grids.0.1                      shape=(1, 16, 64, 64)       size=0.25 MB
+        # deformation_net.grid.grids.0.2                      shape=(1, 16, 150, 64)      size=0.59 MB
+        # deformation_net.grid.grids.0.3                      shape=(1, 16, 64, 64)       size=0.25 MB
+        # deformation_net.grid.grids.0.4                      shape=(1, 16, 150, 64)      size=0.59 MB
+        # deformation_net.grid.grids.0.5                      shape=(1, 16, 150, 64)      size=0.59 MB
+        # deformation_net.grid.grids.1.0                      shape=(1, 16, 128, 128)     size=1.00 MB
+        # deformation_net.grid.grids.1.1                      shape=(1, 16, 128, 128)     size=1.00 MB
+        # deformation_net.grid.grids.1.2                      shape=(1, 16, 150, 128)     size=1.17 MB
+        # deformation_net.grid.grids.1.3                      shape=(1, 16, 128, 128)     size=1.00 MB
+        # deformation_net.grid.grids.1.4                      shape=(1, 16, 150, 128)     size=1.17 MB
+        # deformation_net.grid.grids.1.5                      shape=(1, 16, 150, 128)     size=1.17 MB
+        rank1 = [64, 16, 64]
+        rank2 = [128, 64, 128]
+        rank12 = [64, 16, 64]
+        rank15 = [64, 16, 64]
         rank_dict = {
-            (0, 0): rank,  # level_1=0, level_2=0 使用 rank=4
-            (0, 1): rank,  # level_1=0, level_2=1 使用 rank=8
-            (0, 2): rank, # level_1=0, level_2=2 使用 rank=12
-            (0, 3): rank, # level_1=0, level_2=3 使用 rank=16
-            (0, 4): rank, # level_1=0, level_2=4 使用 rank=20
-            (0, 5): rank, # level_1=0, level_2=5 使用 rank=18
-            (1, 0): rank,  # level_1=1, level_2=0 使用 rank=4
-            (1, 1): rank,  # level_1=1, level_2=1 使用 rank=8
-            (1, 2): rank, # level_1=1, level_2=2 使用 rank=12
-            (1, 3): rank, # level_1=1, level_2=3 使用 rank=16
-            (1, 4): rank, # level_1=1, level_2=4 使用 rank=20
-            (1, 5): rank, # level_1=1, level_2=5 使用 rank=18
+            (0, 0): rank1,  # level_1=0, level_2=0 使用 rank=4
+            (0, 1): rank1,  # level_1=0, level_2=1 使用 rank=8
+            (0, 2): rank1, # level_1=0, level_2=2 使用 rank=12
+            (0, 3): rank1, # level_1=0, level_2=3 使用 rank=16
+            (0, 4): rank1, # level_1=0, level_2=4 使用 rank=20
+            (0, 5): rank1, # level_1=0, level_2=5 使用 rank=18
+            (1, 0): rank2,  # level_1=1, level_2=0 使用 rank=4
+            (1, 1): rank2,  # level_1=1, level_2=1 使用 rank=8
+            (1, 2): rank12, # level_1=1, level_2=2 使用 rank=12
+            (1, 3): rank2, # level_1=1, level_2=3 使用 rank=16
+            (1, 4): rank2, # level_1=1, level_2=4 使用 rank=20
+            (1, 5): rank15, # level_1=1, level_2=5 使用 rank=18
         }
         decom_path = os.path.join(scene.model_path, f"point_cloud/iteration_{iteration}/decom")
-        decom_tt(scene.gaussians,rank_dict,decom_path)
+        decom_tt(scene.gaussians, rank_dict, decom_path)
+        return 
         if not skip_train:
             render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, background,cam_type)
 
