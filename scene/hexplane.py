@@ -45,6 +45,20 @@ def grid_sample_wrapper(grid: torch.Tensor, coords: torch.Tensor, align_corners:
     interp = interp.squeeze()  # [B?, n, feature_dim?]
     return interp
 
+# deformation_net.grid.grids.0.0                      shape=(1, 16, 64, 64)       size=0.25 MB
+# deformation_net.grid.grids.0.1                      shape=(1, 16, 64, 64)       size=0.25 MB
+# deformation_net.grid.grids.0.2                      shape=(1, 16, 150, 64)      size=0.59 MB
+# deformation_net.grid.grids.0.3                      shape=(1, 16, 64, 64)       size=0.25 MB
+# deformation_net.grid.grids.0.4                      shape=(1, 16, 150, 64)      size=0.59 MB
+# deformation_net.grid.grids.0.5                      shape=(1, 16, 150, 64)      size=0.59 MB
+# deformation_net.grid.grids.1.0                      shape=(1, 16, 128, 128)     size=1.00 MB
+# deformation_net.grid.grids.1.1                      shape=(1, 16, 128, 128)     size=1.00 MB
+# deformation_net.grid.grids.1.2                      shape=(1, 16, 150, 128)     size=1.17 MB
+# deformation_net.grid.grids.1.3                      shape=(1, 16, 128, 128)     size=1.00 MB
+# deformation_net.grid.grids.1.4                      shape=(1, 16, 150, 128)     size=1.17 MB
+# deformation_net.grid.grids.1.5                      shape=(1, 16, 150, 128)     size=1.17 MB
+# 核心代码 coo_combs = [(0,1), (0,2), (0,3), (1,2), (1,3), (2,3)]  # 共6个planes
+
 def init_grid_param(
         grid_nd: int,
         in_dim: int,
@@ -55,25 +69,10 @@ def init_grid_param(
     assert in_dim == len(reso), "Resolution must have same number of elements as input-dimension"
     has_time_planes = in_dim == 4
     assert grid_nd <= in_dim
-    # deformation_net.grid.grids.0.0                      shape=(1, 16, 64, 64)       size=0.25 MB
-    # deformation_net.grid.grids.0.1                      shape=(1, 16, 64, 64)       size=0.25 MB
-    # deformation_net.grid.grids.0.2                      shape=(1, 16, 150, 64)      size=0.59 MB
-    # deformation_net.grid.grids.0.3                      shape=(1, 16, 64, 64)       size=0.25 MB
-    # deformation_net.grid.grids.0.4                      shape=(1, 16, 150, 64)      size=0.59 MB
-    # deformation_net.grid.grids.0.5                      shape=(1, 16, 150, 64)      size=0.59 MB
-    # deformation_net.grid.grids.1.0                      shape=(1, 16, 128, 128)     size=1.00 MB
-    # deformation_net.grid.grids.1.1                      shape=(1, 16, 128, 128)     size=1.00 MB
-    # deformation_net.grid.grids.1.2                      shape=(1, 16, 150, 128)     size=1.17 MB
-    # deformation_net.grid.grids.1.3                      shape=(1, 16, 128, 128)     size=1.00 MB
-    # deformation_net.grid.grids.1.4                      shape=(1, 16, 150, 128)     size=1.17 MB
-    # deformation_net.grid.grids.1.5                      shape=(1, 16, 150, 128)     size=1.17 MB
-    # 核心代码 coo_combs = [(0,1), (0,2), (0,3), (1,2), (1,3), (2,3)]  # 共6个planes
     coo_combs = list(itertools.combinations(range(in_dim), grid_nd))
     grid_coefs = nn.ParameterList()
     for ci, coo_comb in enumerate(coo_combs):
-        new_grid_coef = nn.Parameter(torch.empty(
-            [1, out_dim] + [reso[cc] for cc in coo_comb[::-1]]
-        ))
+        new_grid_coef = nn.Parameter(torch.empty([1, out_dim] + [reso[cc] for cc in coo_comb[::-1]]))
         if has_time_planes and 3 in coo_comb:  # Initialize time planes to 1
             nn.init.ones_(new_grid_coef)
         else:
@@ -151,13 +150,11 @@ class HexPlaneField(nn.Module):
                 out_dim=config["output_coordinate_dim"],
                 reso=config["resolution"],
             )
-            # shape[1] is out-dim - Concatenate over feature len for each scale
             if self.concat_features:
                 self.feat_dim += gp[-1].shape[1]
             else:
                 self.feat_dim = gp[-1].shape[1]
             self.grids.append(gp)
-        # print(f"Initialized model grids: {self.grids}")
         print("feature_dim:",self.feat_dim)
     @property
     def get_aabb(self):
