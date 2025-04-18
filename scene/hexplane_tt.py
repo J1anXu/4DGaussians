@@ -254,7 +254,7 @@ class HexPlaneField_tt(nn.Module):
             shape = [out_dim] + [reso[cc] for cc in coo_comb[::-1]]
             order = len(shape)
             # 设定 TT 秩（可以用固定值，如 8）
-            tt_rank = 8
+            tt_rank = 16
             ranks = [1] + [tt_rank] * (order - 1) + [1]  # eg: [1, 8, 8, 1]
 
             # Step 2：构造 TT 核
