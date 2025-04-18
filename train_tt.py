@@ -424,7 +424,8 @@ def training(
 ):
     # first_iter = 0
     tb_writer = prepare_output_and_logger(expname)
-    gaussians = GaussianModel(dataset.sh_degree, hyper)
+    # 启动tt
+    gaussians = GaussianModel(dataset.sh_degree, hyper, tt = True)
     dataset.model_path = args.model_path
     timer = Timer()
     scene = Scene(dataset, gaussians, load_coarse=None)

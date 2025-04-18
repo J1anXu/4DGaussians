@@ -15,14 +15,14 @@ idx = 3
 scene = "cook_spinach"
 expname = "dynerf"
 command1 = (
-    f"python train.py "
+    f"CUDA_VISIBLE_DEVICES={idx} python train.py "
     f"-s data/{expname}/{scene} --port 600{idx} "
     f'--expname "{expname}/{scene}" '
     f"--configs arguments/{expname}/{scene}.py "
 )
 
 command2 = (
-    f"python render_parallel.py "
+    f"python render.py "
     f'--model_path "output/{expname}/{scene}" '
     "--skip_train --skip_video "
     f"--configs arguments/{expname}/{scene}.py "
@@ -33,8 +33,8 @@ command3 = (
 )
 
 # 运行命令
-subprocess.run(command1, shell=True, check=True)
+#subprocess.run(command1, shell=True, check=True)
 subprocess.run(command2, shell=True, check=True)
-subprocess.run(command3, shell=True, check=True)
+#subprocess.run(command3, shell=True, check=True)
 
 

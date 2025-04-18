@@ -151,11 +151,11 @@ class HexPlaneField(nn.Module):
                 reso=config["resolution"],
             )
 
-            # 打印 gp 中所有张量的形状
-            for idx, tt_cores in enumerate(gp):
-                print(f"Shape of tensor chain {idx}:")
-                for core_idx, core in enumerate(tt_cores):
-                    print(f"  Shape of core {core_idx}: {core.shape}")
+            # # 打印 gp 中所有张量的形状
+            # for idx, tt_cores in enumerate(gp):
+            #     print(f"Shape of tensor chain {idx}:")
+            #     for core_idx, core in enumerate(tt_cores):
+            #         print(f"  Shape of core {core_idx}: {core.shape}")
                     
             if self.concat_features:
                 self.feat_dim += gp[-1].shape[1]

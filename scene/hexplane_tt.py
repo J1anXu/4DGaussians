@@ -124,6 +124,7 @@ def interpolate_ms_features(pts: torch.Tensor,
     if concat_features:
         multi_scale_interp = torch.cat(multi_scale_interp, dim=-1)
     return multi_scale_interp
+
 def calculate_memory(tensor_list):
     total_memory = 0
     for tt_cores in tensor_list:
@@ -131,6 +132,34 @@ def calculate_memory(tensor_list):
             # 每个张量的内存 = 元素数量 × 每个元素的字节数 (float32 每个元素 4字节)
             total_memory += core.numel() * core.element_size()
     return total_memory
+
+
+
+class TensorTrain(nn.Module):
+    def __init__(self, list: nn.ParameterList):
+        super(TensorTrain, self).__init__()
+        self.param_list = list
+
+    def restore_grid_coefs(self, grid_coefs):
+        full_grid_coefs = nn.ParameterList()
+        for tt_cores in grid_coefs:
+            full_tensor = tt_to_tensor(list(tt_cores))
+            full_tensor = full_tensor.squeeze(-1)
+            core = nn.Parameter(full_tensor)
+            nn.init.ones_(core)
+            full_grid_coefs.append(core)
+        return full_grid_coefs
+    
+    def __getitem__(self, idx):
+        # 通过下标索引访问 param_list 中的元素
+        return self.restore_grid_coefs(self.param_list)[idx]
+    def __len__(self):
+        # 返回 param_list 的长度
+        return len(self.restore_grid_coefs(self.param_list))
+    
+    def forward(self):
+        # 在forward中拼接回去
+        return self.restore_grid_coefs(self.param_list)
 
 class HexPlaneField_tt(nn.Module):
     def __init__(
@@ -160,14 +189,15 @@ class HexPlaneField_tt(nn.Module):
             ] + config["resolution"][3:]
             print("prepare---------")
 
-            # Step 1: 获取 grid_coefs 此处返回的已经是张量链列表
+            # Step 1: 获取 grid_coefs 此处返回的是nn.ParameterList()
             gp_tt = self.init_grid_param(
                 grid_nd=config["grid_dimensions"],
                 in_dim=config["input_coordinate_dim"],
                 out_dim=config["output_coordinate_dim"],
                 reso=config["resolution"],
             )
-
+            # 封装一下
+            tt = TensorTrain(gp_tt)
             # Step 2: 立即还原所有张量
             gp = restore_grid_coefs(gp_tt)
 
@@ -179,8 +209,8 @@ class HexPlaneField_tt(nn.Module):
             gp_tt_memory_mb = gp_tt_memory / (1024 ** 2)
             gp_memory_mb = gp_memory / (1024 ** 2)
 
-            print(f"gp_tt 内存占用: {gp_tt_memory_mb:.2f} MB")
-            print(f"gp 内存占用: {gp_memory_mb:.2f} MB")
+            # print(f"gp_tt 内存占用: {gp_tt_memory_mb:.2f} MB")
+            # print(f"gp 内存占用: {gp_memory_mb:.2f} MB")
 
             # 打印 gp 中所有张量的形状
             for idx, tt_cores in enumerate(gp):
@@ -192,7 +222,7 @@ class HexPlaneField_tt(nn.Module):
                 self.feat_dim += gp[-1].shape[1]
             else:
                 self.feat_dim = gp[-1].shape[1]
-            self.grids.append(gp)
+            self.grids.append(tt)
 
         print("feature_dim:",self.feat_dim)
 
@@ -254,7 +284,7 @@ class HexPlaneField_tt(nn.Module):
             shape = [out_dim] + [reso[cc] for cc in coo_comb[::-1]]
             order = len(shape)
             # 设定 TT 秩（可以用固定值，如 8）
-            tt_rank = 16
+            tt_rank = 64
             ranks = [1] + [tt_rank] * (order - 1) + [1]  # eg: [1, 8, 8, 1]
 
             # Step 2：构造 TT 核

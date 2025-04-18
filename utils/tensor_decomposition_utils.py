@@ -31,7 +31,9 @@ def decom_tt(gaussians, rank_dict, decom_path):
             # TT分解 rank 可以设为 4~20 之间试试
             # 获取对应的 rank
             rank = rank_dict.get((level_1, level_2), 10)  # 默认 rank=10 如果没有指定
-            tt_tensor = TT(target_tensor, ranks_tt=rank)
+
+            tt_tensor = TT(target_tensor, eps=1e-4)
+            
             file_name = f"tt_cores_grid_{level_1}_{level_2}.pt"
             file_path = os.path.join(decom_path, file_name)
             torch.save(tt_tensor.cores, file_path)

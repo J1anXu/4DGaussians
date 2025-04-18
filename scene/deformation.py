@@ -11,13 +11,13 @@ import torch.nn.functional as F
 import torch.nn.init as init
 from utils.graphics_utils import apply_rotation, batch_quaternion_multiply
 
-from scene.hexplane_tt import HexPlaneField_tt
 from scene.hexplane import HexPlaneField
+from scene.hexplane_tt import HexPlaneField_tt
 
 from scene.grid import DenseGrid
 # from scene.grid import HashHexPlane
 class Deformation(nn.Module):
-    def __init__(self, D=8, W=256, input_ch=27, input_ch_time=9, grid_pe=0, skips=[], args=None):
+    def __init__(self, D=8, W=256, input_ch=27, input_ch_time=9, grid_pe=0, skips=[], args=None, tt=False):
         super(Deformation, self).__init__()
         self.D = D
         self.W = W
@@ -26,8 +26,11 @@ class Deformation(nn.Module):
         self.skips = skips
         self.grid_pe = grid_pe
         self.no_grid = args.no_grid
-        #HexPlaneField(args.bounds, args.kplanes_config, args.multires)
-        self.grid = HexPlaneField_tt(args.bounds, args.kplanes_config, args.multires)
+        if tt:
+            print("Using tt")
+            self.grid = HexPlaneField_tt(args.bounds, args.kplanes_config, args.multires)
+        else:
+            self.grid = HexPlaneField(args.bounds, args.kplanes_config, args.multires)
         # breakpoint()
         self.args = args
         # self.args.empty_voxel=True
@@ -171,7 +174,7 @@ class Deformation(nn.Module):
         return parameter_list
     
 class deform_network(nn.Module):
-    def __init__(self, args) :
+    def __init__(self, args, tt) :
         super(deform_network, self).__init__()
         net_width = args.net_width
         timebase_pe = args.timebase_pe
@@ -186,7 +189,7 @@ class deform_network(nn.Module):
         self.timenet = nn.Sequential(
         nn.Linear(times_ch, timenet_width), nn.ReLU(),
         nn.Linear(timenet_width, timenet_output))
-        self.deformation_net = Deformation(W=net_width, D=defor_depth, input_ch=(3)+(3*(posbase_pe))*2, grid_pe=grid_pe, input_ch_time=timenet_output, args=args)
+        self.deformation_net = Deformation(W=net_width, D=defor_depth, input_ch=(3)+(3*(posbase_pe))*2, grid_pe=grid_pe, input_ch_time=timenet_output, args=args, tt = tt)
         self.register_buffer('time_poc', torch.FloatTensor([(2**i) for i in range(timebase_pe)]))
         self.register_buffer('pos_poc', torch.FloatTensor([(2**i) for i in range(posbase_pe)]))
         self.register_buffer('rotation_scaling_poc', torch.FloatTensor([(2**i) for i in range(scale_rotation_pe)]))

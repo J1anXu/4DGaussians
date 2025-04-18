@@ -6,7 +6,7 @@ import pytz
 timezone = pytz.timezone("America/Chicago")
 current_time = datetime.now(timezone).strftime("%Y-%m-%d_%H-%M-%S")
 
-idx = 3
+idx = 4
 # cook_spinach
 # cut_roasted_beef
 # flame_salmon_1
@@ -15,7 +15,7 @@ idx = 3
 scene = "cook_spinach"
 expname = "dynerf_tt"
 command1 = (
-    f"python train.py "
+    f"python train_tt.py "
     f"-s data/dynerf/{scene} --port 600{idx} "
     f'--expname "{expname}/{scene}" '
     f"--configs arguments/dynerf/{scene}.py "
