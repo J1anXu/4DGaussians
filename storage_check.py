@@ -30,7 +30,7 @@ def print_all_file_sizes(folder_path):
 f = "/data2/jian/4DGS_ADMM/output/dynerf/cook_spinach/point_cloud/iteration_14000"
 print_all_file_sizes(f)
 
-f = "/data2/jian/4DGS_ADMM/output/dynerf_tt/cook_spinach/point_cloud/iteration_14000"
+f = "/data2/jian/4DGS_ADMM/output/dynerf_tt/cook_spinach/point_cloud/iteration_-1/decom"
 print_all_file_sizes(f)
 # f = "/data2/jian/4DGS_ADMM/output/dynerf/cook_spinach/point_cloud/iteration_14000/decom"
 # print_all_file_sizes(f)

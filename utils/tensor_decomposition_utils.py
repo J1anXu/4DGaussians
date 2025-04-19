@@ -31,14 +31,15 @@ def decom_tt(gaussians, rank_dict, decom_path):
             # TT分解 rank 可以设为 4~20 之间试试
             # 获取对应的 rank
             rank = rank_dict.get((level_1, level_2), 10)  # 默认 rank=10 如果没有指定
+
             tt_tensor = TT(target_tensor, ranks_tt=rank)
+            # tt_tensor = TT(target_tensor, eps = 1e-5)
             file_name = f"tt_cores_grid_{level_1}_{level_2}.pt"
             file_path = os.path.join(decom_path, file_name)
             torch.save(tt_tensor.cores, file_path)
-            # print(f"save success {file_path}")
             reconstructed = reconstruct_tt_tensor(tt_tensor, target_tensor.shape).to(target_tensor.device)
             rel_error = (reconstructed - target_tensor).norm() / target_tensor.norm()
-            print(f"{level_1}{level_2}rel_error:", rel_error.item())
+            print(f"{level_1}{level_2}rel_error: {rel_error.item()}, shape: {tt_tensor.shape}")
             # 将重建的张量替换回去
             grids[level_1][level_2].data.copy_(reconstructed)  # 替换 grids 中的原始张量
 

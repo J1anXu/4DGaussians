@@ -10,7 +10,7 @@
 #
 import os
 from typing_extensions import Literal
-os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,4,5,6"
 import pprint
 from pathlib import Path
 import torch.multiprocessing as mp

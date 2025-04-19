@@ -27,7 +27,7 @@ class Deformation(nn.Module):
         self.grid_pe = grid_pe
         self.no_grid = args.no_grid
         #HexPlaneField(args.bounds, args.kplanes_config, args.multires)
-        self.grid = HexPlaneField_tt(args.bounds, args.kplanes_config, args.multires)
+        self.grid = HexPlaneField(args.bounds, args.kplanes_config, args.multires)
         # breakpoint()
         self.args = args
         # self.args.empty_voxel=True
